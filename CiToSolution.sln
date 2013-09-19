@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CiTo", "CiToCLI\CiTo.csproj", "{25A49704-6805-4792-B445-DF8F08414AE5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CiToViewer", "CiToViewer\CiToViewer.csproj", "{6BC80053-8B67-4873-8899-193208F91EC6}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CiPad", "CiToPAD\CiPad.csproj", "{706860A9-7545-4F7C-9A67-CF4DA81DDE03}"
 EndProject
 Global
@@ -15,13 +17,17 @@ Global
 		{25A49704-6805-4792-B445-DF8F08414AE5}.Debug|x86.Build.0 = Debug|x86
 		{25A49704-6805-4792-B445-DF8F08414AE5}.Release|x86.ActiveCfg = Release|x86
 		{25A49704-6805-4792-B445-DF8F08414AE5}.Release|x86.Build.0 = Release|x86
+		{6BC80053-8B67-4873-8899-193208F91EC6}.Debug|x86.ActiveCfg = Debug|x86
+		{6BC80053-8B67-4873-8899-193208F91EC6}.Debug|x86.Build.0 = Debug|x86
+		{6BC80053-8B67-4873-8899-193208F91EC6}.Release|x86.ActiveCfg = Release|x86
+		{6BC80053-8B67-4873-8899-193208F91EC6}.Release|x86.Build.0 = Release|x86
 		{706860A9-7545-4F7C-9A67-CF4DA81DDE03}.Debug|x86.ActiveCfg = Debug|Any CPU
 		{706860A9-7545-4F7C-9A67-CF4DA81DDE03}.Debug|x86.Build.0 = Debug|Any CPU
 		{706860A9-7545-4F7C-9A67-CF4DA81DDE03}.Release|x86.ActiveCfg = Release|Any CPU
 		{706860A9-7545-4F7C-9A67-CF4DA81DDE03}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = CiToCLI\CiTo.csproj
+		StartupItem = CiToViewer\CiToViewer.csproj
 		Policies = $0
 		$0.TextStylePolicy = $1
 		$1.FileWidth = 200
