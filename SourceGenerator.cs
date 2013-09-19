@@ -29,7 +29,7 @@ public abstract class SourceGenerator : ICiStatementVisitor
 {
 	public string OutputFile;
 	public TextWriterFactory CreateTextWriter = CreateFileWriter;
-	TextWriter Writer;
+	protected TextWriter Writer;
 	protected int Indent = 0;
 	bool AtLineStart = true;
 
@@ -40,7 +40,7 @@ public abstract class SourceGenerator : ICiStatementVisitor
 		return w;
 	}
 
-	void StartLine()
+	protected virtual void StartLine() 
 	{
 		if (this.AtLineStart) {
 			for (int i = 0; i < this.Indent; i++)
@@ -49,25 +49,25 @@ public abstract class SourceGenerator : ICiStatementVisitor
 		}
 	}
 
-	protected void Write(char c)
+	protected virtual void Write(char c)
 	{
 		StartLine();
 		this.Writer.Write(c);
 	}
 
-	protected void Write(string s)
+	protected virtual void Write(string s)
 	{
 		StartLine();
 		this.Writer.Write(s);
 	}
 
-	protected void Write(int i)
+	protected virtual void Write(int i)
 	{
 		StartLine();
 		this.Writer.Write(i);
 	}
 
-	protected void WriteLowercase(string s)
+	protected virtual void WriteLowercase(string s)
 	{
 		foreach (char c in s)
 			this.Writer.Write(char.ToLowerInvariant(c));
@@ -78,14 +78,14 @@ public abstract class SourceGenerator : ICiStatementVisitor
 		return char.ToLowerInvariant(s[0]) + s.Substring(1);
 	}
 
-	protected void WriteCamelCase(string s)
+	protected virtual void WriteCamelCase(string s)
 	{
 		StartLine();
 		this.Writer.Write(char.ToLowerInvariant(s[0]));
 		this.Writer.Write(s.Substring(1));
 	}
 
-	protected void WriteUppercaseWithUnderscores(string s)
+	protected virtual void WriteUppercaseWithUnderscores(string s)
 	{
 		StartLine();
 		bool first = true;
@@ -100,7 +100,7 @@ public abstract class SourceGenerator : ICiStatementVisitor
 		}
 	}
 
-	protected void WriteLowercaseWithUnderscores(string s)
+	protected virtual void WriteLowercaseWithUnderscores(string s)
 	{
 		StartLine();
 		bool first = true;
@@ -116,20 +116,20 @@ public abstract class SourceGenerator : ICiStatementVisitor
 		}
 	}
 
-	protected void WriteLine()
+	protected virtual void WriteLine()
 	{
 		this.Writer.WriteLine();
 		this.AtLineStart = true;
 	}
 
-	protected void WriteLine(string s)
+	protected virtual void WriteLine(string s)
 	{
 		StartLine();
 		this.Writer.WriteLine(s);
 		this.AtLineStart = true;
 	}
 
-	protected void WriteLine(string format, params object[] args)
+	protected virtual void WriteLine(string format, params object[] args)
 	{
 		StartLine();
 		this.Writer.WriteLine(format, args);
@@ -245,13 +245,13 @@ public abstract class SourceGenerator : ICiStatementVisitor
 		this.Writer.Close();
 	}
 
-	protected void OpenBlock()
+	protected virtual void OpenBlock()
 	{
 		WriteLine("{");
 		this.Indent++;
 	}
 
-	protected void CloseBlock()
+	protected virtual void CloseBlock()
 	{
 		this.Indent--;
 		WriteLine("}");
@@ -467,7 +467,7 @@ public abstract class SourceGenerator : ICiStatementVisitor
 		Write(')');
 	}
 
-	protected void WriteArguments(CiMethodCall expr)
+	protected virtual void WriteArguments(CiMethodCall expr)
 	{
 		Write('(');
 		bool first = true;
@@ -497,7 +497,7 @@ public abstract class SourceGenerator : ICiStatementVisitor
 		WriteArguments(expr);
 	}
 
-	void Write(CiUnaryExpr expr)
+	protected virtual void Write(CiUnaryExpr expr)
 	{
 		switch (expr.Op) {
 		case CiToken.Increment: Write("++"); break;
@@ -509,13 +509,13 @@ public abstract class SourceGenerator : ICiStatementVisitor
 		WriteChild(expr, expr.Inner);
 	}
 
-	void Write(CiCondNotExpr expr)
+	protected virtual void Write(CiCondNotExpr expr)
 	{
 		Write('!');
 		WriteChild(expr, expr.Inner);
 	}
 
-	void Write(CiPostfixExpr expr)
+	protected virtual void Write(CiPostfixExpr expr)
 	{
 		WriteChild(expr, expr.Inner);
 		switch (expr.Op) {
@@ -525,7 +525,7 @@ public abstract class SourceGenerator : ICiStatementVisitor
 		}
 	}
 
-	protected void WriteOp(CiBinaryExpr expr)
+	protected virtual void WriteOp(CiBinaryExpr expr)
 	{
 		switch (expr.Op) {
 		case CiToken.Plus: Write(" + "); break;
@@ -619,7 +619,7 @@ public abstract class SourceGenerator : ICiStatementVisitor
 		WriteInline(expr.Inner);
 	}
 
-	protected void Write(CiExpr expr)
+	protected virtual void Write(CiExpr expr)
 	{
 		if (expr is CiConstExpr)
 			WriteConst(((CiConstExpr) expr).Value);
@@ -855,14 +855,14 @@ public abstract class SourceGenerator : ICiStatementVisitor
 		WriteChild(stmt.Body);
 	}
 
-	protected void Write(ICiStatement stmt)
+	protected virtual void Write(ICiStatement stmt)
 	{
 		stmt.Accept(this);
 		if ((stmt is CiMaybeAssign || stmt is CiVar) && !this.AtLineStart)
 			WriteLine(";");
 	}
 
-	protected void OpenClass(bool isAbstract, CiClass klass, string extendsClause)
+	protected virtual void OpenClass(bool isAbstract, CiClass klass, string extendsClause)
 	{
 		if (isAbstract)
 			Write("abstract ");
