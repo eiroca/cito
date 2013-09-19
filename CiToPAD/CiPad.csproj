@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <OutputType>WinExe</OutputType>
@@ -7,6 +7,10 @@
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <ProjectGuid>{706860A9-7545-4F7C-9A67-CF4DA81DDE03}</ProjectGuid>
     <ApplicationIcon>ci-logo.ico</ApplicationIcon>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ReleaseVersion>0.5</ReleaseVersion>
+    <ProductVersion>10.0.0</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,6 +25,12 @@
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -28,33 +38,79 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AssemblyInfo.cs" />
-    <Compile Include="CiDocLexer.cs" />
-    <Compile Include="CiDocParser.cs" />
-    <Compile Include="CiLexer.cs" />
-    <Compile Include="CiMacroProcessor.cs" />
+    <Compile Include="..\CiTo\CiDocLexer.cs">
+      <Link>CiDocLexer.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\CiDocParser.cs">
+      <Link>CiDocParser.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\CiLexer.cs">
+      <Link>CiLexer.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\CiMacroProcessor.cs">
+      <Link>CiMacroProcessor.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\CiParser.cs">
+      <Link>CiParser.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\CiResolver.cs">
+      <Link>CiResolver.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\CiTree.cs">
+      <Link>CiTree.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\SymbolTable.cs">
+      <Link>SymbolTable.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenAs.cs">
+      <Link>GenAs.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenC.cs">
+      <Link>GenC.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenC89.cs">
+      <Link>GenC89.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenCs.cs">
+      <Link>GenCs.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenD.cs">
+      <Link>GenD.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenJava.cs">
+      <Link>GenJava.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenJs.cs">
+      <Link>GenJs.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenJsWithTypedArrays.cs">
+      <Link>GenJsWithTypedArrays.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenPas.cs">
+      <Link>GenPas.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenPerl5.cs">
+      <Link>GenPerl5.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenPerl510.cs">
+      <Link>GenPerl510.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenPerl58.cs">
+      <Link>GenPerl58.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenPHP.cs">
+      <Link>GenPHP.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\SourceGenerator.cs">
+      <Link>SourceGenerator.cs</Link>
+    </Compile>
     <Compile Include="CiPad.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="CiParser.cs" />
-    <Compile Include="CiResolver.cs" />
-    <Compile Include="CiTree.cs" />
-    <Compile Include="GenAs.cs" />
-    <Compile Include="GenC.cs" />
-    <Compile Include="GenC89.cs" />
-    <Compile Include="GenCs.cs" />
-    <Compile Include="GenD.cs" />
-    <Compile Include="GenJava.cs" />
-    <Compile Include="GenJs.cs" />
-    <Compile Include="GenJsWithTypedArrays.cs" />
-    <Compile Include="GenPas.cs" />
-    <Compile Include="GenPerl5.cs" />
-    <Compile Include="GenPerl510.cs" />
-    <Compile Include="GenPerl58.cs" />
-    <Compile Include="GenPHP.cs" />
-    <Compile Include="SourceGenerator.cs" />
-    <Compile Include="SourceHelper.cs" />
-    <Compile Include="SymbolTable.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="..\CiTo\SourceHelper.cs">
+      <Link>SourceHelper.cs</Link>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Content Include="ci-logo.ico" />

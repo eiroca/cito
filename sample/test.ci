@@ -1,0 +1,10 @@
+public delegate void StringConsumer(string s);
+
+public delegate void ByteWriter(int data);
+
+public class HelloCi {
+	public static byte[] Fill(byte c) {
+	   byte[5] res = 0;
+	   return res;
+	}
+}

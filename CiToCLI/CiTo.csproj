@@ -1,51 +1,111 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-	<PropertyGroup>
-		<Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-		<OutputType>Exe</OutputType>
-		<AssemblyName>CiTo</AssemblyName>
-		<TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
-	</PropertyGroup>
-	<PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-		<DebugSymbols>true</DebugSymbols>
-		<DebugType>full</DebugType>
-		<Optimize>false</Optimize>
-		<OutputPath>bin\Debug\</OutputPath>
-		<DefineConstants>DEBUG;TRACE</DefineConstants>
-	</PropertyGroup>
-	<PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-		<DebugType>pdbonly</DebugType>
-		<Optimize>true</Optimize>
-		<OutputPath>bin\Release\</OutputPath>
-		<DefineConstants>TRACE</DefineConstants>
-	</PropertyGroup>
-	<ItemGroup>
-		<Reference Include="System" />
-		<Reference Include="System.Core" />
-	</ItemGroup>
-	<ItemGroup>
-		<Compile Include="AssemblyInfo.cs" />
-		<Compile Include="CiDocLexer.cs" />
-		<Compile Include="CiDocParser.cs" />
-		<Compile Include="CiLexer.cs" />
-		<Compile Include="CiMacroProcessor.cs" />
-		<Compile Include="CiParser.cs" />
-		<Compile Include="CiResolver.cs" />
-		<Compile Include="CiTo.cs" />
-		<Compile Include="CiTree.cs" />
-		<Compile Include="GenAs.cs" />
-		<Compile Include="GenC.cs" />
-		<Compile Include="GenC89.cs" />
-		<Compile Include="GenCs.cs" />
-		<Compile Include="GenD.cs" />
-		<Compile Include="GenJava.cs" />
-		<Compile Include="GenJs.cs" />
-		<Compile Include="GenJsWithTypedArrays.cs" />
-		<Compile Include="GenPerl5.cs" />
-		<Compile Include="GenPerl510.cs" />
-		<Compile Include="GenPerl58.cs" />
-		<Compile Include="SourceGenerator.cs" />
-		<Compile Include="SymbolTable.cs" />
-	</ItemGroup>
-	<Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProductVersion>10.0.0</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{25A49704-6805-4792-B445-DF8F08414AE5}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>CiToCLI</RootNamespace>
+    <AssemblyName>CiTo</AssemblyName>
+    <ReleaseVersion>0.5</ReleaseVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Externalconsole>true</Externalconsole>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <DebugType>full</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Externalconsole>true</Externalconsole>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="..\CiTo\CiDocLexer.cs">
+      <Link>CiDocLexer.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\CiDocParser.cs">
+      <Link>CiDocParser.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\CiLexer.cs">
+      <Link>CiLexer.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\CiMacroProcessor.cs">
+      <Link>CiMacroProcessor.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\CiParser.cs">
+      <Link>CiParser.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\CiResolver.cs">
+      <Link>CiResolver.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\CiTree.cs">
+      <Link>CiTree.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\SymbolTable.cs">
+      <Link>SymbolTable.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenAs.cs">
+      <Link>GenAs.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenC.cs">
+      <Link>GenC.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenC89.cs">
+      <Link>GenC89.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenCs.cs">
+      <Link>GenCs.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenD.cs">
+      <Link>GenD.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenJava.cs">
+      <Link>GenJava.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenJs.cs">
+      <Link>GenJs.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenJsWithTypedArrays.cs">
+      <Link>GenJsWithTypedArrays.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenPas.cs">
+      <Link>GenPas.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenPerl5.cs">
+      <Link>GenPerl5.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenPerl58.cs">
+      <Link>GenPerl58.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenPerl510.cs">
+      <Link>GenPerl510.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\GenPHP.cs">
+      <Link>GenPHP.cs</Link>
+    </Compile>
+    <Compile Include="CiTo.cs" />
+    <Compile Include="..\CiTo\SourceGenerator.cs">
+      <Link>SourceGenerator.cs</Link>
+    </Compile>
+    <Compile Include="..\CiTo\SourceHelper.cs">
+      <Link>SourceHelper.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
