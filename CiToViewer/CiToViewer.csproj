@@ -8,9 +8,9 @@
     <ProjectGuid>{6BC80053-8B67-4873-8899-193208F91EC6}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <RootNamespace>CiToViewer</RootNamespace>
-    <AssemblyName>CiToPAD</AssemblyName>
+    <AssemblyName>CiToViewer</AssemblyName>
     <ReleaseVersion>0.5</ReleaseVersion>
-    <BaseDirectory>.</BaseDirectory>
+    <ApplicationIcon>..\CiToPAD\ci-logo.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>
@@ -138,4 +138,7 @@
     </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <None Include="ci-logo.ico" />
+  </ItemGroup>
 </Project>

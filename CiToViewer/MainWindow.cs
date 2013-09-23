@@ -32,6 +32,7 @@ public partial class MainWindow: Gtk.Window {
   public MainWindow(): base (Gtk.WindowType.Toplevel) {
     Build();
     tvSource.Buffer.Changed += OnSourceChange;
+    iNameSpace.Changed += OnSourceChange;
     lbMsg.Text = "";
     TranslateCode();
     PopulateCombo(cbSource, Project.GetSources());
