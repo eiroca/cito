@@ -91,6 +91,15 @@ public class AA_TestType {
 		aField09 = null;
 		aField10 = null;
 	}
+	
+	public int TestAssign(int i) {
+		int a;
+		int b;
+		int c;
+		a = b = c = i;
+		b = (c == 1) ? (a == 2) ? 1 : 2 : 3;
+		return (a == 0) ? 1 : 2;
+	}
 }
 
 public class AB_TestClass {

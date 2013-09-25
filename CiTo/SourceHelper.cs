@@ -51,43 +51,43 @@ namespace Foxoft.Ci {
         }
       }
       else if (stmt is CiFor) {
-          CiFor loop = (CiFor)stmt;
-          if (Execute(loop.Init, action)) {
-            return true;
-          }
-          if (Execute(loop.Body, action)) {
-            return true;
-          }
-          if (Execute(loop.Advance, action)) {
+        CiFor loop = (CiFor)stmt;
+        if (Execute(loop.Init, action)) {
+          return true;
+        }
+        if (Execute(loop.Body, action)) {
+          return true;
+        }
+        if (Execute(loop.Advance, action)) {
+          return true;
+        }
+      }
+      else if (stmt is CiLoop) {
+        CiLoop loop = (CiLoop)stmt;
+        if (Execute(loop.Body, action)) {
+          return true;
+        }
+      }
+      else if (stmt is CiIf) {
+        CiIf iiff = (CiIf)stmt;
+        if (Execute(iiff.OnTrue, action)) {
+          return true;
+        }
+        if (Execute(iiff.OnFalse, action)) {
+          return true;
+        }
+      }
+      else if (stmt is CiSwitch) {
+        CiSwitch swith = (CiSwitch)stmt;
+        foreach (CiCase cas in swith.Cases) {
+          if (Execute(cas.Body, action)) {
             return true;
           }
         }
-        else if (stmt is CiLoop) {
-            CiLoop loop = (CiLoop)stmt;
-            if (Execute(loop.Body, action)) {
-              return true;
-            }
-          }
-          else if (stmt is CiIf) {
-              CiIf iiff = (CiIf)stmt;
-              if (Execute(iiff.OnTrue, action)) {
-                return true;
-              }
-              if (Execute(iiff.OnFalse, action)) {
-                return true;
-              }
-            }
-            else if (stmt is CiSwitch) {
-                CiSwitch swith = (CiSwitch)stmt;
-                foreach (CiCase cas in swith.Cases) {
-                  if (Execute(cas.Body, action)) {
-                    return true;
-                  }
-                }
-                if (Execute(swith.DefaultBody, action)) {
-                  return true;
-                }
-              }
+        if (Execute(swith.DefaultBody, action)) {
+          return true;
+        }
+      }
       return false;
     }
 
@@ -191,21 +191,21 @@ namespace Foxoft.Ci {
         SuperType.AddType(v.Type);
       }
       else if (stmt is CiSwitch) {
-          CiSwitch swith = (CiSwitch)stmt;
-          bool needExit = false;
-          foreach (CiCase kase in swith.Cases) {
-            needExit = CheckCode(kase.Body);
-            if (needExit) {
-              break;
-            }
-          }
-          if (!needExit) {
-            needExit = CheckCode(swith.DefaultBody);
-          }
+        CiSwitch swith = (CiSwitch)stmt;
+        bool needExit = false;
+        foreach (CiCase kase in swith.Cases) {
+          needExit = CheckCode(kase.Body);
           if (needExit) {
-            BreakExit.AddSwitch(method, swith);
+            break;
           }
         }
+        if (!needExit) {
+          needExit = CheckCode(swith.DefaultBody);
+        }
+        if (needExit) {
+          BreakExit.AddSwitch(method, swith);
+        }
+      }
       return false;
     }
   }
@@ -478,53 +478,66 @@ namespace Foxoft.Ci {
         }
       }
       else if (elem == CiBoolType.Value) {
-          name.Append("boolean");
-          def.Append("boolean");
-          info.ItemDefault = "false";
-          info.ItemType = "boolean";
-          if (info.Native) {
-            nul.Append("''");
-          }
-          else {
-            nul.Append("boolean");
-          }
+        name.Append("boolean");
+        def.Append("boolean");
+        info.ItemDefault = "false";
+        info.ItemType = "boolean";
+        if (info.Native) {
+          nul.Append("''");
         }
-        else if (elem == CiByteType.Value) {
-            name.Append("byte");
-            def.Append("byte");
-            info.ItemDefault = "0";
-            info.ItemType = "byte";
-            if (info.Native) {
-              nul.Append("0");
-            }
-            else {
-              nul.Append("byte");
-            }
-          }
-          else if (elem == CiIntType.Value) {
-              name.Append("integer");
-              def.Append("integer");
-              info.ItemDefault = "0";
-              info.ItemType = "integer";
-              if (info.Native) {
-                nul.Append("0");
-              }
-              else {
-                nul.Append("integer");
-              }
-            }
-            else {
-              name.Append(elem.Name);
-              def.Append(elem.Name);
-              info.ItemDefault = "nil";
-              if (info.Native) {
-                nul.Append("nil");
-              }
-              else {
-                nul.Append(elem.Name);
-              }
-              info.ItemType = elem.Name;
-            }
+        else {
+          nul.Append("boolean");
+        }
+      }
+      else if (elem == CiByteType.Value) {
+        name.Append("byte");
+        def.Append("byte");
+        info.ItemDefault = "0";
+        info.ItemType = "byte";
+        if (info.Native) {
+          nul.Append("0");
+        }
+        else {
+          nul.Append("byte");
+        }
+      }
+      else if (elem == CiIntType.Value) {
+        name.Append("integer");
+        def.Append("integer");
+        info.ItemDefault = "0";
+        info.ItemType = "integer";
+        if (info.Native) {
+          nul.Append("0");
+        }
+        else {
+          nul.Append("integer");
+        }
+      }
+      else if (elem is CiEnum) {
+        name.Append(elem.Name);
+        def.Append(elem.Name);
+        var ev = ((CiEnum)elem).Values[0];
+        info.ItemDefault = ev.Type.Name + "." + ev.Name;
+        if (info.Native) {
+          nul.Append(info.ItemDefault);
+        }
+        else {
+          nul.Append(elem.Name);
+        }
+        info.ItemType = elem.Name;
+      }
+      else {
+        name.Append(elem.Name);
+        def.Append(elem.Name);
+        info.ItemDefault = "nil";
+        if (info.Native) {
+          nul.Append("nil");
+        }
+        else {
+          nul.Append(elem.Name);
+        }
+        info.ItemType = elem.Name;
+      }
       info.Name = name.ToString();
       info.Definition = def.ToString();
       info.Null = nul.ToString();
@@ -636,33 +649,33 @@ namespace Foxoft.Ci {
       if (expr == null)
         return CiType.Null;
       else if (expr is CiUnaryExpr) {
-          var e = (CiUnaryExpr)expr;
-          CiType t = Analyze(e.Inner);
-          exprMap.Add(e.Inner, t);
-          return t;
+        var e = (CiUnaryExpr)expr;
+        CiType t = Analyze(e.Inner);
+        exprMap.Add(e.Inner, t);
+        return t;
+      }
+      else if (expr is CiPostfixExpr) {
+        var e = (CiPostfixExpr)expr;
+        CiType t = Analyze(e.Inner);
+        exprMap.Add(e.Inner, t);
+        return t;
+      }
+      else if (expr is CiBinaryExpr) {
+        var e = (CiBinaryExpr)expr;
+        CiType left = Analyze(e.Left);
+        CiType right = Analyze(e.Right);
+        CiType t = ((left == null) || (left == CiType.Null)) ? right : left;
+        if (!exprMap.ContainsKey(e.Left)) {
+          exprMap.Add(e.Left, t);
         }
-        else if (expr is CiPostfixExpr) {
-            var e = (CiPostfixExpr)expr;
-            CiType t = Analyze(e.Inner);
-            exprMap.Add(e.Inner, t);
-            return t;
-          }
-          else if (expr is CiBinaryExpr) {
-              var e = (CiBinaryExpr)expr;
-              CiType left = Analyze(e.Left);
-              CiType right = Analyze(e.Right);
-              CiType t = ((left == null) || (left == CiType.Null)) ? right : left;
-              if (!exprMap.ContainsKey(e.Left)) {
-                exprMap.Add(e.Left, t);
-              }
-              if (!exprMap.ContainsKey(e.Right)) {
-                exprMap.Add(e.Right, t);
-              }
-              return t;
-            }
-            else {
-              return expr.Type;
-            }
+        if (!exprMap.ContainsKey(e.Right)) {
+          exprMap.Add(e.Right, t);
+        }
+        return t;
+      }
+      else {
+        return expr.Type;
+      }
     }
   }
 

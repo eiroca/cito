@@ -1036,16 +1036,8 @@ namespace Foxoft.Ci {
         Write(" )");
       }
       else if (value == null) {
-        if ((type is CiStringType) || (type is CiStringPtrType) || (type is CiStringStorageType)) {
-          Write("''");
-        }
-        else if ((type is CiArrayStorageType) || (type is CiArrayPtrType)) {
-          Write("EMPTY_");
-          Write(type);
-        }
-        else {
-          Write("nil");
-        }
+        TypeMappingInfo info = SuperType.GetTypeInfo(type);
+        Write(info.Null);
       }
       else if (value is bool) {
         Write((bool)value ? "true" : "false");
@@ -1057,14 +1049,17 @@ namespace Foxoft.Ci {
         Write((int)value);
       }
       else if (value is CiEnumValue) {
-        CiEnumValue ev = (CiEnumValue)value;
-        Write(ev.Type.Name);
-        Write('.');
-        Write(ev.Name);
+        WriteEnumValue((CiEnumValue)value);
       }
       else {
         throw new ArgumentException(value.ToString());
       }
+    }
+
+    private void WriteEnumValue(CiEnumValue ev) {
+      Write(ev.Type.Name);
+      Write('.');
+      Write(ev.Name);
     }
 
     virtual protected void WriteConstFull(CiConst konst) {
@@ -1453,6 +1448,16 @@ namespace Foxoft.Ci {
       }
     }
 
+    protected void WriteInline(CiType type, CiMaybeAssign expr) {
+      if (expr is CiExpr) {
+        var exp = (CiExpr)expr;
+        WriteExpr(type ?? ExprType.Get(exp), exp);
+      }
+      else {
+        Visit((CiAssign)expr);
+      }
+    }
+
     public void WriteAssign(CiVar Target, CiExpr Source) {
       if (!NoIIFExpand.In(1) && (Source is CiCondExpr)) {
         CiCondExpr expr = (CiCondExpr)Source;
@@ -1471,7 +1476,7 @@ namespace Foxoft.Ci {
       else {
         NoIIFExpand.Push(1);
         WriteAssign(Target);
-        WriteInline(Source);
+        WriteInline(Target.Type, Source);
         NoIIFExpand.Pop();
       }
 			
@@ -1495,7 +1500,7 @@ namespace Foxoft.Ci {
       else {
         NoIIFExpand.Push(1);
         WriteAssign(Target, Op);
-        WriteInline(Source);
+        WriteInline(Target.Type, Source);
         NoIIFExpand.Pop();
       }
     }
