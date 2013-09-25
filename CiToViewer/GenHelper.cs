@@ -32,9 +32,9 @@ namespace CiToViewer {
     public string Language;
     public string Extension;
     public bool SplitFile;
-    public SourceGenerator Generator;
+    public IGenerator Generator;
 
-    public GenInfo(string ID, string language, string extension, bool splitFile, SourceGenerator generator) {
+    public GenInfo(string ID, string language, string extension, bool splitFile, IGenerator generator) {
       this.ID = ID;
       this.Language = language;
       this.Extension = extension;
@@ -48,19 +48,18 @@ namespace CiToViewer {
     public Dictionary<string, GenInfo> Generators = new Dictionary<string, GenInfo>();
 
     public GenHelper() {
-      string NameSpace = "cito";
-      Add(new GenInfo("10", "Object Pascal", "pas", false, new GenPas(NameSpace)));
-      Add(new GenInfo("20", "PHP", "php", false, new GenPHP(NameSpace)));
-      Add(new GenInfo("30", "Java", "java", true, new GenJava(NameSpace)));
+      Add(new GenInfo("10", "Object Pascal", "pas", false, new GenPas()));
+      Add(new GenInfo("20", "PHP", "php", false, new GenPHP()));
+      Add(new GenInfo("30", "Java", "java", true, new GenJava()));
       Add(new GenInfo("40", "C89", "c", false, new GenC89()));
       Add(new GenInfo("41", "C99", "c99", false, new GenC()));
       Add(new GenInfo("50", "D", "d", false, new GenD()));
-      Add(new GenInfo("60", "C#", "cs", false, new GenCs(NameSpace)));
-      Add(new GenInfo("70", "Perl 5.8", "pm", false, new GenPerl58(NameSpace)));
-      Add(new GenInfo("71", "Perl 5.10", "pm510", false, new GenPerl510(NameSpace)));
+      Add(new GenInfo("60", "C#", "cs", false, new GenCs()));
+      Add(new GenInfo("70", "Perl 5.8", "pm", false, new GenPerl58()));
+      Add(new GenInfo("71", "Perl 5.10", "pm510", false, new GenPerl510()));
       Add(new GenInfo("80", "JavaScript", "js", false, new GenJs()));
       Add(new GenInfo("81", "JavaScript (Typed Arrays)", "js-ta", false, new GenJsWithTypedArrays()));
-      Add(new GenInfo("90", "Action Script", "as", true, new GenAs(NameSpace)));
+      Add(new GenInfo("90", "Action Script", "as", true, new GenAs()));
     }
 
     protected void Add(GenInfo generator) {

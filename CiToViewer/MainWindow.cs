@@ -80,8 +80,15 @@ public partial class MainWindow: Gtk.Window {
   }
 
   protected void OnOpen(object sender, EventArgs e) {
-    tvSource.Buffer.Text = "";
     FileChooserDialog chooser = new FileChooserDialog("Please select a Ci file to view ...", this, FileChooserAction.Open, "Cancel", ResponseType.Cancel, "Open", ResponseType.Accept);
+    FileFilter filter_1 = new FileFilter();
+    filter_1.Name = "Ć files";
+    filter_1.AddPattern("*.ci");
+    FileFilter filter_2 = new FileFilter();
+    filter_2.Name = "All files";
+    filter_2.AddPattern("*");
+    chooser.AddFilter(filter_1);
+    chooser.AddFilter(filter_2);
     chooser.SelectMultiple = true;
     if (chooser.Run() == (int)ResponseType.Accept) {
       lbMsg.Text = "File(s) loaded.";

@@ -97,13 +97,11 @@ namespace CiToViewer {
       if (Language == null) {
         return;
       }
-      if (NameSpace == null) {
-        NameSpace = "cito";
-      }
       GenInfo generator = Generator.GetGenerator(Language);
       if (generator == null) {
         return;
       }
+
       CiParser parser = new CiParser();
       foreach (ProjectFile file in Source.Values) {
         parser.Parse(file.Name, new StringReader(file.Code));
@@ -112,14 +110,14 @@ namespace CiToViewer {
       CiResolver resolver = new CiResolver();
       resolver.SearchDirs = GetSourceDirs();
       resolver.Resolve(program);
-      // generator.NameSpace = NameSpace;
-      generator.Generator.CreateTextWriter = CreateTargetWriter;
+      generator.Generator.SetTextWriterFactory(CreateTargetWriter);
       if (generator.SplitFile) {
-        generator.Generator.OutputFile = ".";
+        generator.Generator.SetOutputFile(".");
       }
       else {
-        generator.Generator.OutputFile = Path.ChangeExtension(NameSpace, generator.Extension);
+        generator.Generator.SetOutputFile(Path.ChangeExtension(NameSpace ?? "cito", generator.Extension));
       }
+      generator.Generator.SetNamespace(NameSpace);
       generator.Generator.Write(program);
     }
   }

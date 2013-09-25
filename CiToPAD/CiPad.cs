@@ -176,20 +176,20 @@ namespace Foxoft.Ci
 				CiResolver resolver = new CiResolver();
 				resolver.SearchDirs = this.SearchDirs;
 				resolver.Resolve(program);
-				this.C89Group.Load (program, new GenC89 { OutputFile = "hello.c" });
-				this.C99Group.Load (program, new GenC   { OutputFile = "hello99.c" });
-				this.CsGroup.Load  (program, new GenCs(null) { OutputFile = "hello.cs" });
-				this.JavaGroup.Load(program, new GenJava(null) { OutputFile = "." });
+				this.C89Group.Load (program, new GenC89()       { OutputFile = "hello.c" });
+				this.C99Group.Load (program, new GenC()         { OutputFile = "hello99.c" });
+				this.CsGroup.Load  (program, new GenCs()        { OutputFile = "hello.cs" });
+				this.JavaGroup.Load(program, new GenJava()      { OutputFile = "." });
 
-				this.PasGroup.Load  (program, new GenPas("Hello") {OutputFile = "hello.pas"});
-				this.DGroup.Load    (program, new GenD { OutputFile = "hello.d" });
-				this.Perl1Group.Load(program, new GenPerl58(null) { OutputFile = "hello.pm" });
-				this.Perl2Group.Load(program, new GenPerl510(null) { OutputFile = "hello-5.10.pm" });
+				this.PasGroup.Load  (program, new GenPas()      {OutputFile = "hello.pas", Namespace = "Hello"});
+				this.DGroup.Load    (program, new GenD()        { OutputFile = "hello.d" });
+				this.Perl1Group.Load(program, new GenPerl58()   { OutputFile = "hello.pm" });
+				this.Perl2Group.Load(program, new GenPerl510()  { OutputFile = "hello-5.10.pm" });
 
-				this.PHPGroup.Load(program, new GenPHP("Hello") {OutputFile = "hello.php"});
-				this.Js1Group.Load(program, new GenJs() { OutputFile = "hello.js" });
+				this.PHPGroup.Load(program, new GenPHP()        {OutputFile = "hello.php", Namespace = "Hello"});
+				this.Js1Group.Load(program, new GenJs()         { OutputFile = "hello.js" });
 				this.Js2Group.Load(program, new GenJsWithTypedArrays() { OutputFile = "hello-Typed-Arrays.js" });
-				this.AsGroup.Load (program, new GenAs(null) { OutputFile = "." });
+				this.AsGroup.Load (program, new GenAs()         { OutputFile = "." });
 
 				this.Messages.BackColor = SystemColors.Window;
 				this.Messages.Text = "OK";
@@ -307,14 +307,14 @@ namespace Foxoft.Ci
 			return new CiPadWriter(this, filename);
 		}
 
-		public void Load(CiProgram program, params SourceGenerator[] gens)
+		public void Load(CiProgram program, params IGenerator[] gens)
 		{
 			this.TabsToRemove = new HashSet<TabPage>(this.TabPages);
-			foreach (SourceGenerator gen in gens) {
+			foreach (IGenerator gen in gens) {
 				gen.Write(program);
 			}
-			foreach (SourceGenerator gen in gens) {
-				gen.CreateTextWriter = this.CreatePadWriter;
+			foreach (IGenerator gen in gens) {
+				gen.SetTextWriterFactory(this.CreatePadWriter);
 				gen.Write(program);
 			}
 			foreach (TabPage page in this.TabsToRemove) {

@@ -25,15 +25,15 @@ namespace Foxoft.Ci
 
 public class GenJava : SourceGenerator, ICiSymbolVisitor
 {
-	string Namespace;
 	bool UsesSubstringMethod;
 	bool UsesClearBytesMethod;
 	bool UsesClearIntsMethod;
 
-	public GenJava(string namespace_)
-	{
-		this.Namespace = namespace_;
-	}
+    public GenJava(string aNamespace) : base(aNamespace) {
+    }
+
+    public GenJava() : base() {
+    }
 
 	void Write(CiVisibility visibility)
 	{

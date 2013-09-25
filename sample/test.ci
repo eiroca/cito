@@ -1,10 +1,121 @@
-public delegate void StringConsumer(string s);
+public delegate void DelegateToProcedure(int i);
+public delegate int  DelegateToFunction();
 
-public delegate void ByteWriter(int data);
+public enum MyEnum {
+	a,
+	b,
+	c
+}
 
-public class HelloCi {
-	public static byte[] Fill(byte c) {
-	   byte[5] res = 0;
-	   return res;
+public class SampleClass {
+}
+
+public class AA_TestType {
+	int Field01;
+	byte Field02;
+	string Field03;
+	byte[] Field04;
+	int[] Field05;
+	string[] Field06;
+	MyEnum Field07;
+	MyEnum[] Field08;
+	SampleClass Field09;
+	SampleClass[] Field10;
+
+	public AA_TestType() {
+		Field01 = 10;
+		Field02 = Field01;
+		Field03 = "eIrOcA";
+		Field04 = new byte[100];
+		Field05 = new int[Field01];
+		Field06 = new string[1];
+		Field06[0] = Field03;
+		Field08 = new MyEnum[3];
+		Field07 = MyEnum.a;
+		Field09 = new SampleClass();
+		Field10 = new SampleClass[10];
+		for (int i=0; i<10; i++) Field10[i] = Field09;
 	}
+
+	public void Clear() {
+		Field01 = 0;
+		Field02 = 0;
+		Field03 = null;
+		Field04 = null;
+		Field05 = null;
+		Field06 = null;
+		Field07 = MyEnum.b;
+		Field08 = null;
+		Field09 = null;
+		Field10 = null;
+	}
+
+	public void Locals() {
+		int aField01;
+		byte aField02;
+		string aField03;
+		byte[] aField04;
+		int[] aField05;
+		string[] aField06;
+		MyEnum aField07;
+		MyEnum[] aField08;
+		SampleClass aField09;
+		SampleClass[] aField10;
+
+		aField01 = 10;
+		aField02 = aField01;
+		aField03 = "eIrOcA";
+		aField04 = new byte[10];
+		aField05 = new int[10];
+		aField06 = new string[10];
+		aField08 = new MyEnum[10];
+		aField07 = MyEnum.a;
+		aField09 = new SampleClass();
+		aField10 = new SampleClass[10];
+		for (int i=0; i<10; i++) {
+			aField04[i] = 1;
+			aField05[i] = 2;
+			aField06[i] = "";
+			aField08[i] = MyEnum.c;
+			aField10[i] = aField09;
+		}
+
+		aField01 = 0;
+		aField02 = 0;
+		aField03 = null;
+		aField04 = null;
+		aField05 = null;
+		aField06 = null;
+		aField07 = MyEnum.b;
+		aField08 = null;
+		aField09 = null;
+		aField10 = null;
+	}
+}
+
+public class AB_TestClass {
+	int Field1;
+	int Field2;
+	
+	public static void StaticProcedure() {
+	}
+
+	public static int StaticFunction(){
+		return 1; 
+	}
+	
+	public byte[] TestArray() {
+		byte[5] res = 0;
+		for (int i = 0; i < 5; i++) {
+			res[i] = i;
+		}
+		return res;
+	}
+	
+	public void TestFor() {
+		for (int i = 0; i < 10; i++) {
+			i++;
+		}
+	}
+
 }

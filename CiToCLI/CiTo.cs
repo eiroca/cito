@@ -63,7 +63,7 @@ namespace Foxoft.Ci {
       List<string> searchDirs = new List<string>();
       string lang = null;
       string outputFile = null;
-      string namespace_ = null;
+      string aNamespace = null;
       for (int i = 0; i < args.Length; i++) {
         string arg = args[i];
         if (arg[0] == '-') {
@@ -83,7 +83,7 @@ namespace Foxoft.Ci {
               outputFile = args[++i];
               break;
             case "-n":
-              namespace_ = args[++i];
+              aNamespace = args[++i];
               break;
             case "-D":
               string symbol = args[++i];
@@ -148,7 +148,7 @@ namespace Foxoft.Ci {
         return 1;
       }
 
-      SourceGenerator gen;
+      IGenerator gen;
       switch (lang) {
         case "c":
           gen = new GenC89();
@@ -157,10 +157,10 @@ namespace Foxoft.Ci {
           gen = new GenC();
           break;
         case "java":
-          gen = new GenJava(namespace_);
+          gen = new GenJava();
           break;
         case "cs":
-          gen = new GenCs(namespace_);
+          gen = new GenCs();
           break;
         case "js":
           gen = new GenJs();
@@ -169,27 +169,28 @@ namespace Foxoft.Ci {
           gen = new GenJsWithTypedArrays();
           break;
         case "as":
-          gen = new GenAs(namespace_);
+          gen = new GenAs();
           break;
         case "d":
           gen = new GenD();
           break;
         case "pm":
-          gen = new GenPerl58(namespace_);
+          gen = new GenPerl58();
           break;
         case "pm510":
-          gen = new GenPerl510(namespace_);
+          gen = new GenPerl510();
           break;
         case "pas":
-          gen = new GenPas(namespace_);
+          gen = new GenPas();
           break;
         case "php":
-          gen = new GenPHP(namespace_);
+          gen = new GenPHP();
           break;
         default:
           throw new ArgumentException("Unknown language: " + lang);
       }
-      gen.OutputFile = outputFile;
+      gen.SetOutputFile(outputFile);
+      gen.SetNamespace(aNamespace);
       gen.Write(program);
       return 0;
     }

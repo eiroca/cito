@@ -31,10 +31,18 @@ public abstract class GenPerl5 : SourceGenerator
 	string Package;
 	CiMethod CurrentMethod;
 
-	protected GenPerl5(string package)
-	{
-		this.Package = package == null ? string.Empty : package + "::";
-	}
+    protected GenPerl5(string package) : this() {
+      SetNamespace(package);
+    }
+
+    protected GenPerl5() : base() {
+      Package = string.Empty;
+    }
+
+    public override void SetNamespace(string aNamespace) {
+      base.SetNamespace(aNamespace);
+      this.Package = aNamespace == null ? string.Empty : aNamespace + "::";
+    }
 
 	protected override void WriteBanner()
 	{

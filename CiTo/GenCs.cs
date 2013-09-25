@@ -24,12 +24,13 @@ namespace Foxoft.Ci
 
 public class GenCs : SourceGenerator, ICiSymbolVisitor
 {
-	string Namespace;
 
-	public GenCs(string namespace_)
-	{
-		this.Namespace = namespace_;
-	}
+    public GenCs(string aNamespace) : base(aNamespace) {
+    }
+
+    public GenCs() : base() {
+    }
+
 
 	void WriteDoc(string text)
 	{

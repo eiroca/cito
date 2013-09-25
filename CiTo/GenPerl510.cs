@@ -26,9 +26,11 @@ namespace Foxoft.Ci
 
 public class GenPerl510 : GenPerl5
 {
-	public GenPerl510(string package) : base(package)
-	{
-	}
+    public GenPerl510(string package) : base(package) {
+    }
+
+    public GenPerl510() : base() {
+    }
 
 	bool InSwitch = false;
 

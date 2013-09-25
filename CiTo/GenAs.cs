@@ -25,17 +25,17 @@ namespace Foxoft.Ci
 
 public class GenAs : SourceGenerator, ICiSymbolVisitor
 {
-	string Namespace;
 	bool UsesSubstringMethod;
 	bool UsesCopyArrayMethod;
 	bool UsesBytesToStringMethod;
 	bool UsesClearBytesMethod;
 	bool UsesClearMethod;
 
-	public GenAs(string namespace_)
-	{
-		this.Namespace = namespace_;
-	}
+    public GenAs(string aNamespace) : base(aNamespace) {
+    }
+
+    public GenAs() : base() {
+    }
 
 	void WriteVisibility(CiSymbol symbol)
 	{

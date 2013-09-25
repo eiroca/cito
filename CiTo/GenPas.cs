@@ -30,12 +30,14 @@ namespace Foxoft.Ci {
     public string IdentStr = "  ";
     public string NewLineStr = "\r\n";
     //
-    string Namespace;
-    //
     PascalPreProcessing prePro = new PascalPreProcessing();
 
-    public GenPas(string aNamespace) {
-      this.Namespace = (aNamespace == null ? "cito" : aNamespace);
+    public GenPas(string aNamespace) : this() {
+      SetNamespace(aNamespace);
+    }
+
+    public GenPas() : base() {
+      Namespace = "cito";
       BlockCloseStr = "end";
       BlockOpenStr = "begin";
     }

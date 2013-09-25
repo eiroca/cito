@@ -26,9 +26,11 @@ namespace Foxoft.Ci
 
 public class GenPerl58 : GenPerl5
 {
-	public GenPerl58(string package) : base(package)
-	{
-	}
+    public GenPerl58(string package) : base(package) {
+    }
+
+    public GenPerl58() : base() {
+    }
 
 	bool InEarlyBreakSwitch = false;
 

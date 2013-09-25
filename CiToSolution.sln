@@ -61,7 +61,6 @@ Global
 		$2.SpacesBeforeBrackets = False
 		$2.BlankLinesBeforeUsings = 1
 		$2.BlankLinesBeforeFirstDeclaration = 1
-		$2.BlankLinesBetweenEventFields = 1
 		$2.MethodCallArgumentWrapping = DoNotWrap
 		$2.MethodDeclarationParameterWrapping = DoNotWrap
 		$2.IndexerDeclarationParameterWrapping = DoNotWrap
