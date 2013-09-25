@@ -349,7 +349,7 @@ namespace Foxoft.Ci {
       CreateFile(this.OutputFile);
       prePro.Parse(prog);
       // Prologue
-      WriteLine("unit " + this.Namespace + ";");
+      WriteLine("unit " + (!string.IsNullOrEmpty(this.Namespace) ? this.Namespace : "cito") + ";");
       // Declaration
       WriteInterfaceHeader();
       if (!SymbolMapping.IsEmpty()) {

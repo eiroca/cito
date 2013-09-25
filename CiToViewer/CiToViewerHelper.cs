@@ -101,7 +101,6 @@ namespace CiToViewer {
       if (generator == null) {
         return;
       }
-
       CiParser parser = new CiParser();
       foreach (ProjectFile file in Source.Values) {
         parser.Parse(file.Name, new StringReader(file.Code));
@@ -115,7 +114,7 @@ namespace CiToViewer {
         generator.Generator.SetOutputFile(".");
       }
       else {
-        generator.Generator.SetOutputFile(Path.ChangeExtension(NameSpace ?? "cito", generator.Extension));
+        generator.Generator.SetOutputFile(Path.ChangeExtension(string.IsNullOrEmpty(NameSpace) ? "cito" : NameSpace, generator.Extension));
       }
       generator.Generator.SetNamespace(NameSpace);
       generator.Generator.Write(program);
