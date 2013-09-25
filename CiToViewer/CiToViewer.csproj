@@ -136,6 +136,7 @@
     <Compile Include="..\CiTo\SourceHelper.cs">
       <Link>SourceHelper.cs</Link>
     </Compile>
+    <Compile Include="IgeMacMenuGlobal.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

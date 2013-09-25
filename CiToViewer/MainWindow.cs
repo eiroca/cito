@@ -24,6 +24,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Gtk;
 using CiToViewer;
+using IgeMacIntegration;
 
 public partial class MainWindow: Gtk.Window {	
 
@@ -37,6 +38,7 @@ public partial class MainWindow: Gtk.Window {
     TranslateCode();
     PopulateCombo(cbSource, Project.GetSources());
     PopulateCombo(cbLanguage, Project.Generator.GetLanguages());
+    FixMac();
   }
 
   private void PopulateCombo(ComboBox cb, string[] items) {
@@ -187,5 +189,13 @@ public partial class MainWindow: Gtk.Window {
 
   protected void OnLanguageChange(object sender, EventArgs e) {
     TranslateCode();
+  }
+
+  private void FixMac() {
+    if (PlatformDetection.IsMac) {
+      IgeMacMenu.GlobalKeyHandlerEnabled = true;
+      IgeMacMenu.MenuBar = mnMain;
+      mnMain.Hide();
+    }
   }
 }

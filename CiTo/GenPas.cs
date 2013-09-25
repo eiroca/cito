@@ -36,6 +36,7 @@ namespace Foxoft.Ci {
       Namespace = "cito";
       BlockCloseStr = "end";
       BlockOpenStr = "begin";
+      BlockCloseCR = false;
     }
     #region SourceCodeLowLevelWrite
     public StringBuilder oldLine = null;

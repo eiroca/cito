@@ -102,9 +102,9 @@
         <property name="MemberName" />
         <property name="Spacing">2</property>
         <child>
-          <widget class="Gtk.MenuBar" id="menubar1">
+          <widget class="Gtk.MenuBar" id="mnMain">
             <property name="MemberName" />
-            <node name="menubar1" type="Menubar">
+            <node name="mnMain" type="Menubar">
               <node type="Menu" action="FileAction">
                 <node type="Menuitem" action="OpenFileSAction" />
                 <node type="Menuitem" action="TranslateAction" />

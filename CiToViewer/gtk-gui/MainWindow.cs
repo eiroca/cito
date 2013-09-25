@@ -17,7 +17,7 @@ public partial class MainWindow
 	private global::Gtk.Action SaveSourceSAction;
 	private global::Gtk.Action Action;
 	private global::Gtk.VBox vbox1;
-	private global::Gtk.MenuBar menubar1;
+	private global::Gtk.MenuBar mnMain;
 	private global::Gtk.HBox hbox2;
 	private global::Gtk.Entry iNameSpace;
 	private global::Gtk.ComboBox cbLanguage;
@@ -91,11 +91,11 @@ public partial class MainWindow
 		this.vbox1.Name = "vbox1";
 		this.vbox1.Spacing = 2;
 		// Container child vbox1.Gtk.Box+BoxChild
-		this.UIManager.AddUiFromString ("<ui><menubar name='menubar1'><menu name='FileAction' action='FileAction'><menuitem name='OpenFileSAction' action='OpenFileSAction'/><menuitem name='TranslateAction' action='TranslateAction'/><menuitem name='SaveSourceSAction' action='SaveSourceSAction'/><menuitem name='SaveTargetSAction' action='SaveTargetSAction'/><menuitem name='ExitAction' action='ExitAction'/></menu><menu name='SettingsAction' action='SettingsAction'><menuitem name='FontAction' action='FontAction'/><menuitem name='AutoTranslateAction' action='AutoTranslateAction'/></menu></menubar></ui>");
-		this.menubar1 = ((global::Gtk.MenuBar)(this.UIManager.GetWidget ("/menubar1")));
-		this.menubar1.Name = "menubar1";
-		this.vbox1.Add (this.menubar1);
-		global::Gtk.Box.BoxChild w2 = ((global::Gtk.Box.BoxChild)(this.vbox1 [this.menubar1]));
+		this.UIManager.AddUiFromString ("<ui><menubar name='mnMain'><menu name='FileAction' action='FileAction'><menuitem name='OpenFileSAction' action='OpenFileSAction'/><menuitem name='TranslateAction' action='TranslateAction'/><menuitem name='SaveSourceSAction' action='SaveSourceSAction'/><menuitem name='SaveTargetSAction' action='SaveTargetSAction'/><menuitem name='ExitAction' action='ExitAction'/></menu><menu name='SettingsAction' action='SettingsAction'><menuitem name='FontAction' action='FontAction'/><menuitem name='AutoTranslateAction' action='AutoTranslateAction'/></menu></menubar></ui>");
+		this.mnMain = ((global::Gtk.MenuBar)(this.UIManager.GetWidget ("/mnMain")));
+		this.mnMain.Name = "mnMain";
+		this.vbox1.Add (this.mnMain);
+		global::Gtk.Box.BoxChild w2 = ((global::Gtk.Box.BoxChild)(this.vbox1 [this.mnMain]));
 		w2.Position = 0;
 		w2.Expand = false;
 		w2.Fill = false;
