@@ -20,15 +20,11 @@ using System.Linq;
 using System.Text;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Foxoft.Ci {
 
   public class GenPas : SourceGenerator, ICiSymbolVisitor {
-    //
-    public string BlockOpenStr = "{";
-    public string BlockCloseStr = "}";
-    public string IdentStr = "  ";
-    public string NewLineStr = "\r\n";
     //
     PascalPreProcessing prePro = new PascalPreProcessing();
 
@@ -41,84 +37,21 @@ namespace Foxoft.Ci {
       BlockCloseStr = "end";
       BlockOpenStr = "begin";
     }
+    #region SourceCodeLowLevelWrite
+    public StringBuilder oldLine = null;
+    private static char[] trimmedChar = new char[] { '\r', '\t', '\n', ' ' };
+    private static string trimmedString = new string(trimmedChar);
 
-    protected override void Write(string s) {
-      newText.Append(s);
-    }
-
-    protected virtual void WriteFormat(string format, params object[] args) {
-      newText.AppendFormat(format, args);
-    }
-
-    protected override void Write(char c) {
-      newText.Append(c);
-    }
-
-    protected override void Write(int i) {
-      newText.Append(i);
-    }
-
-    protected override void WriteLowercase(string s) {
-      foreach (char c in s) {
-        newText.Append(char.ToLowerInvariant(c));
-      }
-    }
-
-    protected override void WriteCamelCase(string s) {
-      newText.Append(char.ToLowerInvariant(s[0]));
-      newText.Append(s.Substring(1));
-    }
-
-    protected override void WriteUppercaseWithUnderscores(string s) {
-      bool first = true;
-      foreach (char c in s) {
-        if (char.IsUpper(c) && !first) {
-          newText.Append('_');
-          newText.Append(c);
-        }
-        else {
-          newText.Append(char.ToUpperInvariant(c));
-        }
-        first = false;
-      }
-    }
-
-    protected override void WriteLowercaseWithUnderscores(string s) {
-      bool first = true;
-      foreach (char c in s) {
-        if (char.IsUpper(c)) {
-          if (!first) {
-            newText.Append('_');
-          }
-          newText.Append(char.ToLowerInvariant(c));
-        }
-        else {
-          newText.Append(c);
-        }
-        first = false;
-      }
-    }
-
-    protected override void WriteLine(string s) {
-      Write(s);
-      WriteLine();
-    }
-
-    protected override void WriteLine(string format, params object[] args) {
-      WriteFormat(format, args);
-      WriteLine();
-    }
-
-    protected override void WriteLine() {
-      string newTxt = newText.ToString().Trim();
-      if (newText.Equals("")) {
-        oldText.Append(NewLineStr);
+    public override void WriteLine() {
+      string newTxt = curLine.ToString().Trim(trimmedChar);
+      if (curLine.Equals("")) {
+        oldLine.Append(NewLineStr);
         return;
       }
-      string oldTxt = oldText.ToString();
+      string oldTxt = oldLine.ToString();
       if (newTxt.StartsWith("else")) {
         for (int i=oldTxt.Length-1; i>=0; i--) {
-          if ("\n\r\t ".IndexOf(oldTxt[i]) < 0) {
+          if (trimmedString.IndexOf(oldTxt[i]) < 0) {
             if (oldTxt[i] == ';') {
               oldTxt = oldTxt.Remove(i, 1);
               break;
@@ -129,70 +62,38 @@ namespace Foxoft.Ci {
       else if ((this.Indent == 0) && (newTxt.StartsWith("end;"))) {
         //(pork)workaround
         for (int i=oldTxt.Length-1; i>=0; i--) {
-          if ("\n\r\t ".IndexOf(oldTxt[i]) < 0) {
+          if (trimmedString.IndexOf(oldTxt[i]) < 0) {
             if (i >= 5) {
               if (oldTxt.Substring(i - 4, 5).Equals("exit;")) {
-                oldTxt = oldTxt.Remove(i - 5, 6).TrimEnd(new char[] { '\r', '\t', '\n', ' ' });
+                oldTxt = oldTxt.Remove(i - 5, 6).TrimEnd(trimmedChar);
                 break;
               }
             }
           }
         }
       }
-      fullText.Append(oldTxt);
-      oldText = new StringBuilder();
+      fullCode.Append(oldTxt);
+      oldLine = new StringBuilder();
       for (int i = 0; i < this.Indent; i++) {
-        oldText.Append(IdentStr);
+        oldLine.Append(IndentStr);
       }
-      oldText.Append(newTxt);
-      oldText.Append(NewLineStr);
-      newText = new StringBuilder();
+      oldLine.Append(newTxt);
+      oldLine.Append(NewLineStr);
+      curLine = new StringBuilder();
     }
 
-    public StringBuilder newText = null;
-    public StringBuilder oldText = null;
-    public StringBuilder fullText = null;
-
-    new protected virtual void CreateFile(string filename) {
-      newText = new StringBuilder();
-      oldText = new StringBuilder();
-      fullText = new StringBuilder();
-      base.CreateFile(filename);
+    public override void Open(TextWriter writer) {
+      oldLine = new StringBuilder();
+      base.Open(writer);
     }
 
-    new protected virtual void CloseFile() {
-      if (oldText.Length > 0) {
-        fullText.Append(oldText);
+    public override void Close() {
+      if (oldLine.Length > 0) {
+        fullCode.Append(oldLine);
       }
-      if (newText.Length > 0) {
-        fullText.Append(newText);
-      }
-      this.Writer.Write(fullText);
-      base.CloseFile();
+      base.Close();
     }
-
-    protected override void OpenBlock() {
-      OpenBlock(true);
-    }
-
-    protected virtual void OpenBlock(bool explict) {
-      if (explict) {
-        WriteLine(BlockOpenStr);
-      }
-      this.Indent++;
-    }
-
-    protected override void CloseBlock() {
-      CloseBlock(true);
-    }
-
-    protected virtual void CloseBlock(bool explict) {
-      this.Indent--;
-      if (explict) {
-        Write(BlockCloseStr);
-      }
-    }
-
+    #endregion
     protected override void Write(CiBinaryResourceExpr expr) {
       WriteName(expr.Resource);
     }
@@ -1711,7 +1612,7 @@ namespace Foxoft.Ci {
         return;
       }
       stmt.Accept(this);
-      if (newText.Length > 0) {
+      if (curLine.Length > 0) {
         WriteLine(";");
       }
     }

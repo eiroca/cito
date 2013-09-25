@@ -507,10 +507,10 @@ public class GenC : SourceGenerator
 			WriteConst(errorReturnValue);
 		}
 		WriteLine(")");
-		this.Indent++;
+      OpenBlock(false);
 		Write("return ");
 		WriteConst(this.CurrentMethod.ErrorReturnValue);
-		this.Indent--;
+      CloseBlock(false);
 	}
 
 	public override void Visit(CiExpr expr)
@@ -803,13 +803,13 @@ public class GenC : SourceGenerator
 		WriteLine("));");
 		if (klass.Constructs) {
 			WriteLine("if (self != NULL)");
-			this.Indent++;
+        OpenBlock(false);
 			Write(klass.Name);
 			Write("_Construct(self");
 			if (HasVirtualMethods(klass))
 				Write(", NULL");
 			WriteLine(");");
-			this.Indent--;
+        CloseBlock(false);
 		}
 		WriteLine("return self;");
 		CloseBlock();
@@ -828,7 +828,7 @@ public class GenC : SourceGenerator
 			CiClass ptrClass = GetVtblPtrClass(klass);
 			if (HasVtblValue(klass)) {
 				WriteLine("if (vtbl == NULL)");
-				this.Indent++;
+          OpenBlock(false);
 				Write("vtbl = ");
 				CiClass structClass = GetVtblStructClass(klass);
 				if (structClass != ptrClass) {
@@ -839,7 +839,7 @@ public class GenC : SourceGenerator
 				Write("&CiVtbl_");
 				Write(klass.Name);
 				WriteLine(";");
-				this.Indent--;
+          CloseBlock(false);
 			}
 			if (ptrClass == klass)
 				WriteLine("self->vtbl = vtbl;");
@@ -1106,8 +1106,8 @@ public class GenC : SourceGenerator
 			Write(impl.Name);
 		}
 		WriteLine();
-		this.Indent--;
-		WriteLine("};");
+    CloseBlock();
+		WriteLine(";");
 	}
 
 	// Common pointer sizes are 32-bit and 64-bit.
@@ -1189,10 +1189,11 @@ public class GenC : SourceGenerator
 				WriteLine("Vtbl *vtbl;");
 			}
 			IEnumerable<CiField> fields = klass.Members.OfType<CiField>().OrderBy(field => SizeOf(field.Type));
-			foreach (CiField field in fields)
-				Write(field);
-			this.Indent--;
-			WriteLine("};");
+      foreach (CiField field in fields) {
+        Write(field);
+      }
+      CloseBlock();
+			WriteLine(";");
 		}
 		WriteSignatures(klass, false);
 		WriteVtblValue(klass);

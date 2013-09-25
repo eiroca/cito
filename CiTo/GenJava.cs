@@ -426,10 +426,10 @@ public class GenJava : SourceGenerator, ICiSymbolVisitor
 		Write(elementType);
 		WriteLine("[] array)");
 		OpenBlock();
-		WriteLine("for (int i = 0; i < array.length; i++)");
-		this.Indent++;
-		WriteLine("array[i] = 0;");
-		this.Indent--;
+      WriteLine("for (int i = 0; i < array.length; i++)");
+      OpenBlock(false);
+      WriteLine("array[i] = 0;");
+      CloseBlock(false);
 		CloseBlock();
 	}
 

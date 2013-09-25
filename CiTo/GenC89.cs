@@ -156,12 +156,14 @@ public class GenC89 : GenC
 
 	protected override void StartSwitch(CiSwitch stmt)
 	{
-		this.Indent++;
-		foreach (CiCase kase in stmt.Cases)
-			WriteSwitchDefs(kase.Body);
-		if (stmt.DefaultBody != null)
-			WriteSwitchDefs(stmt.DefaultBody);
-		this.Indent--;
+      OpenBlock(false);
+      foreach (CiCase kase in stmt.Cases) {
+        WriteSwitchDefs(kase.Body);
+      }
+      if (stmt.DefaultBody != null) {
+        WriteSwitchDefs(stmt.DefaultBody);
+      }
+      CloseBlock(false);
 	}
 
 	protected override void StartCase(ICiStatement stmt)

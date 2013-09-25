@@ -45,6 +45,10 @@ namespace Foxoft.Ci {
   }
 
   public abstract class BaseGenerator : IGenerator {
+    protected static string ToCamelCase(string s) {
+      return char.ToLowerInvariant(s[0]) + s.Substring(1);
+    }
+
     public string OutputFile { get; set; }
 
     public string Namespace { get; set; }
@@ -73,7 +77,182 @@ namespace Foxoft.Ci {
 
     public abstract void Write(CiProgram program);
     #endregion
+    #region TextWriterFactory
+    public virtual void CreateFile(string filename) {
+      Open(CreateTextWriter(filename));
+      WriteBanner();
+      Indent = 0;
+    }
 
+    public virtual void CloseFile() {
+      WriteFooter();
+      Close();
+    }
+
+    protected virtual void WriteBanner() {
+    }
+
+    protected virtual void WriteFooter() {
+    }
+    #endregion
+    #region LowLevelWrite
+    public string IndentStr = "  ";
+    public string NewLineStr = "\r\n";
+    protected TextWriter Writer;
+    //
+    //
+    protected StringBuilder curLine = null;
+    protected StringBuilder fullCode = null;
+
+    public virtual void Open(TextWriter writer) {
+      this.Writer = writer;
+      this.Indent = 0;
+      curLine = new StringBuilder();
+      fullCode = new StringBuilder();
+    }
+
+    public virtual void Close() {
+      if (curLine.Length > 0) {
+        fullCode.Append(curLine);
+      }
+      Writer.Write(fullCode);
+      Writer.Close();
+    }
+
+    public virtual void Write(char c) {
+      curLine.Append(c);
+    }
+
+    public virtual void Write(int i) {
+      curLine.Append(i);
+    }
+
+    public virtual void Write(string s) {
+      curLine.Append(s);
+    }
+
+    public virtual void WriteFormat(string format, params object[] args) {
+      curLine.AppendFormat(format, args);
+    }
+
+    public virtual void WriteLine(string s) {
+      Write(s);
+      WriteLine();
+    }
+
+    public virtual void WriteLine(string format, params object[] args) {
+      WriteFormat(format, args);
+      WriteLine();
+    }
+
+    public virtual void WriteLine() {
+      string newTxt = curLine.ToString().Trim();
+      for (int i = 0; i < this.Indent; i++) {
+        fullCode.Append(IndentStr);
+      }
+      fullCode.Append(newTxt);
+      fullCode.Append(NewLineStr);
+      curLine = new StringBuilder();
+    }
+
+    public virtual void WriteEscaped(string text) {
+      foreach (char c in text) {
+        switch (c) {
+          case '&':
+            Write("&amp;");
+            break;
+          case '<':
+            Write("&lt;");
+            break;
+          case '>':
+            Write("&gt;");
+            break;
+          case '\n':
+            WriteLine();
+            break;
+          default:
+            Write(c.ToString());
+            break;
+        }
+      }
+    }
+
+    public virtual void WriteLowercase(string s) {
+      foreach (char c in s) {
+        curLine.Append(char.ToLowerInvariant(c));
+      }
+    }
+
+    public virtual void WriteCamelCase(string s) {
+      curLine.Append(char.ToLowerInvariant(s[0]));
+      curLine.Append(s.Substring(1));
+    }
+
+    public virtual void WriteUppercaseWithUnderscores(string s) {
+      bool first = true;
+      foreach (char c in s) {
+        if (char.IsUpper(c) && !first) {
+          curLine.Append('_');
+          curLine.Append(c);
+        }
+        else {
+          curLine.Append(char.ToUpperInvariant(c));
+        }
+        first = false;
+      }
+    }
+
+    public virtual void WriteLowercaseWithUnderscores(string s) {
+      bool first = true;
+      foreach (char c in s) {
+        if (char.IsUpper(c)) {
+          if (!first) {
+            curLine.Append('_');
+          }
+          curLine.Append(char.ToLowerInvariant(c));
+        }
+        else {
+          curLine.Append(c);
+        }
+        first = false;
+      }
+    }
+    #endregion
+    #region Blocks
+    protected int Indent = 0;
+    public string BlockOpenStr = "{";
+    public string BlockCloseStr = "}";
+    public bool BlockOpenCR = true;
+    public bool BlockCloseCR = true;
+
+    public virtual void OpenBlock() {
+      OpenBlock(true);
+    }
+
+    public virtual void CloseBlock() {
+      CloseBlock(true);
+    }
+
+    public virtual void OpenBlock(bool explict) {
+      if (explict) {
+        Write(BlockOpenStr);
+        if (BlockOpenCR) {
+          WriteLine();
+        }
+      }
+      this.Indent++;
+    }
+
+    public virtual void CloseBlock(bool explict) {
+      this.Indent--;
+      if (explict) {
+        Write(BlockCloseStr);
+        if (BlockCloseCR) {
+          WriteLine();
+        }
+      }
+    }
+    #endregion
   }
 
   public abstract class SourceGenerator : BaseGenerator, ICiStatementVisitor {
@@ -81,100 +260,6 @@ namespace Foxoft.Ci {
     }
 
     public SourceGenerator() : base() {
-    }
-
-    protected TextWriter Writer;
-    protected int Indent = 0;
-    bool AtLineStart = true;
-
-    static TextWriter CreateFileWriter(string filename) {
-      TextWriter w = File.CreateText(filename);
-      w.NewLine = "\n";
-      return w;
-    }
-
-    protected virtual void StartLine() {
-      if (this.AtLineStart) {
-        for (int i = 0; i < this.Indent; i++)
-          this.Writer.Write('\t');
-        this.AtLineStart = false;
-      }
-    }
-
-    protected virtual void Write(char c) {
-      StartLine();
-      this.Writer.Write(c);
-    }
-
-    protected virtual void Write(string s) {
-      StartLine();
-      this.Writer.Write(s);
-    }
-
-    protected virtual void Write(int i) {
-      StartLine();
-      this.Writer.Write(i);
-    }
-
-    protected virtual void WriteLowercase(string s) {
-      foreach (char c in s)
-        this.Writer.Write(char.ToLowerInvariant(c));
-    }
-
-    protected static string ToCamelCase(string s) {
-      return char.ToLowerInvariant(s[0]) + s.Substring(1);
-    }
-
-    protected virtual void WriteCamelCase(string s) {
-      StartLine();
-      this.Writer.Write(char.ToLowerInvariant(s[0]));
-      this.Writer.Write(s.Substring(1));
-    }
-
-    protected virtual void WriteUppercaseWithUnderscores(string s) {
-      StartLine();
-      bool first = true;
-      foreach (char c in s) {
-        if (char.IsUpper(c) && !first) {
-          this.Writer.Write('_');
-          this.Writer.Write(c);
-        }
-        else
-          this.Writer.Write(char.ToUpperInvariant(c));
-        first = false;
-      }
-    }
-
-    protected virtual void WriteLowercaseWithUnderscores(string s) {
-      StartLine();
-      bool first = true;
-      foreach (char c in s) {
-        if (char.IsUpper(c)) {
-          if (!first)
-            this.Writer.Write('_');
-          this.Writer.Write(char.ToLowerInvariant(c));
-        }
-        else
-          this.Writer.Write(c);
-        first = false;
-      }
-    }
-
-    protected virtual void WriteLine() {
-      this.Writer.WriteLine();
-      this.AtLineStart = true;
-    }
-
-    protected virtual void WriteLine(string s) {
-      StartLine();
-      this.Writer.WriteLine(s);
-      this.AtLineStart = true;
-    }
-
-    protected virtual void WriteLine(string format, params object[] args) {
-      StartLine();
-      this.Writer.WriteLine(format, args);
-      this.AtLineStart = true;
     }
     #region JavaDoc
     void WriteDoc(string text) {
@@ -271,27 +356,8 @@ namespace Foxoft.Ci {
       }
     }
     #endregion JavaDoc
-    protected virtual void WriteBanner() {
+    protected override void WriteBanner() {
       WriteLine("// Generated automatically with \"cito\". Do not edit.");
-    }
-
-    protected void CreateFile(string filename) {
-      this.Writer = CreateTextWriter(filename);
-      WriteBanner();
-    }
-
-    protected void CloseFile() {
-      this.Writer.Close();
-    }
-
-    protected virtual void OpenBlock() {
-      WriteLine("{");
-      this.Indent++;
-    }
-
-    protected virtual void CloseBlock() {
-      this.Indent--;
-      WriteLine("}");
     }
 
     protected void WriteInitializer(CiArrayType type) {
@@ -747,9 +813,9 @@ namespace Foxoft.Ci {
       }
       else {
         WriteLine();
-        this.Indent++;
+        OpenBlock(false);
         Write(stmt);
-        this.Indent--;
+        CloseBlock(false);
       }
     }
 
@@ -899,19 +965,20 @@ namespace Foxoft.Ci {
           WriteConst(value);
           WriteLine(":");
         }
-        this.Indent++;
+        OpenBlock(false);
         StartCase(kase.Body[0]);
         Write(kase.Body);
-        if (kase.Fallthrough)
+        if (kase.Fallthrough) {
           WriteFallthrough(kase.FallthroughTo);
-        this.Indent--;
+        }
+        CloseBlock(false);
       }
       if (stmt.DefaultBody != null) {
         WriteLine("default:");
-        this.Indent++;
+        OpenBlock(false);
         StartCase(stmt.DefaultBody[0]);
         Write(stmt.DefaultBody);
-        this.Indent--;
+        CloseBlock(false);
       }
       EndSwitch(stmt);
       WriteLine("}");
@@ -928,7 +995,7 @@ namespace Foxoft.Ci {
 
     protected virtual void Write(ICiStatement stmt) {
       stmt.Accept(this);
-      if ((stmt is CiMaybeAssign || stmt is CiVar) && !this.AtLineStart)
+      if ((stmt is CiMaybeAssign || stmt is CiVar) && (curLine.Length > 0))
         WriteLine(";");
     }
 

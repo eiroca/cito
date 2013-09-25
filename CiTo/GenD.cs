@@ -397,9 +397,9 @@ public class GenD : SourceGenerator, ICiSymbolVisitor
 	{
 		if (stmt.DefaultBody == null) {
 			WriteLine("default:");
-			this.Indent++;
-			WriteLine("break;");
-			this.Indent--;
+        OpenBlock(false);
+        WriteLine("break;");
+        CloseBlock();
 		}
 	}
 

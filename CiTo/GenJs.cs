@@ -411,24 +411,26 @@ public class GenJs : SourceGenerator
 			});
 		}
 		if (code.Count > 0) {
-			WriteLine("var Ci = {");
-			this.Indent++;
-			for (int i = 0; ; ) {
-				string[] lines = code[i];
-				Write(lines[0]);
-				WriteLine(" {");
-				this.Indent++;
-				for (int j = 1; j < lines.Length; j++)
-					WriteLine(lines[j]);
-				this.Indent--;
-				Write('}');
-				if (++i >= code.Count)
-					break;
-				WriteLine(",");
-			}
-			WriteLine();
-			this.Indent--;
-			WriteLine("};");
+        WriteLine("var Ci = {");
+        OpenBlock(false);
+        for (int i = 0; ;) {
+          string[] lines = code[i];
+          Write(lines[0]);
+          WriteLine(" {");
+          OpenBlock(false);
+          for (int j = 1; j < lines.Length; j++) {
+            WriteLine(lines[j]);
+          }
+          CloseBlock(false);
+          Write('}');
+          if (++i >= code.Count) {
+            break;
+          }
+          WriteLine(",");
+        }
+        WriteLine();
+        CloseBlock(false);
+        WriteLine("};");
 		}
 	}
 
