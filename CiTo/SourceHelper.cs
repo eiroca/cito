@@ -737,4 +737,98 @@ namespace Foxoft.Ci {
       return exitPoints.Peek();
     }
   }
+  //
+  public delegate void WriteExprDelegate(CiExpr expr);
+  //
+  public class TokenInfo {
+    public string Symbol;
+    public int NumParam;
+    public bool IsAssociative;
+    public CiPriority Priority;
+
+    public TokenInfo(string symbol, int numParam, bool isAssociative, CiPriority priority) {
+      this.Symbol = symbol;
+      this.NumParam = numParam;
+      this.IsAssociative = isAssociative;
+      this.Priority = priority;
+    }
+
+    public TokenInfo SetSymbol(string symbol) {
+      this.Symbol = symbol;
+      return this;
+    }
+  }
+
+  public class TokenMetadata {
+
+    protected Dictionary<CiToken, TokenInfo> Metadata = new Dictionary<CiToken, TokenInfo>();
+
+    public TokenMetadata() {
+    }
+
+    public void Add(CiToken token, string symbol, int numParam, bool isAssociative, CiPriority priority) {
+      Metadata.Add(token, new TokenInfo(symbol, numParam, isAssociative, priority));
+    }
+
+    public TokenInfo GetTokenInfo(CiToken token, int numParam) {
+      TokenInfo result = null;
+      Metadata.TryGetValue(token, out result);
+      if ((result == null) || (result.NumParam != numParam)) {
+        throw new ArgumentException(token.ToString());
+      }
+      return result;
+    }
+
+    public TokenInfo GetTokenInfo(CiToken token) {
+      TokenInfo result = null;
+      Metadata.TryGetValue(token, out result);
+      if (result == null) {
+        throw new ArgumentException(token.ToString());
+      }
+      return result;
+    }
+  }
+
+  public class ExpressionInfo {
+    public CiPriority Priority;
+    public WriteExprDelegate WriteDelegate;
+
+    public ExpressionInfo(CiPriority priority, WriteExprDelegate writeDelegate) {
+      this.Priority = priority;
+      this.WriteDelegate = writeDelegate;
+    }
+
+    public ExpressionInfo SetWriteDelegate(WriteExprDelegate writeDelegate) {
+      this.WriteDelegate = writeDelegate;
+      return this;
+    }
+  }
+
+  public class ExpressionMetadata {
+
+    protected Dictionary<Type, ExpressionInfo> Metadata = new Dictionary<Type, ExpressionInfo>();
+
+    public ExpressionMetadata() {
+    }
+
+    public void Add(Type exprType, CiPriority priority, WriteExprDelegate writeDelegate) {
+      Metadata.Add(exprType, new ExpressionInfo(priority, writeDelegate));
+    }
+
+    public ExpressionInfo GetExpressionInfo(CiExpr expr) {
+      ExpressionInfo result = null;
+      Type exprType = expr.GetType();
+      while (exprType!=null) {
+        Metadata.TryGetValue(exprType, out result);
+        if (result != null) {
+          break;
+        }
+        exprType = exprType.BaseType;
+      }
+      if (result == null) {
+        throw new ArgumentException(expr.GetType().Name);
+      }
+      return result;
+    }
+  }
 }

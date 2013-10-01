@@ -24,7 +24,7 @@ using System.IO;
 
 namespace Foxoft.Ci {
 
-  public class GenPas : SourceGenerator, ICiSymbolVisitor {
+  public class GenPas : BaseGenerator, ICiStatementVisitor, ICiSymbolVisitor {
     //
     PascalPreProcessing prePro = new PascalPreProcessing();
 
@@ -95,16 +95,16 @@ namespace Foxoft.Ci {
       base.Close();
     }
     #endregion
-    protected override void Write(CiBinaryResourceExpr expr) {
+    protected void Write(CiBinaryResourceExpr expr) {
       WriteName(expr.Resource);
     }
 
-    protected override void WriteName(CiBinaryResource resource) {
+    protected void WriteName(CiBinaryResource resource) {
       SymbolMapping symbol = SymbolMapping.Find(resource);
       Write(symbol != null ? symbol.NewName : resource.Name);
     }
 
-    protected override void WriteName(CiConst konst) {
+    protected void WriteName(CiConst konst) {
       SymbolMapping symbol = SymbolMapping.Find(konst);
       Write(symbol != null ? symbol.NewName : konst.Name);
     }
@@ -584,17 +584,17 @@ namespace Foxoft.Ci {
       }
     }
 
-    public override void Visit(CiBlock block) {
+    public void Visit(CiBlock block) {
       OpenBlock();
       WriteCode(block.Statements);
       CloseBlock();
     }
 
-    public override void Visit(CiVar var) {
+    public void Visit(CiVar var) {
       WriteInitVal(var);
     }
 
-    protected override void WriteChild(ICiStatement stmt) {
+    protected void WriteChild(ICiStatement stmt) {
       if (stmt is CiBlock) {
         Write((CiBlock)stmt);
       }
@@ -610,7 +610,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    public override void Visit(CiWhile stmt) {
+    public void Visit(CiWhile stmt) {
       BreakExit.Push(stmt);
       Write("while (");
       Write(stmt.Cond);
@@ -662,7 +662,7 @@ namespace Foxoft.Ci {
       return false;
     }
 
-    public override void Visit(CiFor stmt) {
+    public void Visit(CiFor stmt) {
       BreakExit.Push(stmt);
       bool hasInit = (stmt.Init != null);
       bool hasNext = (stmt.Advance != null);
@@ -746,13 +746,69 @@ namespace Foxoft.Ci {
       BreakExit.Pop();
     }
 
-    protected override void Write(CiBinaryExpr expr) {
+    protected void WriteChild(CiPriority parentPriority, CiExpr child) {
+      if (GetPriority(child) < parentPriority) {
+        Write('(');
+        Write(child);
+        Write(')');
+      }
+      else
+        Write(child);
+    }
+
+    protected void WriteChild(CiExpr parent, CiExpr child) {
+      WriteChild(GetPriority(parent), child);
+    }
+
+    protected void WriteNonAssocChild(CiPriority parentPriority, CiExpr child) {
+      if (GetPriority(child) <= parentPriority) {
+        Write('(');
+        Write(child);
+        Write(')');
+      }
+      else
+        Write(child);
+    }
+
+    protected void WriteNonAssocChild(CiExpr parent, CiExpr child) {
+      WriteNonAssocChild(GetPriority(parent), child);
+    }
+
+    protected void Write(CiBinaryExpr expr) {
       Write("(");
-      base.Write(expr);
+      WriteChild(expr, expr.Left);
+      switch (expr.Op) {
+        case CiToken.Plus:
+        case CiToken.Asterisk:
+        case CiToken.Less:
+        case CiToken.LessOrEqual:
+        case CiToken.Greater:
+        case CiToken.GreaterOrEqual:
+        case CiToken.Equal:
+        case CiToken.NotEqual:
+        case CiToken.And:
+        case CiToken.Or:
+        case CiToken.Xor:
+        case CiToken.CondAnd:
+        case CiToken.CondOr:
+          WriteOp(expr);
+          WriteChild(expr, expr.Right);
+          break;
+        case CiToken.Minus:
+        case CiToken.Slash:
+        case CiToken.Mod:
+        case CiToken.ShiftLeft:
+        case CiToken.ShiftRight:
+          WriteOp(expr);
+          WriteNonAssocChild(expr, expr.Right);
+          break;
+        default:
+          throw new ArgumentException(expr.Op.ToString());
+      }
       Write(")");
     }
 
-    public override void Visit(CiIf stmt) {
+    public void Visit(CiIf stmt) {
       Write("if ");
       NoIIFExpand.Push(1);
       Write(stmt.Cond);
@@ -771,7 +827,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    protected override void Write(CiUnaryExpr expr) {
+    protected void Write(CiUnaryExpr expr) {
       switch (expr.Op) {
         case CiToken.Increment:
           Write("__CINC_Pre(");
@@ -793,13 +849,13 @@ namespace Foxoft.Ci {
       Write(")");
     }
 
-    protected override void Write(CiCondNotExpr expr) {
+    protected void Write(CiCondNotExpr expr) {
       Write("not (");
       WriteChild(expr, expr.Inner);
       Write(")");
     }
 
-    protected override void Write(CiPostfixExpr expr) {
+    protected void Write(CiPostfixExpr expr) {
       switch (expr.Op) {
         case CiToken.Increment:
           Write("__CINC_Post(");
@@ -880,11 +936,11 @@ namespace Foxoft.Ci {
       WriteLine(";");
     }
 
-    protected override void WriteNew(CiType type) {
+    protected void WriteNew(CiType type) {
       throw new InvalidOperationException("Unsupported call to WriteNew()");
     }
 
-    public override void Visit(CiDelete stmt) {
+    public void Visit(CiDelete stmt) {
       if (stmt.Expr is CiVarAccess) {
         CiVar var = ((CiVarAccess)stmt.Expr).Var;
         if (var.Type is CiClassStorageType) {
@@ -1010,7 +1066,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    protected override void WriteConst(object value) {
+    protected void WriteConst(object value) {
       throw new InvalidOperationException("Ops... WriteConst must have a type");
     }
 
@@ -1092,13 +1148,13 @@ namespace Foxoft.Ci {
       }
     }
 
-    public override void Visit(CiThrow stmt) {
+    public void Visit(CiThrow stmt) {
       Write("Raise Exception.Create(");
       Write(stmt.Message);
       WriteLine(");");
     }
 
-    protected override void Write(CiCondExpr expr) {
+    protected void Write(CiCondExpr expr) {
       Write("IfThen(");
       WriteNonAssocChild(expr, expr.Cond);
       Write(", ");
@@ -1108,7 +1164,7 @@ namespace Foxoft.Ci {
       Write(")");
     }
 
-    protected override void Write(CiVarAccess expr) {
+    protected void Write(CiVarAccess expr) {
       string name = expr.Var.Name;
       if (name.Equals("this")) {
         Write("self");
@@ -1118,13 +1174,13 @@ namespace Foxoft.Ci {
       }
     }
 
-    protected override void Write(CiFieldAccess expr) {
+    protected void Write(CiFieldAccess expr) {
       WriteChild(expr, expr.Obj);
       Write('.');
       WriteName(expr.Field);
     }
 
-    public override void Visit(CiDoWhile stmt) {
+    public void Visit(CiDoWhile stmt) {
       BreakExit.Push(stmt);
       WriteLine("repeat");
       if ((stmt.Body != null) && (stmt.Body is CiBlock)) {
@@ -1198,7 +1254,7 @@ namespace Foxoft.Ci {
       return true;
     }
 
-    public override void Visit(CiSwitch swich) {
+    public void Visit(CiSwitch swich) {
       BreakExit label = BreakExit.Push(swich);
       Write("case (");
       Write(swich.Value);
@@ -1230,7 +1286,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    protected override void WriteOp(CiBinaryExpr expr) {
+    protected void WriteOp(CiBinaryExpr expr) {
       switch (expr.Op) {
         case CiToken.Plus:
           Write(" + ");
@@ -1291,7 +1347,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    protected override void Write(CiArrayAccess expr) {
+    protected void Write(CiArrayAccess expr) {
       WriteChild(expr, expr.Array);
       Write('[');
       Write(expr.Index);
@@ -1321,6 +1377,10 @@ namespace Foxoft.Ci {
         }
       }
       Write(')');
+    }
+
+    protected virtual void WriteDelegateCall(CiExpr expr) {
+      Write(expr);
     }
 
     protected virtual void WriteMethodCall2(CiMethodCall expr, bool[] cond) {
@@ -1392,7 +1452,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    protected override void Write(CiMethodCall expr) {
+    protected void Write(CiMethodCall expr) {
       if (expr.Method == CiLibrary.MulDivMethod) {
         Write("(int64(");
         WriteChild(CiPriority.Prefix, expr.Obj);
@@ -1561,7 +1621,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    public override void Visit(CiAssign assign) {
+    public void Visit(CiAssign assign) {
       if (assign.Source is CiAssign) {
         CiAssign prev = (CiAssign)assign.Source;
         Visit(prev);
@@ -1573,7 +1633,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    public override void Visit(CiReturn stmt) {
+    public void Visit(CiReturn stmt) {
       if (stmt.Value == null) {
         Write("exit");
       }
@@ -1613,7 +1673,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    protected override void Write(ICiStatement stmt) {
+    protected void Write(ICiStatement stmt) {
       if (stmt == null) {
         return;
       }
@@ -1623,7 +1683,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    public override void Visit(CiBreak stmt) {
+    public void Visit(CiBreak stmt) {
       BreakExit label = BreakExit.Peek();
       if (label != null) {
         WriteLine("goto " + label.Name + ";");
@@ -1684,7 +1744,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    protected override void Write(CiExpr expr) {
+    protected void Write(CiExpr expr) {
       WriteExpr(ExprType.Get(expr), expr);
     }
 
@@ -1776,7 +1836,7 @@ namespace Foxoft.Ci {
       Write((CiDocPara)block);
     }
 
-    protected override void Write(CiCodeDoc doc) {
+    protected void Write(CiCodeDoc doc) {
       if (doc == null) {
         return;
       }
@@ -1808,7 +1868,7 @@ namespace Foxoft.Ci {
       WriteLine(";");
     }
 
-    protected override CiPriority GetPriority(CiExpr expr) {
+    protected CiPriority GetPriority(CiExpr expr) {
       if (expr is CiPropertyAccess) {
         CiProperty prop = ((CiPropertyAccess)expr).Property;
         if (prop == CiLibrary.SByteProperty || prop == CiLibrary.LowByteProperty)
@@ -1819,10 +1879,52 @@ namespace Foxoft.Ci {
         if (c.ResultType == CiByteType.Value && c.Inner.Type == CiIntType.Value)
           return CiPriority.Prefix;
       }
-      return base.GetPriority(expr);
+      if (expr is CiConstExpr || expr is CiConstAccess || expr is CiVarAccess || expr is CiFieldAccess || expr is CiPropertyAccess || expr is CiArrayAccess || expr is CiMethodCall || expr is CiBinaryResourceExpr || expr is CiNewExpr)
+        return CiPriority.Postfix;
+      if (expr is CiUnaryExpr || expr is CiCondNotExpr || expr is CiPostfixExpr)
+        return CiPriority.Prefix;
+      if (expr is CiCoercion)
+        return GetPriority((CiExpr)((CiCoercion)expr).Inner);
+      if (expr is CiBinaryExpr) {
+        switch (((CiBinaryExpr)expr).Op) {
+          case CiToken.Asterisk:
+          case CiToken.Slash:
+          case CiToken.Mod:
+            return CiPriority.Multiplicative;
+          case CiToken.Plus:
+          case CiToken.Minus:
+            return CiPriority.Additive;
+          case CiToken.ShiftLeft:
+          case CiToken.ShiftRight:
+            return CiPriority.Shift;
+          case CiToken.Less:
+          case CiToken.LessOrEqual:
+          case CiToken.Greater:
+          case CiToken.GreaterOrEqual:
+            return CiPriority.Ordering;
+          case CiToken.Equal:
+          case CiToken.NotEqual:
+            return CiPriority.Equality;
+          case CiToken.And:
+            return CiPriority.And;
+          case CiToken.Xor:
+            return CiPriority.Xor;
+          case CiToken.Or:
+            return CiPriority.Or;
+          case CiToken.CondAnd:
+            return CiPriority.CondAnd;
+          case CiToken.CondOr:
+            return CiPriority.CondOr;
+          default:
+            throw new ArgumentException(((CiBinaryExpr)expr).Op.ToString());
+        }
+      }
+      if (expr is CiCondExpr)
+        return CiPriority.CondExpr;
+      throw new ArgumentException(expr.GetType().Name);
     }
 
-    protected override void Write(CiPropertyAccess expr) {
+    protected void Write(CiPropertyAccess expr) {
       if (expr.Property == CiLibrary.SByteProperty) {
         Write("shortint(");
         WriteChild(expr, expr.Obj);
@@ -1854,19 +1956,41 @@ namespace Foxoft.Ci {
       }
     }
 
-    protected override void Write(CiCoercion expr) {
+    protected void WriteInline(CiMaybeAssign expr) {
+      if (expr is CiExpr)
+        Write((CiExpr)expr);
+      else
+        Visit((CiAssign)expr);
+    }
+
+    protected void Write(CiCoercion expr) {
       if (expr.ResultType == CiByteType.Value && expr.Inner.Type == CiIntType.Value) {
         Write("byte(");
         WriteChild(expr, (CiExpr)expr.Inner); // TODO: Assign
         Write(")");
       }
       else {
-        base.Write(expr);
+        WriteInline(expr.Inner);
       }
     }
 
-    protected override void WriteFallthrough(CiExpr expr) {
+    protected void WriteFallthrough(CiExpr expr) {
       throw new InvalidOperationException("WriteFallthrough should be nevel called");
+    }
+
+    public virtual void Visit(CiConst stmt) {
+    }
+
+    public virtual void Visit(CiContinue stmt) {
+      WriteLine("continue;");
+    }
+
+    void ICiStatementVisitor.Visit(CiNativeBlock statement) {
+      Write(statement.Content);
+    }
+
+    public virtual void Visit(CiExpr expr) {
+      Write(expr);
     }
   }
 }
