@@ -61,6 +61,8 @@ namespace Foxoft.Ci {
 
     public BaseGenerator() {
       CreateTextWriter = TextWriterFileFactory.Make;
+      InitTokens();
+      InitExpressions();
     }
     #region IGenerator
     public virtual void SetTextWriterFactory(TextWriterFactory aFactory) {
@@ -253,6 +255,105 @@ namespace Foxoft.Ci {
       }
     }
     #endregion
+    #region Helper
+    public static int ElemPerRow = 16;
+    public static string ElemSeparator = ", ";
+
+    public int GetArraySize(CiType type) {
+      if (type is CiArrayStorageType) {
+        CiArrayStorageType arr = (CiArrayStorageType)type;
+        if (arr.LengthExpr == null) {
+          return ((CiArrayStorageType)type).Length;
+        }
+      }
+      return -1;
+    }
+
+    protected virtual void WriteArray(CiType type, Array array) {
+      if (array.Length >= ElemPerRow) {
+        WriteLine();
+        OpenBlock(false);
+      }
+      for (int i = 0; i < array.Length; i++) {
+        WriteValue(type, array.GetValue(i));
+        if (i < (array.Length - 1)) {
+          Write(ElemSeparator);
+          if (i % ElemPerRow == 0) {
+            WriteLine();
+          }
+        }
+      }
+      if (array.Length >= ElemPerRow) {
+        CloseBlock(false);
+        WriteLine();
+      }
+    }
+
+    protected virtual void WriteValue(CiType type, object value) {
+      Write(value.ToString());
+    }
+
+    protected virtual void WriteExpr(CiExpr expr) {
+      ExpressionInfo exprInfo = Expressions.GetExpressionInfo(expr);
+      if (exprInfo != null) {
+        exprInfo.WriteDelegate(expr);
+      }
+      else {
+        throw new ArgumentException(expr.ToString());
+      }
+    }
+
+    protected virtual void WriteChild(CiExpr parent, CiExpr child) {
+      WriteChild(GetPriority(parent), child, false);
+    }
+
+    protected virtual void WriteChild(CiExpr parent, CiExpr child, bool nonAssoc) {
+      WriteChild(GetPriority(parent), child, nonAssoc);
+    }
+
+    protected virtual void WriteChild(CiPriority parentPriority, CiExpr child) {
+      WriteChild(parentPriority, child, false);
+    }
+
+    protected virtual void WriteChild(CiPriority parentPriority, CiExpr child, bool nonAssoc) {
+      ExpressionInfo exprInfo = Expressions.GetExpressionInfo(child);
+      if (exprInfo == null) {
+        throw new ArgumentException(child.ToString());
+      }
+      if ((exprInfo.Priority < parentPriority) || (nonAssoc && (exprInfo.Priority == parentPriority))) {
+        Write('(');
+        exprInfo.WriteDelegate(child);
+        Write(')');
+      }
+      else {
+        exprInfo.WriteDelegate(child);
+      }
+    }
+
+    protected virtual CiPriority GetPriority(CiExpr expr) {
+      if (expr is CiCoercion) {
+        return GetPriority((CiExpr)((CiCoercion)expr).Inner);
+      }
+      if (expr is CiBinaryExpr) {
+        return Tokens.GetTokenInfo(((CiBinaryExpr)expr).Op, 2).Priority;
+      }
+      ExpressionInfo exprInfo = Expressions.GetExpressionInfo(expr);
+      if (exprInfo != null) {
+        return exprInfo.Priority;
+      }
+      throw new ArgumentException(expr.GetType().Name);
+    }
+    #endregion
+    #region Tokens & Expressions Helper
+    public TokenMetadata Tokens = new TokenMetadata();
+    public ExpressionMetadata Expressions = new ExpressionMetadata();
+
+    protected virtual void InitTokens() {
+    }
+
+    protected virtual void InitExpressions() {
+    }
+    #endregion
   }
 
   public abstract class SourceGenerator : BaseGenerator, ICiStatementVisitor {
@@ -438,7 +539,7 @@ namespace Foxoft.Ci {
         throw new ArgumentException(value.ToString());
     }
 
-    protected virtual CiPriority GetPriority(CiExpr expr) {
+    protected override CiPriority GetPriority(CiExpr expr) {
       if (expr is CiConstExpr
         || expr is CiConstAccess
         || expr is CiVarAccess
@@ -494,7 +595,7 @@ namespace Foxoft.Ci {
       throw new ArgumentException(expr.GetType().Name);
     }
 
-    protected void WriteChild(CiPriority parentPriority, CiExpr child) {
+    protected override void WriteChild(CiPriority parentPriority, CiExpr child) {
       if (GetPriority(child) < parentPriority) {
         Write('(');
         Write(child);
@@ -504,7 +605,7 @@ namespace Foxoft.Ci {
         Write(child);
     }
 
-    protected void WriteChild(CiExpr parent, CiExpr child) {
+    protected override void WriteChild(CiExpr parent, CiExpr child) {
       WriteChild(GetPriority(parent), child);
     }
 

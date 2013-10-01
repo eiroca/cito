@@ -26,6 +26,7 @@ namespace Foxoft.Ci
 
 public enum CiPriority
 {
+    Lowest,
 	CondExpr,
 	CondOr,
 	CondAnd,
@@ -38,7 +39,8 @@ public enum CiPriority
 	Additive,
 	Multiplicative,
 	Prefix,
-	Postfix
+	Postfix,
+    Highest
 }
 
 public abstract class CiDocInline
