@@ -221,7 +221,14 @@ namespace Foxoft.Ci {
 
     public void ConvertNewExpr(CiExpr expression) {
       CiNewExpr expr = (CiNewExpr)expression;
-      WriteExpr(ExprType.Get(expr), expr);
+      if (expr.NewType is CiClassStorageType) {
+        CiClassStorageType classType = (CiClassStorageType)expr.NewType;
+        WriteSymbol(classType.Class);
+        WriteLine(".Create();");
+      }
+      else if (expr.NewType is CiArrayStorageType) {
+        WriteLine("___OPS Not able to create Array Storage");
+      }
     }
 
     public void ConvertUnaryExpr(CiExpr expression) {
@@ -847,10 +854,6 @@ namespace Foxoft.Ci {
       Write(": ");
       WriteType(var.Type);
       WriteLine(";");
-    }
-
-    protected void WriteNew(CiType type) {
-      throw new InvalidOperationException("Unsupported call to WriteNew()");
     }
 
     void WriteAssignNew(CiVar Target, CiType Type) {
@@ -1523,7 +1526,12 @@ namespace Foxoft.Ci {
           WriteSymbol(var);
           Write(")");
         }
-        else if (var.Type is CiArrayStorageType) {
+        if (var.Type is CiClassPtrType) {
+          Write("FreeAndNil(");
+          WriteSymbol(var);
+          Write(")");
+        }
+       else if (var.Type is CiArrayStorageType) {
           TypeMappingInfo info = SuperType.GetTypeInfo(var.Type);
           WriteSymbol(var);
           Write(":= ");
