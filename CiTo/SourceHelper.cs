@@ -739,14 +739,18 @@ namespace Foxoft.Ci {
   }
   //
   public delegate void WriteExprDelegate(CiExpr expr);
+  public delegate void WritePropertyAccessDelegate(CiPropertyAccess expr);
+  public delegate void WriteMethodDelegate(CiMethodCall method);
   //
   public class TokenInfo {
+    public CiToken Token;
     public string Symbol;
     public int NumParam;
     public bool IsAssociative;
     public CiPriority Priority;
 
-    public TokenInfo(string symbol, int numParam, bool isAssociative, CiPriority priority) {
+    public TokenInfo(CiToken token, string symbol, int numParam, bool isAssociative, CiPriority priority) {
+      this.Token = token;
       this.Symbol = symbol;
       this.NumParam = numParam;
       this.IsAssociative = isAssociative;
@@ -767,7 +771,7 @@ namespace Foxoft.Ci {
     }
 
     public void Add(CiToken token, string symbol, int numParam, bool isAssociative, CiPriority priority) {
-      Metadata.Add(token, new TokenInfo(symbol, numParam, isAssociative, priority));
+      Metadata.Add(token, new TokenInfo(token, symbol, numParam, isAssociative, priority));
     }
 
     public TokenInfo GetTokenInfo(CiToken token, int numParam) {
@@ -829,6 +833,42 @@ namespace Foxoft.Ci {
         throw new ArgumentException(expr.GetType().Name);
       }
       return result;
+    }
+  }
+
+  public class LibraryMetadata {
+
+    protected Dictionary<CiProperty, WritePropertyAccessDelegate> Properties = new Dictionary<CiProperty, WritePropertyAccessDelegate>();
+    protected Dictionary<CiMethod, WriteMethodDelegate> Methods = new Dictionary<CiMethod, WriteMethodDelegate>();
+
+    public LibraryMetadata() {
+    }
+
+    public void AddProperty(CiProperty prop, WritePropertyAccessDelegate del) {
+      Properties.Add(prop, del);
+    }
+
+    public void AddMethod(CiMethod met, WriteMethodDelegate del) {
+      Methods.Add(met, del);
+    }
+
+    public bool Translate(CiPropertyAccess prop) {
+      WritePropertyAccessDelegate callDelegate = null;
+      Properties.TryGetValue(prop.Property, out callDelegate);
+      if (callDelegate != null) {
+        callDelegate(prop);
+      }
+      return (callDelegate != null);
+
+    }
+
+    public bool Translate(CiMethodCall call) {
+      WriteMethodDelegate callDelegate = null;
+      Methods.TryGetValue(call.Method, out callDelegate);
+      if (callDelegate != null) {
+        callDelegate(call);
+      }
+      return (callDelegate != null);
     }
   }
 }

@@ -63,6 +63,7 @@ namespace Foxoft.Ci {
       CreateTextWriter = TextWriterFileFactory.Make;
       InitTokens();
       InitExpressions();
+      InitLibrary();
     }
     #region IGenerator
     public virtual void SetTextWriterFactory(TextWriterFactory aFactory) {
@@ -344,14 +345,21 @@ namespace Foxoft.Ci {
       throw new ArgumentException(expr.GetType().Name);
     }
     #endregion
-    #region Tokens & Expressions Helper
+    #region Tokens, Expressions & Library Helper
     public TokenMetadata Tokens = new TokenMetadata();
     public ExpressionMetadata Expressions = new ExpressionMetadata();
+    public LibraryMetadata Library = new LibraryMetadata();
 
     protected virtual void InitTokens() {
+      //TODO Use reflection to fill the structure
     }
 
     protected virtual void InitExpressions() {
+      //TODO Use reflection to fill the structure
+    }
+
+    protected virtual void InitLibrary() {
+      //TODO Use reflection to fill the structure
     }
     #endregion
   }
