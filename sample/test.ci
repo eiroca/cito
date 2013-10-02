@@ -128,3 +128,24 @@ public class AB_TestClass {
 	}
 
 }
+
+public class AC_TestString {
+	string S1;
+	string S2;
+	string S3;
+
+	public AC_TestString() {
+		S1 = "Test";
+		S2 = null;
+		S3 = (S1 != null) ? S1 : S2;
+	}
+
+	public bool TestIF() {
+		if (S1 == null) return true;
+		if (S2 == S1) return true;
+		if (S1.Length == 5) return true;
+		return false;
+	}
+
+}
+

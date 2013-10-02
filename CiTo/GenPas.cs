@@ -105,8 +105,8 @@ namespace Foxoft.Ci {
       Tokens.Add(CiToken.LessOrEqual, " <= ", 2, true, CiPriority.Ordering);
       Tokens.Add(CiToken.Greater, " > ", 2, true, CiPriority.Ordering);
       Tokens.Add(CiToken.GreaterOrEqual, " >= ", 2, true, CiPriority.Ordering);
-      Tokens.Add(CiToken.Equal, " == ", 2, true, CiPriority.Equality);
-      Tokens.Add(CiToken.NotEqual, " != ", 2, true, CiPriority.Equality);
+      Tokens.Add(CiToken.Equal, " = ", 2, true, CiPriority.Equality);
+      Tokens.Add(CiToken.NotEqual, " <> ", 2, true, CiPriority.Equality);
       Tokens.Add(CiToken.And, " and ", 2, true, CiPriority.And);
       Tokens.Add(CiToken.Or, " or ", 2, true, CiPriority.Or);
       Tokens.Add(CiToken.Xor, " xor ", 2, true, CiPriority.Xor);
@@ -280,23 +280,11 @@ namespace Foxoft.Ci {
       Write(")");
     }
 
-    public void WriteOp(CiType type, TokenInfo tokenInfo) {
-      if (tokenInfo.Token == CiToken.Slash) {
-        if ((type is CiIntType) || (type is CiByteType)) {
-          Write(" div ");
-        }
-        else {
-          Write(" / ");
-        }
-      }
-      else {
-        Write(tokenInfo.Symbol);
-      }
-    }
-
     public void ConvertBinaryExpr(CiExpr expression) {
       CiBinaryExpr expr = (CiBinaryExpr)expression;
       Write("(");
+      // Work-around to have correct left and right type
+      ExprType.Get(expr);
       WriteChild(expr, expr.Left);
       TokenInfo tokenInfo = Tokens.GetTokenInfo(expr.Op, 2);
       WriteOp(ExprType.Get(expr.Left), tokenInfo);
@@ -550,6 +538,20 @@ namespace Foxoft.Ci {
       WriteLine("function  __CINC_Pre (var x: byte): byte; overload; inline; begin inc(x); Result:= x; end;");
       WriteLine("function  __CINC_Post(var x: byte): byte; overload; inline; begin Result:= x; inc(x); end;");
       WriteLine("function  __getMagic(const cond: array of boolean): integer; var i: integer; var o: integer; begin Result:= 0; for i:= low(cond) to high(cond) do begin if (cond[i]) then o:= 1 else o:= 0; Result:= Result shl 1 + o; end; end;");
+    }
+
+    public void WriteOp(CiType type, TokenInfo tokenInfo) {
+      if (tokenInfo.Token == CiToken.Slash) {
+        if ((type is CiIntType) || (type is CiByteType)) {
+          Write(" div ");
+        }
+        else {
+          Write(" / ");
+        }
+      }
+      else {
+        Write(tokenInfo.Symbol);
+      }
     }
 
     protected virtual void WriteSymbol(CiSymbol var) {

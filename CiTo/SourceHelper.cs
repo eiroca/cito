@@ -650,27 +650,21 @@ namespace Foxoft.Ci {
         return CiType.Null;
       else if (expr is CiUnaryExpr) {
         var e = (CiUnaryExpr)expr;
-        CiType t = Analyze(e.Inner);
-        exprMap.Add(e.Inner, t);
+        CiType t = Get(e.Inner);
         return t;
       }
       else if (expr is CiPostfixExpr) {
         var e = (CiPostfixExpr)expr;
-        CiType t = Analyze(e.Inner);
-        exprMap.Add(e.Inner, t);
+        CiType t = Get(e.Inner);
         return t;
       }
       else if (expr is CiBinaryExpr) {
         var e = (CiBinaryExpr)expr;
-        CiType left = Analyze(e.Left);
-        CiType right = Analyze(e.Right);
+        CiType left = Get(e.Left);
+        CiType right = Get(e.Right);
         CiType t = ((left == null) || (left == CiType.Null)) ? right : left;
-        if (!exprMap.ContainsKey(e.Left)) {
-          exprMap.Add(e.Left, t);
-        }
-        if (!exprMap.ContainsKey(e.Right)) {
-          exprMap.Add(e.Right, t);
-        }
+        exprMap[e.Left] = t;
+        exprMap[e.Right] = t;
         return t;
       }
       else {
@@ -864,9 +858,11 @@ namespace Foxoft.Ci {
 
     public bool Translate(CiMethodCall call) {
       WriteMethodDelegate callDelegate = null;
-      Methods.TryGetValue(call.Method, out callDelegate);
-      if (callDelegate != null) {
-        callDelegate(call);
+      if (call.Method != null) {
+        Methods.TryGetValue(call.Method, out callDelegate);
+        if (callDelegate != null) {
+          callDelegate(call);
+        }
       }
       return (callDelegate != null);
     }
