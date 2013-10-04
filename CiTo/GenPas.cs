@@ -137,27 +137,32 @@ namespace Foxoft.Ci {
     }
     #region Converter - Operator(x,y)
     protected void InitOperators() {
-      CiTo.Tokens.Add(CiToken.Plus, CiPriority.Additive, ConvertOperatorAssociative, " + ");
-      CiTo.Tokens.Add(CiToken.Minus, CiPriority.Additive, ConvertOperatorNotAssociative, " - ");
-      CiTo.Tokens.Add(CiToken.Asterisk, CiPriority.Multiplicative, ConvertOperatorAssociative, " * ");
-      CiTo.Tokens.Add(CiToken.Slash, CiPriority.Multiplicative, ConvertOperatorSlash);
-      CiTo.Tokens.Add(CiToken.Mod, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " mod ");
-      CiTo.Tokens.Add(CiToken.Less, CiPriority.Ordering, ConvertOperatorAssociative, " < ");
-      CiTo.Tokens.Add(CiToken.LessOrEqual, CiPriority.Ordering, ConvertOperatorAssociative, " <= ");
-      CiTo.Tokens.Add(CiToken.Greater, CiPriority.Ordering, ConvertOperatorNotAssociative, " > ");
-      CiTo.Tokens.Add(CiToken.GreaterOrEqual, CiPriority.Ordering, ConvertOperatorAssociative, " >= ");
-      CiTo.Tokens.Add(CiToken.Equal, CiPriority.Equality, ConvertOperatorAssociative, " = ");
-      CiTo.Tokens.Add(CiToken.NotEqual, CiPriority.Equality, ConvertOperatorAssociative, " <> ");
-      CiTo.Tokens.Add(CiToken.And, CiPriority.And, ConvertOperatorAssociative, " and ");
-      CiTo.Tokens.Add(CiToken.Or, CiPriority.Or, ConvertOperatorAssociative, " or ");
-      CiTo.Tokens.Add(CiToken.Xor, CiPriority.Xor, ConvertOperatorAssociative, " xor ");
-      CiTo.Tokens.Add(CiToken.CondAnd, CiPriority.CondAnd, ConvertOperatorAssociative, " and ");
-      CiTo.Tokens.Add(CiToken.CondOr, CiPriority.CondOr, ConvertOperatorAssociative, " or ");
-      CiTo.Tokens.Add(CiToken.ShiftLeft, CiPriority.Shift, ConvertOperatorNotAssociative, " shl ");
-      CiTo.Tokens.Add(CiToken.ShiftRight, CiPriority.Shift, ConvertOperatorNotAssociative, " shr ");
+      CiTo.BinaryOperators.Add(CiToken.Plus, CiPriority.Additive, ConvertOperatorAssociative, " + ");
+      CiTo.BinaryOperators.Add(CiToken.Minus, CiPriority.Additive, ConvertOperatorNotAssociative, " - ");
+      CiTo.BinaryOperators.Add(CiToken.Asterisk, CiPriority.Multiplicative, ConvertOperatorAssociative, " * ");
+      CiTo.BinaryOperators.Add(CiToken.Slash, CiPriority.Multiplicative, ConvertOperatorSlash, null);
+      CiTo.BinaryOperators.Add(CiToken.Mod, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " mod ");
+      CiTo.BinaryOperators.Add(CiToken.Less, CiPriority.Ordering, ConvertOperatorAssociative, " < ");
+      CiTo.BinaryOperators.Add(CiToken.LessOrEqual, CiPriority.Ordering, ConvertOperatorAssociative, " <= ");
+      CiTo.BinaryOperators.Add(CiToken.Greater, CiPriority.Ordering, ConvertOperatorNotAssociative, " > ");
+      CiTo.BinaryOperators.Add(CiToken.GreaterOrEqual, CiPriority.Ordering, ConvertOperatorAssociative, " >= ");
+      CiTo.BinaryOperators.Add(CiToken.Equal, CiPriority.Equality, ConvertOperatorAssociative, " = ");
+      CiTo.BinaryOperators.Add(CiToken.NotEqual, CiPriority.Equality, ConvertOperatorAssociative, " <> ");
+      CiTo.BinaryOperators.Add(CiToken.And, CiPriority.And, ConvertOperatorAssociative, " and ");
+      CiTo.BinaryOperators.Add(CiToken.Or, CiPriority.Or, ConvertOperatorAssociative, " or ");
+      CiTo.BinaryOperators.Add(CiToken.Xor, CiPriority.Xor, ConvertOperatorAssociative, " xor ");
+      CiTo.BinaryOperators.Add(CiToken.CondAnd, CiPriority.CondAnd, ConvertOperatorAssociative, " and ");
+      CiTo.BinaryOperators.Add(CiToken.CondOr, CiPriority.CondOr, ConvertOperatorAssociative, " or ");
+      CiTo.BinaryOperators.Add(CiToken.ShiftLeft, CiPriority.Shift, ConvertOperatorNotAssociative, " shl ");
+      CiTo.BinaryOperators.Add(CiToken.ShiftRight, CiPriority.Shift, ConvertOperatorNotAssociative, " shr ");
+//
+      CiTo.UnaryOperators.Add(CiToken.Increment, CiPriority.Prefix, ConvertOperatorUnary, "__CINC_Pre(", ")");
+      CiTo.UnaryOperators.Add(CiToken.Decrement, CiPriority.Prefix, ConvertOperatorUnary, "__CINC_Pre(", ")");
+      CiTo.UnaryOperators.Add(CiToken.Minus, CiPriority.Prefix, ConvertOperatorUnary, "-(", ")");
+      CiTo.UnaryOperators.Add(CiToken.Not, CiPriority.Prefix, ConvertOperatorUnary, "not (", ")");
     }
 
-    public void ConvertOperatorAssociative(CiBinaryExpr expr, OperatorInfo token) {
+    public void ConvertOperatorAssociative(CiBinaryExpr expr, BinaryOperatorInfo token) {
       // Work-around to have correct left and right type
       ExprType.Get(expr);
       if (token.ForcePar) {
@@ -171,7 +176,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    public void ConvertOperatorNotAssociative(CiBinaryExpr expr, OperatorInfo token) {
+    public void ConvertOperatorNotAssociative(CiBinaryExpr expr, BinaryOperatorInfo token) {
       // Work-around to have correct left and right type
       ExprType.Get(expr);
       if (token.ForcePar) {
@@ -185,7 +190,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    public void ConvertOperatorSlash(CiBinaryExpr expr, OperatorInfo token) {
+    public void ConvertOperatorSlash(CiBinaryExpr expr, BinaryOperatorInfo token) {
       // Work-around to have correct left and right type
       ExprType.Get(expr);
       if (token.ForcePar) {
@@ -199,37 +204,43 @@ namespace Foxoft.Ci {
         Write(")");
       }
     }
+
+    public void ConvertOperatorUnary(CiUnaryExpr expr, UnaryOperatorInfo token) {
+      Write(token.Prefix);
+      WriteChild(expr, expr.Inner);
+      Write(token.Suffix);
+    }
     #endregion
     #region Converter - Expression
     protected void InitExpressions() {
-      CiTo.Expressions.Add(typeof(CiConstExpr), CiPriority.Postfix, ConvertConstExpr);
-      CiTo.Expressions.Add(typeof(CiConstAccess), CiPriority.Postfix, ConvertConstAccess);
-      CiTo.Expressions.Add(typeof(CiVarAccess), CiPriority.Postfix, ConvertVarAccess);
-      CiTo.Expressions.Add(typeof(CiFieldAccess), CiPriority.Postfix, ConvertFieldAccess);
-      CiTo.Expressions.Add(typeof(CiPropertyAccess), CiPriority.Postfix, ConvertPropertyAccess);
-      CiTo.Expressions.Add(typeof(CiArrayAccess), CiPriority.Postfix, ConvertArrayAccess);
-      CiTo.Expressions.Add(typeof(CiMethodCall), CiPriority.Postfix, ConvertMethodCall);
-      CiTo.Expressions.Add(typeof(CiBinaryResourceExpr), CiPriority.Postfix, ConvertBinaryResourceExpr);
-      CiTo.Expressions.Add(typeof(CiNewExpr), CiPriority.Postfix, ConvertNewExpr);
-      CiTo.Expressions.Add(typeof(CiUnaryExpr), CiPriority.Prefix, ConvertUnaryExpr);
-      CiTo.Expressions.Add(typeof(CiCondNotExpr), CiPriority.Prefix, ConvertCondNotExpr);
-      CiTo.Expressions.Add(typeof(CiPostfixExpr), CiPriority.Prefix, ConvertPostfixExpr);
-      CiTo.Expressions.Add(typeof(CiCondExpr), CiPriority.CondExpr, ConvertCondExpr);
-      CiTo.Expressions.Add(typeof(CiBinaryExpr), CiPriority.Highest, ConvertBinaryExpr);
-      CiTo.Expressions.Add(typeof(CiCoercion), CiPriority.Highest, ConvertCoercion);
+      CiTo.Expressions.Add(typeof(CiConstExpr), CiPriority.Postfix, Convert_CiConstExpr);
+      CiTo.Expressions.Add(typeof(CiConstAccess), CiPriority.Postfix, Convert_CiConstAccess);
+      CiTo.Expressions.Add(typeof(CiVarAccess), CiPriority.Postfix, Convert_CiVarAccess);
+      CiTo.Expressions.Add(typeof(CiFieldAccess), CiPriority.Postfix, Convert_CiFieldAccess);
+      CiTo.Expressions.Add(typeof(CiPropertyAccess), CiPriority.Postfix, Convert_CiPropertyAccess);
+      CiTo.Expressions.Add(typeof(CiArrayAccess), CiPriority.Postfix, Convert_CiArrayAccess);
+      CiTo.Expressions.Add(typeof(CiMethodCall), CiPriority.Postfix, Convert_CiMethodCall);
+      CiTo.Expressions.Add(typeof(CiBinaryResourceExpr), CiPriority.Postfix, Convert_CiBinaryResourceExpr);
+      CiTo.Expressions.Add(typeof(CiNewExpr), CiPriority.Postfix, Convert_CiNewExpr);
+      CiTo.Expressions.Add(typeof(CiUnaryExpr), CiPriority.Prefix, Convert_CiUnaryExpr);
+      CiTo.Expressions.Add(typeof(CiCondNotExpr), CiPriority.Prefix, Convert_CiCondNotExpr);
+      CiTo.Expressions.Add(typeof(CiPostfixExpr), CiPriority.Prefix, Convert_CiPostfixExpr);
+      CiTo.Expressions.Add(typeof(CiCondExpr), CiPriority.CondExpr, Convert_CiCondExpr);
+      CiTo.Expressions.Add(typeof(CiBinaryExpr), CiPriority.Highest, Convert_CiBinaryExpr);
+      CiTo.Expressions.Add(typeof(CiCoercion), CiPriority.Highest, Convert_CiCoercion);
     }
 
-    public void ConvertConstExpr(CiExpr expression) {
+    public void Convert_CiConstExpr(CiExpr expression) {
       CiConstExpr expr = (CiConstExpr)expression;
       WriteValue(ExprType.Get(expr), expr.Value);
     }
 
-    public void ConvertConstAccess(CiExpr expression) {
+    public void Convert_CiConstAccess(CiExpr expression) {
       CiConstAccess expr = (CiConstAccess)expression;
       WriteSymbol(expr.Const);
     }
 
-    public void ConvertVarAccess(CiExpr expression) {
+    public void Convert_CiVarAccess(CiExpr expression) {
       CiVarAccess expr = (CiVarAccess)expression;
       string name = expr.Var.Name;
       if (name.Equals("this")) {
@@ -240,21 +251,21 @@ namespace Foxoft.Ci {
       }
     }
 
-    public void ConvertFieldAccess(CiExpr expression) {
+    public void Convert_CiFieldAccess(CiExpr expression) {
       CiFieldAccess expr = (CiFieldAccess)expression;
       WriteChild(expr, expr.Obj);
       Write('.');
       WriteSymbol(expr.Field);
     }
 
-    public void ConvertPropertyAccess(CiExpr expression) {
+    public void Convert_CiPropertyAccess(CiExpr expression) {
       CiPropertyAccess expr = (CiPropertyAccess)expression;
       if (!Library.Translate(expr)) {
         throw new ArgumentException(expr.Property.Name);
       }
     }
 
-    public void ConvertArrayAccess(CiExpr expression) {
+    public void Convert_CiArrayAccess(CiExpr expression) {
       CiArrayAccess expr = (CiArrayAccess)expression;
       WriteChild(expr, expr.Array);
       Write('[');
@@ -262,19 +273,19 @@ namespace Foxoft.Ci {
       Write(']');
     }
 
-    public void ConvertMethodCall(CiExpr expression) {
+    public void Convert_CiMethodCall(CiExpr expression) {
       CiMethodCall expr = (CiMethodCall)expression;
       if (!Library.Translate(expr)) {
         WriteMethodCall(expr);
       }
     }
 
-    public void ConvertBinaryResourceExpr(CiExpr expression) {
+    public void Convert_CiBinaryResourceExpr(CiExpr expression) {
       CiBinaryResourceExpr expr = (CiBinaryResourceExpr)expression;
       WriteSymbol(expr.Resource);
     }
 
-    public void ConvertNewExpr(CiExpr expression) {
+    public void Convert_CiNewExpr(CiExpr expression) {
       CiNewExpr expr = (CiNewExpr)expression;
       if (expr.NewType is CiClassStorageType) {
         CiClassStorageType classType = (CiClassStorageType)expr.NewType;
@@ -286,36 +297,20 @@ namespace Foxoft.Ci {
       }
     }
 
-    public void ConvertUnaryExpr(CiExpr expression) {
+    public void Convert_CiUnaryExpr(CiExpr expression) {
       CiUnaryExpr expr = (CiUnaryExpr)expression;
-      switch (expr.Op) {
-        case CiToken.Increment:
-          Write("__CINC_Pre(");
-          break;
-        case CiToken.Decrement:
-          Write("__CDEC_Pre(");
-          break;
-        case CiToken.Minus:
-          Write("-(");
-          break;
-        case CiToken.Not:
-          Write("not (");
-          break;
-        default:
-          throw new ArgumentException(expr.Op.ToString());
-      }
-      WriteChild(expr, expr.Inner);
-      Write(")");
+      UnaryOperatorInfo tokenInfo = CiTo.UnaryOperators.GetUnaryOperator(expr.Op);
+      tokenInfo.WriteDelegate(expr, tokenInfo);
     }
 
-    public void ConvertCondNotExpr(CiExpr expression) {
+    public void Convert_CiCondNotExpr(CiExpr expression) {
       CiCondNotExpr expr = (CiCondNotExpr)expression;
       Write("not (");
       WriteChild(expr, expr.Inner);
       Write(")");
     }
 
-    public void ConvertPostfixExpr(CiExpr expression) {
+    public void Convert_CiPostfixExpr(CiExpr expression) {
       CiPostfixExpr expr = (CiPostfixExpr)expression;
       switch (expr.Op) {
         case CiToken.Increment:
@@ -331,7 +326,7 @@ namespace Foxoft.Ci {
       Write(")");
     }
 
-    public void ConvertCondExpr(CiExpr expression) {
+    public void Convert_CiCondExpr(CiExpr expression) {
       CiCondExpr expr = (CiCondExpr)expression;
       Write("IfThen(");
       WriteChild(expr, expr.Cond, true);
@@ -342,19 +337,13 @@ namespace Foxoft.Ci {
       Write(")");
     }
 
-    public void ConvertBinaryExpr(CiExpr expression) {
+    public void Convert_CiBinaryExpr(CiExpr expression) {
       CiBinaryExpr expr = (CiBinaryExpr)expression;
-      OperatorInfo tokenInfo = CiTo.Tokens.GetBinaryOperator(expr.Op);
-      if (tokenInfo != null) {
-        tokenInfo.WriteDelegate(expr, tokenInfo);
-      }
-      else {
-        throw new ArgumentException("Invalid Operator in Expression " + expr.ToString());
-      }
-
+      BinaryOperatorInfo tokenInfo = CiTo.BinaryOperators.GetBinaryOperator(expr.Op);
+      tokenInfo.WriteDelegate(expr, tokenInfo);
     }
 
-    public void ConvertCoercion(CiExpr expression) {
+    public void Convert_CiCoercion(CiExpr expression) {
       CiCoercion expr = (CiCoercion)expression;
       if (expr.ResultType == CiByteType.Value && expr.Inner.Type == CiIntType.Value) {
         Write("byte(");
@@ -368,13 +357,13 @@ namespace Foxoft.Ci {
     #endregion
     #region Converter - Symbols
     protected void InitSymbols() {
-      CiTo.Symbols.Add(typeof(CiEnum), Convert_CiEnum);
-      CiTo.Symbols.Add(typeof(CiConst), Convert_CiConst);
-      CiTo.Symbols.Add(typeof(CiField), Convert_CiField);
-      CiTo.Symbols.Add(typeof(CiMacro), IgnoreSymbol);
-      // CiTo.Symbols.Add(typeof(CiMethod), ConvertSymbolMethod);
-      // CiTo.Symbols.Add(typeof(CiClass), ConvertSymbolClass);
-      // CiTo.Symbols.Add(typeof(CiDelegate), ConvertSymbolDelegate);
+      CiTo.AddSymbol(typeof(CiEnum), Convert_CiEnum);
+      CiTo.AddSymbol(typeof(CiConst), Convert_CiConst);
+      CiTo.AddSymbol(typeof(CiField), Convert_CiField);
+      CiTo.AddSymbol(typeof(CiMacro), IgnoreSymbol);
+      CiTo.AddSymbol(typeof(CiMethod), IgnoreSymbol);
+      CiTo.AddSymbol(typeof(CiClass), IgnoreSymbol);
+      CiTo.AddSymbol(typeof(CiDelegate), IgnoreSymbol);
     }
 
     public void IgnoreSymbol(CiSymbol symbol) {
@@ -426,22 +415,22 @@ namespace Foxoft.Ci {
     #endregion
     #region Converter - Statements
     protected void InitStatements() {
-      CiTo.Statemets.Add(typeof(CiBlock), Convert_CiBlock);
-      CiTo.Statemets.Add(typeof(CiConst), IgnoreStatement);
-      CiTo.Statemets.Add(typeof(CiVar), Convert_CiVar);
-      CiTo.Statemets.Add(typeof(CiExpr), Convert_CiExpr);
-      CiTo.Statemets.Add(typeof(CiAssign), Convert_CiAssign);
-      CiTo.Statemets.Add(typeof(CiDelete), Convert_CiDelete);
-      CiTo.Statemets.Add(typeof(CiBreak), Convert_CiBreak);
-      CiTo.Statemets.Add(typeof(CiContinue), Convert_CiContinue);
-      CiTo.Statemets.Add(typeof(CiDoWhile), Convert_CiDoWhile);
-      CiTo.Statemets.Add(typeof(CiFor), Convert_CiFor);
-      CiTo.Statemets.Add(typeof(CiIf), Convert_CiIf);
-      CiTo.Statemets.Add(typeof(CiNativeBlock), Convert_CiNativeBlock);
-      CiTo.Statemets.Add(typeof(CiReturn), Convert_CiReturn);
-      CiTo.Statemets.Add(typeof(CiSwitch), Convert_CiSwitch);
-      CiTo.Statemets.Add(typeof(CiThrow), Convert_CiThrow);
-      CiTo.Statemets.Add(typeof(CiWhile), Convert_CiWhile);
+      CiTo.AddStatement(typeof(CiBlock), Convert_CiBlock);
+      CiTo.AddStatement(typeof(CiConst), IgnoreStatement);
+      CiTo.AddStatement(typeof(CiVar), Convert_CiVar);
+      CiTo.AddStatement(typeof(CiExpr), Convert_CiExpr);
+      CiTo.AddStatement(typeof(CiAssign), Convert_CiAssign);
+      CiTo.AddStatement(typeof(CiDelete), Convert_CiDelete);
+      CiTo.AddStatement(typeof(CiBreak), Convert_CiBreak);
+      CiTo.AddStatement(typeof(CiContinue), Convert_CiContinue);
+      CiTo.AddStatement(typeof(CiDoWhile), Convert_CiDoWhile);
+      CiTo.AddStatement(typeof(CiFor), Convert_CiFor);
+      CiTo.AddStatement(typeof(CiIf), Convert_CiIf);
+      CiTo.AddStatement(typeof(CiNativeBlock), Convert_CiNativeBlock);
+      CiTo.AddStatement(typeof(CiReturn), Convert_CiReturn);
+      CiTo.AddStatement(typeof(CiSwitch), Convert_CiSwitch);
+      CiTo.AddStatement(typeof(CiThrow), Convert_CiThrow);
+      CiTo.AddStatement(typeof(CiWhile), Convert_CiWhile);
     }
 
     public void IgnoreStatement(ICiStatement statement) {
@@ -1146,14 +1135,9 @@ namespace Foxoft.Ci {
           if (var.Symbol == null) {
             continue;
           }
-          if (var.Symbol is CiVar) {
-            CiVar v = (CiVar)var.Symbol;
+          if (var.Symbol is CiTypedSymbol) {
+            CiTypedSymbol v = (CiTypedSymbol)var.Symbol;
             WriteInitNew(v, v.Type);
-          }
-          if (var.Symbol is CiField) {
-            CiField f = (CiField)var.Symbol;
-            WriteInitNew(f, f.Type);
-            WriteInitVal(f);
           }
         }
       }
@@ -1349,20 +1333,17 @@ namespace Foxoft.Ci {
       }
     }
 
-    void WriteInitVal(CiSymbol symbol) {
-      if (symbol is CiVar) {
-        CiVar var = (CiVar)symbol;
-        if (var.InitialValue != null) {
-          if (var.Type is CiArrayStorageType) {
-            Write("__CFILL(");
-            WriteSymbol(var);
-            Write(",");
-            WriteExpr(var.InitialValue);
-            Write(")");
-          }
-          else {
-            WriteAssign(var, var.InitialValue);
-          }
+    void WriteInitVal(CiVar vr) {
+      if (vr.InitialValue != null) {
+        if (vr.Type is CiArrayStorageType) {
+          Write("__CFILL(");
+          WriteSymbol(vr);
+          Write(",");
+          WriteExpr(vr.InitialValue);
+          Write(")");
+        }
+        else {
+          WriteAssign(vr, vr.InitialValue);
         }
       }
     }
@@ -1494,7 +1475,7 @@ namespace Foxoft.Ci {
             }
           }
           else {
-            throw new InvalidOperationException("Unsupported  Fallthrough");
+            throw new InvalidOperationException("Unsupported fallthrough");
           }
         }
       }

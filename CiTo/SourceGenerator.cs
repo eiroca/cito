@@ -310,7 +310,7 @@ namespace Foxoft.Ci {
     }
 
     protected virtual void WriteChild(CiPriority parentPriority, CiExpr child, bool nonAssoc) {
-      ExpressionInfo exprInfo = CiTo.Expressions.GetExpressionInfo(child);
+      ExpressionInfo exprInfo = CiTo.Expressions.GetInfo(child);
       if (exprInfo == null) {
         throw new ArgumentException(child.ToString());
       }
@@ -329,9 +329,9 @@ namespace Foxoft.Ci {
         return GetPriority((CiExpr)((CiCoercion)expr).Inner);
       }
       if (expr is CiBinaryExpr) {
-        return CiTo.Tokens.GetBinaryOperator(((CiBinaryExpr)expr).Op).Priority;
+        return CiTo.BinaryOperators.GetBinaryOperator(((CiBinaryExpr)expr).Op).Priority;
       }
-      ExpressionInfo exprInfo = CiTo.Expressions.GetExpressionInfo(expr);
+      ExpressionInfo exprInfo = CiTo.Expressions.GetInfo(expr);
       if (exprInfo != null) {
         return exprInfo.Priority;
       }

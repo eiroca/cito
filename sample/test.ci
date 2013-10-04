@@ -24,6 +24,7 @@ public class AA_TestType {
 	MyEnum[] Field08;
 	SampleClass Field09;
 	SampleClass[] Field10;
+	SampleClass() Field11;
 
 	public AA_TestType() {
 		Field01 = 10;

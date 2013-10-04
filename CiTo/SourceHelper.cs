@@ -742,24 +742,37 @@ namespace Foxoft.Ci {
   }
   #region Delegate helper
   //
-  public delegate void WriteExprDelegate(CiExpr expr);
-  public delegate void WriteOperatorDelegate(CiBinaryExpr expr,OperatorInfo token);
-  public delegate void WritePropertyAccessDelegate(CiPropertyAccess expr);
-  public delegate void WriteMethodDelegate(CiMethodCall method);
   public delegate void WriteSymbolDelegate(CiSymbol statement);
   public delegate void WriteStatementDelegate(ICiStatement statement);
+  public delegate void WriteExprDelegate(CiExpr expr);
+  public delegate void WriteUnaryOperatorDelegate(CiUnaryExpr expr,UnaryOperatorInfo token);
+  public delegate void WriteBinaryOperatorDelegate(CiBinaryExpr expr,BinaryOperatorInfo token);
   //
   public class OperatorInfo {
-    public bool ForcePar;
     public CiToken Token;
     public CiPriority Priority;
-    public string Symbol;
-    public WriteOperatorDelegate WriteDelegate;
+  }
 
-    public OperatorInfo(CiToken token, CiPriority priority, WriteOperatorDelegate writeDelegate) : this (token, priority, writeDelegate, null) {
+  public class UnaryOperatorInfo: OperatorInfo {
+    public string Prefix;
+    public string Suffix;
+    public WriteUnaryOperatorDelegate WriteDelegate;
+
+    public UnaryOperatorInfo(CiToken token, CiPriority priority, WriteUnaryOperatorDelegate writeDelegate, string prefix, string suffix) {
+      this.Token = token;
+      this.Priority = priority;
+      this.WriteDelegate = writeDelegate;
+      this.Prefix = prefix;
+      this.Suffix = suffix;
     }
+  }
 
-    public OperatorInfo(CiToken token, CiPriority priority, WriteOperatorDelegate writeDelegate, string symbol) {
+  public class BinaryOperatorInfo: OperatorInfo {
+    public bool ForcePar;
+    public string Symbol;
+    public WriteBinaryOperatorDelegate WriteDelegate;
+
+    public BinaryOperatorInfo(CiToken token, CiPriority priority, WriteBinaryOperatorDelegate writeDelegate, string symbol) {
       this.ForcePar = true;
       if ((token == CiToken.Plus) || (token == CiToken.Minus) || (token == CiToken.Asterisk) || (token == CiToken.Slash)) {
         this.ForcePar = false;
@@ -769,33 +782,45 @@ namespace Foxoft.Ci {
       this.Symbol = symbol;
       this.WriteDelegate = writeDelegate;
     }
+  }
 
-    public OperatorInfo SetSymbol(string symbol) {
-      this.Symbol = symbol;
-      return this;
+  public class UnaryOperatorMetadata {
+
+    protected Dictionary<CiToken, UnaryOperatorInfo> Metadata = new Dictionary<CiToken, UnaryOperatorInfo>();
+
+    public UnaryOperatorMetadata() {
+    }
+
+    public void Add(CiToken token, CiPriority priority, WriteUnaryOperatorDelegate writeDelegate, string prefix, string suffix) {
+      Metadata.Add(token, new UnaryOperatorInfo(token, priority, writeDelegate, prefix, suffix));
+    }
+
+    public UnaryOperatorInfo GetUnaryOperator(CiToken token) {
+      UnaryOperatorInfo result = null;
+      Metadata.TryGetValue(token, out result);
+      if (result == null) {
+        throw new InvalidOperationException("No delegate for " + token);
+      }
+      return result;
     }
   }
 
-  public class OperatorMetadata {
+  public class BinaryOperatorMetadata {
 
-    protected Dictionary<CiToken, OperatorInfo> Metadata = new Dictionary<CiToken, OperatorInfo>();
+    protected Dictionary<CiToken, BinaryOperatorInfo> Metadata = new Dictionary<CiToken, BinaryOperatorInfo>();
 
-    public OperatorMetadata() {
+    public BinaryOperatorMetadata() {
     }
 
-    public void Add(CiToken token, CiPriority priority, WriteOperatorDelegate writeDelegate) {
-      Metadata.Add(token, new OperatorInfo(token, priority, writeDelegate));
+    public void Add(CiToken token, CiPriority priority, WriteBinaryOperatorDelegate writeDelegate, string symbol) {
+      Metadata.Add(token, new BinaryOperatorInfo(token, priority, writeDelegate, symbol));
     }
 
-    public void Add(CiToken token, CiPriority priority, WriteOperatorDelegate writeDelegate, string symbol) {
-      Metadata.Add(token, new OperatorInfo(token, priority, writeDelegate, symbol));
-    }
-
-    public OperatorInfo GetBinaryOperator(CiToken token) {
-      OperatorInfo result = null;
+    public BinaryOperatorInfo GetBinaryOperator(CiToken token) {
+      BinaryOperatorInfo result = null;
       Metadata.TryGetValue(token, out result);
       if (result == null) {
-        throw new ArgumentException(token.ToString());
+        throw new InvalidOperationException("No delegate for " + token);
       }
       return result;
     }
@@ -809,15 +834,9 @@ namespace Foxoft.Ci {
       this.Priority = priority;
       this.WriteDelegate = writeDelegate;
     }
-
-    public ExpressionInfo SetWriteDelegate(WriteExprDelegate writeDelegate) {
-      this.WriteDelegate = writeDelegate;
-      return this;
-    }
   }
 
   public class ExpressionMetadata {
-
     protected Dictionary<Type, ExpressionInfo> Metadata = new Dictionary<Type, ExpressionInfo>();
 
     public ExpressionMetadata() {
@@ -827,7 +846,7 @@ namespace Foxoft.Ci {
       Metadata.Add(exprType, new ExpressionInfo(priority, writeDelegate));
     }
 
-    public ExpressionInfo GetExpressionInfo(CiExpr expr) {
+    public ExpressionInfo GetInfo(CiExpr expr) {
       ExpressionInfo result = null;
       Type exprType = expr.GetType();
       while (exprType!=null) {
@@ -838,13 +857,13 @@ namespace Foxoft.Ci {
         exprType = exprType.BaseType;
       }
       if (result == null) {
-        throw new ArgumentException(expr.GetType().Name);
+        throw new InvalidOperationException("No delegate for " + expr.GetType());
       }
       return result;
     }
 
     public virtual void Translate(CiExpr expr) {
-      ExpressionInfo exprInfo = GetExpressionInfo(expr);
+      ExpressionInfo exprInfo = GetInfo(expr);
       if (exprInfo != null) {
         exprInfo.WriteDelegate(expr);
       }
@@ -854,21 +873,21 @@ namespace Foxoft.Ci {
     }
   }
 
-  public class MetadataHelper<T, D> {
-    public delegate void Delegator(D context);
+  public class DelegateMappingMetadata<TYPE, DATA> where TYPE: class where DATA: class {
+    public delegate void Delegator(DATA context);
 
-    protected Dictionary<T, Delegator> Mapping = new Dictionary<T, Delegator>();
+    protected Dictionary<TYPE, Delegator> Metadata = new Dictionary<TYPE, Delegator>();
 
-    public MetadataHelper() {
+    public DelegateMappingMetadata() {
     }
 
-    public void Add(T typ, Delegator delegat) {
-      Mapping.Add(typ, delegat);
+    public void Add(TYPE typ, Delegator delegat) {
+      Metadata.Add(typ, delegat);
     }
 
-    public bool TryTranslate(T typ, D context) {
+    public bool TryTranslate(TYPE typ, DATA context) {
       Delegator callDelegate = null;
-      Mapping.TryGetValue(typ, out callDelegate);
+      Metadata.TryGetValue(typ, out callDelegate);
       if (callDelegate != null) {
         callDelegate(context);
       }
@@ -876,8 +895,8 @@ namespace Foxoft.Ci {
     }
   }
 
-  public class GenericMetadata<T> : MetadataHelper<Type, T> {
-    public void Translate(T obj) {
+  public class GenericMetadata<TYPE> : DelegateMappingMetadata<Type, TYPE> where TYPE: class {
+    public void Translate(TYPE obj) {
       Type type = obj.GetType();
       bool translated = false;
       while (!translated) {
@@ -893,10 +912,19 @@ namespace Foxoft.Ci {
   }
 
   public class CiToMetadata {
-    public GenericMetadata<CiSymbol> Symbols = new GenericMetadata<CiSymbol>();
-    public GenericMetadata<ICiStatement> Statemets = new GenericMetadata<ICiStatement>();
+    protected GenericMetadata<CiSymbol> Symbols = new GenericMetadata<CiSymbol>();
+    protected GenericMetadata<ICiStatement> Statemets = new GenericMetadata<ICiStatement>();
     public ExpressionMetadata Expressions = new ExpressionMetadata();
-    public OperatorMetadata Tokens = new OperatorMetadata();
+    public BinaryOperatorMetadata BinaryOperators = new BinaryOperatorMetadata();
+    public UnaryOperatorMetadata UnaryOperators = new UnaryOperatorMetadata();
+
+    public void AddSymbol(Type symbol, GenericMetadata<CiSymbol>.Delegator delegat) {
+      Symbols.Add(symbol, delegat);
+    }
+
+    public void AddStatement(Type statemenent, GenericMetadata<ICiStatement>.Delegator delegat) {
+      Statemets.Add(statemenent, delegat);
+    }
 
     public void Translate(CiExpr expr) {
       Expressions.Translate(expr);
@@ -910,25 +938,33 @@ namespace Foxoft.Ci {
       Statemets.Translate(expr);
     }
   }
-
+  //
+  public delegate void WritePropertyAccessDelegate(CiPropertyAccess expr);
+  public delegate void WriteMethodDelegate(CiMethodCall method);
+  //
   public class LibraryMetadata {
 
-    protected MetadataHelper<CiProperty, CiPropertyAccess> Properties = new MetadataHelper<CiProperty, CiPropertyAccess>();
-    protected MetadataHelper<CiMethod, CiMethodCall> Methods = new MetadataHelper<CiMethod, CiMethodCall>();
+    protected DelegateMappingMetadata<CiProperty, CiPropertyAccess> Properties = new DelegateMappingMetadata<CiProperty, CiPropertyAccess>();
+    protected DelegateMappingMetadata<CiMethod, CiMethodCall> Methods = new DelegateMappingMetadata<CiMethod, CiMethodCall>();
 
     public LibraryMetadata() {
     }
 
-    public void AddProperty(CiProperty prop, MetadataHelper<CiProperty, CiPropertyAccess> .Delegator del) {
+    public void AddProperty(CiProperty prop, DelegateMappingMetadata<CiProperty, CiPropertyAccess>.Delegator del) {
       Properties.Add(prop, del);
     }
 
-    public void AddMethod(CiMethod met, MetadataHelper<CiMethod, CiMethodCall>.Delegator del) {
+    public void AddMethod(CiMethod met, DelegateMappingMetadata<CiMethod, CiMethodCall>.Delegator del) {
       Methods.Add(met, del);
     }
 
     public bool Translate(CiPropertyAccess prop) {
-      return Properties.TryTranslate(prop.Property, prop);
+      if (prop.Property != null) {
+        return Properties.TryTranslate(prop.Property, prop);
+      }
+      else {
+        return false;
+      }
     }
 
     public bool Translate(CiMethodCall call) {
