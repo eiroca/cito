@@ -10,6 +10,9 @@ public enum MyEnum {
 public class SampleClass {
 }
 
+public class ComplexClass : SampleClass {
+}
+
 public class AA_TestType {
 	int Field01;
 	byte Field02;
@@ -147,5 +150,17 @@ public class AC_TestString {
 		return false;
 	}
 
+}
+
+public class AD_TestClass {
+	SampleClass   C1;
+	SampleClass[] C2;
+	SampleClass() C3;
+
+	public AD_TestClass() {
+		SampleClass C4 = new ComplexClass();
+		delete C4;
+	}
+	
 }
 

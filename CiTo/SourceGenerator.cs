@@ -61,8 +61,7 @@ namespace Foxoft.Ci {
 
     public BaseGenerator() {
       CreateTextWriter = TextWriterFileFactory.Make;
-      InitTokens();
-      InitExpressions();
+      InitMetadata();
       InitLibrary();
     }
     #region IGenerator
@@ -290,18 +289,12 @@ namespace Foxoft.Ci {
       }
     }
 
-    protected virtual void WriteValue(CiType type, object value) {
-      Write(value.ToString());
+    public void WriteExpr(CiExpr expr) {
+      CiTo.Translate(expr);
     }
 
-    protected virtual void WriteExpr(CiExpr expr) {
-      ExpressionInfo exprInfo = Expressions.GetExpressionInfo(expr);
-      if (exprInfo != null) {
-        exprInfo.WriteDelegate(expr);
-      }
-      else {
-        throw new ArgumentException(expr.ToString());
-      }
+    protected virtual void WriteValue(CiType type, object value) {
+      Write(value.ToString());
     }
 
     protected virtual void WriteChild(CiExpr parent, CiExpr child) {
@@ -317,7 +310,7 @@ namespace Foxoft.Ci {
     }
 
     protected virtual void WriteChild(CiPriority parentPriority, CiExpr child, bool nonAssoc) {
-      ExpressionInfo exprInfo = Expressions.GetExpressionInfo(child);
+      ExpressionInfo exprInfo = CiTo.Expressions.GetExpressionInfo(child);
       if (exprInfo == null) {
         throw new ArgumentException(child.ToString());
       }
@@ -336,9 +329,9 @@ namespace Foxoft.Ci {
         return GetPriority((CiExpr)((CiCoercion)expr).Inner);
       }
       if (expr is CiBinaryExpr) {
-        return Tokens.GetTokenInfo(((CiBinaryExpr)expr).Op, 2).Priority;
+        return CiTo.Tokens.GetBinaryOperator(((CiBinaryExpr)expr).Op).Priority;
       }
-      ExpressionInfo exprInfo = Expressions.GetExpressionInfo(expr);
+      ExpressionInfo exprInfo = CiTo.Expressions.GetExpressionInfo(expr);
       if (exprInfo != null) {
         return exprInfo.Priority;
       }
@@ -346,15 +339,10 @@ namespace Foxoft.Ci {
     }
     #endregion
     #region Tokens, Expressions & Library Helper
-    public TokenMetadata Tokens = new TokenMetadata();
-    public ExpressionMetadata Expressions = new ExpressionMetadata();
+    public CiToMetadata CiTo = new CiToMetadata();
     public LibraryMetadata Library = new LibraryMetadata();
 
-    protected virtual void InitTokens() {
-      //TODO Use reflection to fill the structure
-    }
-
-    protected virtual void InitExpressions() {
+    protected virtual void InitMetadata() {
       //TODO Use reflection to fill the structure
     }
 

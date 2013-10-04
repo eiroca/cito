@@ -23,10 +23,92 @@ using System.Collections.Generic;
 
 namespace Foxoft.Ci {
 
+  #region Pascal helper
   public delegate bool StatementAction(ICiStatement s);
   //
   public class PascalPreProcessing {
-			
+    static private string[] PascalWords = new String[] {
+      "absolute",
+      "and",
+      "array",
+      "as",
+      "asm",
+      "begin",
+      "case",
+      "class",
+      "const",
+      "constructor",
+      "destructor",
+      "dispinterface",
+      "div",
+      "do",
+      "downto",
+      "else",
+      "end",
+      "except",
+      "exports",
+      "file",
+      "finalization",
+      "finally",
+      "for",
+      "function",
+      "goto",
+      "if",
+      "implementation",
+      "in",
+      "inherited",
+      "initialization",
+      "inline",
+      "inline",
+      "interface",
+      "is",
+      "label",
+      "library",
+      "mod",
+      "nil",
+      "not",
+      "object",
+      "of",
+      "on",
+      "on",
+      "operator",
+      "or",
+      "out",
+      "packed",
+      "packed",
+      "procedure",
+      "program",
+      "property",
+      "raise",
+      "record",
+      "reintroduce",
+      "repeat",
+      "resourcestring",
+      "self",
+      "set",
+      "shl",
+      "shr",
+      "string",
+      "then",
+      "threadvar",
+      "to",
+      "try",
+      "type",
+      "unit",
+      "until",
+      "uses",
+      "var",
+      "while",
+      "with",
+      "xor",
+      "result",
+      "length"
+    };
+
+    static PascalPreProcessing() {
+      SymbolMapping.SetReservedWords(PascalWords);
+    }
+
     static public bool Execute(ICiStatement[] stmt, StatementAction action) {
       if (stmt != null) {
         foreach (ICiStatement s in stmt) {
@@ -209,94 +291,21 @@ namespace Foxoft.Ci {
       return false;
     }
   }
-
+  #endregion
   public class SymbolMapping {
     //
-    static private string[] PascalWords = new String[] {
-      "absolute",
-      "and",
-      "array",
-      "as",
-      "asm",
-      "begin",
-      "case",
-      "class",
-      "const",
-      "constructor",
-      "destructor",
-      "dispinterface",
-      "div",
-      "do",
-      "downto",
-      "else",
-      "end",
-      "except",
-      "exports",
-      "file",
-      "finalization",
-      "finally",
-      "for",
-      "function",
-      "goto",
-      "if",
-      "implementation",
-      "in",
-      "inherited",
-      "initialization",
-      "inline",
-      "inline",
-      "interface",
-      "is",
-      "label",
-      "library",
-      "mod",
-      "nil",
-      "not",
-      "object",
-      "of",
-      "on",
-      "on",
-      "operator",
-      "or",
-      "out",
-      "packed",
-      "packed",
-      "procedure",
-      "program",
-      "property",
-      "raise",
-      "record",
-      "reintroduce",
-      "repeat",
-      "resourcestring",
-      "self",
-      "set",
-      "shl",
-      "shr",
-      "string",
-      "then",
-      "threadvar",
-      "to",
-      "try",
-      "type",
-      "unit",
-      "until",
-      "uses",
-      "var",
-      "while",
-      "with",
-      "xor",
-      "result",
-      "length"
-    };
     static private int suffix = 0;
     static private Dictionary<CiSymbol, SymbolMapping> varMap = new  Dictionary<CiSymbol, SymbolMapping>();
-    static public HashSet<string> ReservedWords = new HashSet<string>(PascalWords);
+    static public HashSet<string> ReservedWords = null;
     //
     public CiSymbol Symbol = null;
     public string NewName = "?";
     public SymbolMapping Parent = null;
     public List<SymbolMapping> childs = new List<SymbolMapping>();
+
+    static public void SetReservedWords(string[] words) {
+      ReservedWords = new HashSet<string>(words);
+    }
 
     static public void Reset() {
       suffix = 0;
@@ -731,54 +740,59 @@ namespace Foxoft.Ci {
       return exitPoints.Peek();
     }
   }
+  #region Delegate helper
   //
   public delegate void WriteExprDelegate(CiExpr expr);
+  public delegate void WriteOperatorDelegate(CiBinaryExpr expr,OperatorInfo token);
   public delegate void WritePropertyAccessDelegate(CiPropertyAccess expr);
   public delegate void WriteMethodDelegate(CiMethodCall method);
+  public delegate void WriteSymbolDelegate(CiSymbol statement);
+  public delegate void WriteStatementDelegate(ICiStatement statement);
   //
-  public class TokenInfo {
+  public class OperatorInfo {
+    public bool ForcePar;
     public CiToken Token;
-    public string Symbol;
-    public int NumParam;
-    public bool IsAssociative;
     public CiPriority Priority;
+    public string Symbol;
+    public WriteOperatorDelegate WriteDelegate;
 
-    public TokenInfo(CiToken token, string symbol, int numParam, bool isAssociative, CiPriority priority) {
-      this.Token = token;
-      this.Symbol = symbol;
-      this.NumParam = numParam;
-      this.IsAssociative = isAssociative;
-      this.Priority = priority;
+    public OperatorInfo(CiToken token, CiPriority priority, WriteOperatorDelegate writeDelegate) : this (token, priority, writeDelegate, null) {
     }
 
-    public TokenInfo SetSymbol(string symbol) {
+    public OperatorInfo(CiToken token, CiPriority priority, WriteOperatorDelegate writeDelegate, string symbol) {
+      this.ForcePar = true;
+      if ((token == CiToken.Plus) || (token == CiToken.Minus) || (token == CiToken.Asterisk) || (token == CiToken.Slash)) {
+        this.ForcePar = false;
+      }
+      this.Token = token;
+      this.Priority = priority;
+      this.Symbol = symbol;
+      this.WriteDelegate = writeDelegate;
+    }
+
+    public OperatorInfo SetSymbol(string symbol) {
       this.Symbol = symbol;
       return this;
     }
   }
 
-  public class TokenMetadata {
+  public class OperatorMetadata {
 
-    protected Dictionary<CiToken, TokenInfo> Metadata = new Dictionary<CiToken, TokenInfo>();
+    protected Dictionary<CiToken, OperatorInfo> Metadata = new Dictionary<CiToken, OperatorInfo>();
 
-    public TokenMetadata() {
+    public OperatorMetadata() {
     }
 
-    public void Add(CiToken token, string symbol, int numParam, bool isAssociative, CiPriority priority) {
-      Metadata.Add(token, new TokenInfo(token, symbol, numParam, isAssociative, priority));
+    public void Add(CiToken token, CiPriority priority, WriteOperatorDelegate writeDelegate) {
+      Metadata.Add(token, new OperatorInfo(token, priority, writeDelegate));
     }
 
-    public TokenInfo GetTokenInfo(CiToken token, int numParam) {
-      TokenInfo result = null;
-      Metadata.TryGetValue(token, out result);
-      if ((result == null) || (result.NumParam != numParam)) {
-        throw new ArgumentException(token.ToString());
-      }
-      return result;
+    public void Add(CiToken token, CiPriority priority, WriteOperatorDelegate writeDelegate, string symbol) {
+      Metadata.Add(token, new OperatorInfo(token, priority, writeDelegate, symbol));
     }
 
-    public TokenInfo GetTokenInfo(CiToken token) {
-      TokenInfo result = null;
+    public OperatorInfo GetBinaryOperator(CiToken token) {
+      OperatorInfo result = null;
       Metadata.TryGetValue(token, out result);
       if (result == null) {
         throw new ArgumentException(token.ToString());
@@ -828,43 +842,103 @@ namespace Foxoft.Ci {
       }
       return result;
     }
+
+    public virtual void Translate(CiExpr expr) {
+      ExpressionInfo exprInfo = GetExpressionInfo(expr);
+      if (exprInfo != null) {
+        exprInfo.WriteDelegate(expr);
+      }
+      else {
+        throw new ArgumentException(expr.ToString());
+      }
+    }
+  }
+
+  public class MetadataHelper<T, D> {
+    public delegate void Delegator(D context);
+
+    protected Dictionary<T, Delegator> Mapping = new Dictionary<T, Delegator>();
+
+    public MetadataHelper() {
+    }
+
+    public void Add(T typ, Delegator delegat) {
+      Mapping.Add(typ, delegat);
+    }
+
+    public bool TryTranslate(T typ, D context) {
+      Delegator callDelegate = null;
+      Mapping.TryGetValue(typ, out callDelegate);
+      if (callDelegate != null) {
+        callDelegate(context);
+      }
+      return (callDelegate != null);
+    }
+  }
+
+  public class GenericMetadata<T> : MetadataHelper<Type, T> {
+    public void Translate(T obj) {
+      Type type = obj.GetType();
+      bool translated = false;
+      while (!translated) {
+        translated = TryTranslate(type, obj);
+        if (!translated) {
+          type = type.BaseType;
+          if (type == null) {
+            throw new InvalidOperationException("No delegate for " + obj);
+          }
+        }
+      }
+    }
+  }
+
+  public class CiToMetadata {
+    public GenericMetadata<CiSymbol> Symbols = new GenericMetadata<CiSymbol>();
+    public GenericMetadata<ICiStatement> Statemets = new GenericMetadata<ICiStatement>();
+    public ExpressionMetadata Expressions = new ExpressionMetadata();
+    public OperatorMetadata Tokens = new OperatorMetadata();
+
+    public void Translate(CiExpr expr) {
+      Expressions.Translate(expr);
+    }
+
+    public void Translate(CiSymbol expr) {
+      Symbols.Translate(expr);
+    }
+
+    public void Translate(ICiStatement expr) {
+      Statemets.Translate(expr);
+    }
   }
 
   public class LibraryMetadata {
 
-    protected Dictionary<CiProperty, WritePropertyAccessDelegate> Properties = new Dictionary<CiProperty, WritePropertyAccessDelegate>();
-    protected Dictionary<CiMethod, WriteMethodDelegate> Methods = new Dictionary<CiMethod, WriteMethodDelegate>();
+    protected MetadataHelper<CiProperty, CiPropertyAccess> Properties = new MetadataHelper<CiProperty, CiPropertyAccess>();
+    protected MetadataHelper<CiMethod, CiMethodCall> Methods = new MetadataHelper<CiMethod, CiMethodCall>();
 
     public LibraryMetadata() {
     }
 
-    public void AddProperty(CiProperty prop, WritePropertyAccessDelegate del) {
+    public void AddProperty(CiProperty prop, MetadataHelper<CiProperty, CiPropertyAccess> .Delegator del) {
       Properties.Add(prop, del);
     }
 
-    public void AddMethod(CiMethod met, WriteMethodDelegate del) {
+    public void AddMethod(CiMethod met, MetadataHelper<CiMethod, CiMethodCall>.Delegator del) {
       Methods.Add(met, del);
     }
 
     public bool Translate(CiPropertyAccess prop) {
-      WritePropertyAccessDelegate callDelegate = null;
-      Properties.TryGetValue(prop.Property, out callDelegate);
-      if (callDelegate != null) {
-        callDelegate(prop);
-      }
-      return (callDelegate != null);
-
+      return Properties.TryTranslate(prop.Property, prop);
     }
 
     public bool Translate(CiMethodCall call) {
-      WriteMethodDelegate callDelegate = null;
       if (call.Method != null) {
-        Methods.TryGetValue(call.Method, out callDelegate);
-        if (callDelegate != null) {
-          callDelegate(call);
-        }
+        return Methods.TryTranslate(call.Method, call);
       }
-      return (callDelegate != null);
+      else {
+        return false;
+      }
     }
   }
+  #endregion
 }

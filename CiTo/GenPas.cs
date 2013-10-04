@@ -24,7 +24,7 @@ using System.IO;
 
 namespace Foxoft.Ci {
 
-  public class GenPas : BaseGenerator, ICiStatementVisitor, ICiSymbolVisitor {
+  public class GenPas : BaseGenerator {
     //
     PascalPreProcessing prePro = new PascalPreProcessing();
 
@@ -37,6 +37,13 @@ namespace Foxoft.Ci {
       BlockCloseStr = "end";
       BlockOpenStr = "begin";
       BlockCloseCR = false;
+    }
+
+    protected override void InitMetadata() {
+      InitSymbols();
+      InitStatements();
+      InitExpressions();
+      InitOperators();
     }
     #region SourceCodeLowLevelWrite
     public StringBuilder oldLine = null;
@@ -95,45 +102,6 @@ namespace Foxoft.Ci {
       base.Close();
     }
     #endregion
-    protected override void InitTokens() {
-      Tokens.Add(CiToken.Plus, " + ", 2, true, CiPriority.Additive);
-      Tokens.Add(CiToken.Minus, " - ", 2, false, CiPriority.Additive);
-      Tokens.Add(CiToken.Asterisk, " * ", 2, true, CiPriority.Multiplicative);
-      Tokens.Add(CiToken.Slash, "__INVALID__", 2, false, CiPriority.Multiplicative);
-      Tokens.Add(CiToken.Mod, " mod ", 2, false, CiPriority.Multiplicative);
-      Tokens.Add(CiToken.Less, " < ", 2, true, CiPriority.Ordering);
-      Tokens.Add(CiToken.LessOrEqual, " <= ", 2, true, CiPriority.Ordering);
-      Tokens.Add(CiToken.Greater, " > ", 2, true, CiPriority.Ordering);
-      Tokens.Add(CiToken.GreaterOrEqual, " >= ", 2, true, CiPriority.Ordering);
-      Tokens.Add(CiToken.Equal, " = ", 2, true, CiPriority.Equality);
-      Tokens.Add(CiToken.NotEqual, " <> ", 2, true, CiPriority.Equality);
-      Tokens.Add(CiToken.And, " and ", 2, true, CiPriority.And);
-      Tokens.Add(CiToken.Or, " or ", 2, true, CiPriority.Or);
-      Tokens.Add(CiToken.Xor, " xor ", 2, true, CiPriority.Xor);
-      Tokens.Add(CiToken.CondAnd, " and ", 2, true, CiPriority.CondAnd);
-      Tokens.Add(CiToken.CondOr, " or ", 2, true, CiPriority.CondOr);
-      Tokens.Add(CiToken.ShiftLeft, " shl ", 2, false, CiPriority.Shift);
-      Tokens.Add(CiToken.ShiftRight, " shr ", 2, false, CiPriority.Shift);
-    }
-
-    protected override void InitExpressions() {
-      Expressions.Add(typeof(CiConstExpr), CiPriority.Postfix, ConvertConstExpr);
-      Expressions.Add(typeof(CiConstAccess), CiPriority.Postfix, ConvertConstAccess);
-      Expressions.Add(typeof(CiVarAccess), CiPriority.Postfix, ConvertVarAccess);
-      Expressions.Add(typeof(CiFieldAccess), CiPriority.Postfix, ConvertFieldAccess);
-      Expressions.Add(typeof(CiPropertyAccess), CiPriority.Postfix, ConvertPropertyAccess);
-      Expressions.Add(typeof(CiArrayAccess), CiPriority.Postfix, ConvertArrayAccess);
-      Expressions.Add(typeof(CiMethodCall), CiPriority.Postfix, ConvertMethodCall);
-      Expressions.Add(typeof(CiBinaryResourceExpr), CiPriority.Postfix, ConvertBinaryResourceExpr);
-      Expressions.Add(typeof(CiNewExpr), CiPriority.Postfix, ConvertNewExpr);
-      Expressions.Add(typeof(CiUnaryExpr), CiPriority.Prefix, ConvertUnaryExpr);
-      Expressions.Add(typeof(CiCondNotExpr), CiPriority.Prefix, ConvertCondNotExpr);
-      Expressions.Add(typeof(CiPostfixExpr), CiPriority.Prefix, ConvertPostfixExpr);
-      Expressions.Add(typeof(CiCondExpr), CiPriority.CondExpr, ConvertCondExpr);
-      Expressions.Add(typeof(CiBinaryExpr), CiPriority.Highest, ConvertBinaryExpr);
-      Expressions.Add(typeof(CiCoercion), CiPriority.Highest, ConvertCoercion);
-    }
-
     protected override void WriteBanner() {
       WriteLine("(* Generated automatically with \"cito\". Do not edit. *)");
     }
@@ -162,6 +130,93 @@ namespace Foxoft.Ci {
       EmitInitialization(prog);
       WriteLine("end.");
       CloseFile();
+    }
+
+    private string DecodeDivSymbol(CiType type) {
+      return ((type is CiIntType) || (type is CiByteType)) ? " div " : " / ";
+    }
+    #region Converter - Operator(x,y)
+    protected void InitOperators() {
+      CiTo.Tokens.Add(CiToken.Plus, CiPriority.Additive, ConvertOperatorAssociative, " + ");
+      CiTo.Tokens.Add(CiToken.Minus, CiPriority.Additive, ConvertOperatorNotAssociative, " - ");
+      CiTo.Tokens.Add(CiToken.Asterisk, CiPriority.Multiplicative, ConvertOperatorAssociative, " * ");
+      CiTo.Tokens.Add(CiToken.Slash, CiPriority.Multiplicative, ConvertOperatorSlash);
+      CiTo.Tokens.Add(CiToken.Mod, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " mod ");
+      CiTo.Tokens.Add(CiToken.Less, CiPriority.Ordering, ConvertOperatorAssociative, " < ");
+      CiTo.Tokens.Add(CiToken.LessOrEqual, CiPriority.Ordering, ConvertOperatorAssociative, " <= ");
+      CiTo.Tokens.Add(CiToken.Greater, CiPriority.Ordering, ConvertOperatorNotAssociative, " > ");
+      CiTo.Tokens.Add(CiToken.GreaterOrEqual, CiPriority.Ordering, ConvertOperatorAssociative, " >= ");
+      CiTo.Tokens.Add(CiToken.Equal, CiPriority.Equality, ConvertOperatorAssociative, " = ");
+      CiTo.Tokens.Add(CiToken.NotEqual, CiPriority.Equality, ConvertOperatorAssociative, " <> ");
+      CiTo.Tokens.Add(CiToken.And, CiPriority.And, ConvertOperatorAssociative, " and ");
+      CiTo.Tokens.Add(CiToken.Or, CiPriority.Or, ConvertOperatorAssociative, " or ");
+      CiTo.Tokens.Add(CiToken.Xor, CiPriority.Xor, ConvertOperatorAssociative, " xor ");
+      CiTo.Tokens.Add(CiToken.CondAnd, CiPriority.CondAnd, ConvertOperatorAssociative, " and ");
+      CiTo.Tokens.Add(CiToken.CondOr, CiPriority.CondOr, ConvertOperatorAssociative, " or ");
+      CiTo.Tokens.Add(CiToken.ShiftLeft, CiPriority.Shift, ConvertOperatorNotAssociative, " shl ");
+      CiTo.Tokens.Add(CiToken.ShiftRight, CiPriority.Shift, ConvertOperatorNotAssociative, " shr ");
+    }
+
+    public void ConvertOperatorAssociative(CiBinaryExpr expr, OperatorInfo token) {
+      // Work-around to have correct left and right type
+      ExprType.Get(expr);
+      if (token.ForcePar) {
+        Write("(");
+      }
+      WriteChild(expr, expr.Left);
+      Write(token.Symbol);
+      WriteChild(expr, expr.Right);
+      if (token.ForcePar) {
+        Write(")");
+      }
+    }
+
+    public void ConvertOperatorNotAssociative(CiBinaryExpr expr, OperatorInfo token) {
+      // Work-around to have correct left and right type
+      ExprType.Get(expr);
+      if (token.ForcePar) {
+        Write("(");
+      }
+      WriteChild(expr, expr.Left);
+      Write(token.Symbol);
+      WriteChild(expr, expr.Right, true);
+      if (token.ForcePar) {
+        Write(")");
+      }
+    }
+
+    public void ConvertOperatorSlash(CiBinaryExpr expr, OperatorInfo token) {
+      // Work-around to have correct left and right type
+      ExprType.Get(expr);
+      if (token.ForcePar) {
+        Write("(");
+      }
+      WriteChild(expr, expr.Left);
+      CiType type = ExprType.Get(expr.Left);
+      Write(DecodeDivSymbol(type));
+      WriteChild(expr, expr.Right, true);
+      if (token.ForcePar) {
+        Write(")");
+      }
+    }
+    #endregion
+    #region Converter - Expression
+    protected void InitExpressions() {
+      CiTo.Expressions.Add(typeof(CiConstExpr), CiPriority.Postfix, ConvertConstExpr);
+      CiTo.Expressions.Add(typeof(CiConstAccess), CiPriority.Postfix, ConvertConstAccess);
+      CiTo.Expressions.Add(typeof(CiVarAccess), CiPriority.Postfix, ConvertVarAccess);
+      CiTo.Expressions.Add(typeof(CiFieldAccess), CiPriority.Postfix, ConvertFieldAccess);
+      CiTo.Expressions.Add(typeof(CiPropertyAccess), CiPriority.Postfix, ConvertPropertyAccess);
+      CiTo.Expressions.Add(typeof(CiArrayAccess), CiPriority.Postfix, ConvertArrayAccess);
+      CiTo.Expressions.Add(typeof(CiMethodCall), CiPriority.Postfix, ConvertMethodCall);
+      CiTo.Expressions.Add(typeof(CiBinaryResourceExpr), CiPriority.Postfix, ConvertBinaryResourceExpr);
+      CiTo.Expressions.Add(typeof(CiNewExpr), CiPriority.Postfix, ConvertNewExpr);
+      CiTo.Expressions.Add(typeof(CiUnaryExpr), CiPriority.Prefix, ConvertUnaryExpr);
+      CiTo.Expressions.Add(typeof(CiCondNotExpr), CiPriority.Prefix, ConvertCondNotExpr);
+      CiTo.Expressions.Add(typeof(CiPostfixExpr), CiPriority.Prefix, ConvertPostfixExpr);
+      CiTo.Expressions.Add(typeof(CiCondExpr), CiPriority.CondExpr, ConvertCondExpr);
+      CiTo.Expressions.Add(typeof(CiBinaryExpr), CiPriority.Highest, ConvertBinaryExpr);
+      CiTo.Expressions.Add(typeof(CiCoercion), CiPriority.Highest, ConvertCoercion);
     }
 
     public void ConvertConstExpr(CiExpr expression) {
@@ -227,7 +282,7 @@ namespace Foxoft.Ci {
         WriteLine(".Create();");
       }
       else if (expr.NewType is CiArrayStorageType) {
-        WriteLine("___OPS Not able to create Array Storage");
+        WriteLine("Not_able_to_create_Array_Storage");
       }
     }
 
@@ -289,19 +344,14 @@ namespace Foxoft.Ci {
 
     public void ConvertBinaryExpr(CiExpr expression) {
       CiBinaryExpr expr = (CiBinaryExpr)expression;
-      Write("(");
-      // Work-around to have correct left and right type
-      ExprType.Get(expr);
-      WriteChild(expr, expr.Left);
-      TokenInfo tokenInfo = Tokens.GetTokenInfo(expr.Op, 2);
-      WriteOp(ExprType.Get(expr.Left), tokenInfo);
-      if (tokenInfo.IsAssociative) {
-        WriteChild(expr, expr.Right);
+      OperatorInfo tokenInfo = CiTo.Tokens.GetBinaryOperator(expr.Op);
+      if (tokenInfo != null) {
+        tokenInfo.WriteDelegate(expr, tokenInfo);
       }
       else {
-        WriteChild(expr, expr.Right, true);
+        throw new ArgumentException("Invalid Operator in Expression " + expr.ToString());
       }
-      Write(")");
+
     }
 
     public void ConvertCoercion(CiExpr expression) {
@@ -315,7 +365,379 @@ namespace Foxoft.Ci {
         WriteInline(expr.Inner);
       }
     }
+    #endregion
+    #region Converter - Symbols
+    protected void InitSymbols() {
+      CiTo.Symbols.Add(typeof(CiEnum), Convert_CiEnum);
+      CiTo.Symbols.Add(typeof(CiConst), Convert_CiConst);
+      CiTo.Symbols.Add(typeof(CiField), Convert_CiField);
+      CiTo.Symbols.Add(typeof(CiMacro), IgnoreSymbol);
+      // CiTo.Symbols.Add(typeof(CiMethod), ConvertSymbolMethod);
+      // CiTo.Symbols.Add(typeof(CiClass), ConvertSymbolClass);
+      // CiTo.Symbols.Add(typeof(CiDelegate), ConvertSymbolDelegate);
+    }
 
+    public void IgnoreSymbol(CiSymbol symbol) {
+    }
+
+    public void Convert_CiEnum(CiSymbol symbol) {
+      CiEnum enu = (CiEnum)symbol;
+      WriteLine();
+      WriteCodeDoc(enu.Documentation);
+      WriteSymbol(enu);
+      WriteLine(" = (");
+      OpenBlock(false);
+      bool first = true;
+      foreach (CiEnumValue value in enu.Values) {
+        if (first) {
+          first = false;
+        }
+        else {
+          WriteLine(",");
+        }
+        WriteCodeDoc(value.Documentation);
+        WriteSymbol(value);
+      }
+      WriteLine();
+      CloseBlock(false);
+      WriteLine(");");
+    }
+
+    public void Convert_CiConst(CiSymbol symbol) {
+      CiConst konst = (CiConst)symbol;
+      WriteCodeDoc(konst.Documentation);
+      Write("public ");
+      if (!(konst.Type is CiArrayType)) {
+        Write("const ");
+      }
+      WriteSymbol(konst);
+      Write(": ");
+      WriteType(konst.Type);
+      if (!(konst.Type is CiArrayType)) {
+        Write(" = ");
+        WriteValue(konst.Type, konst.Value);
+      }
+      WriteLine(";");
+    }
+
+    public void Convert_CiField(CiSymbol symbol) {
+      WriteField((CiField)symbol, null, true);
+    }
+    #endregion
+    #region Converter - Statements
+    protected void InitStatements() {
+      CiTo.Statemets.Add(typeof(CiBlock), Convert_CiBlock);
+      CiTo.Statemets.Add(typeof(CiConst), IgnoreStatement);
+      CiTo.Statemets.Add(typeof(CiVar), Convert_CiVar);
+      CiTo.Statemets.Add(typeof(CiExpr), Convert_CiExpr);
+      CiTo.Statemets.Add(typeof(CiAssign), Convert_CiAssign);
+      CiTo.Statemets.Add(typeof(CiDelete), Convert_CiDelete);
+      CiTo.Statemets.Add(typeof(CiBreak), Convert_CiBreak);
+      CiTo.Statemets.Add(typeof(CiContinue), Convert_CiContinue);
+      CiTo.Statemets.Add(typeof(CiDoWhile), Convert_CiDoWhile);
+      CiTo.Statemets.Add(typeof(CiFor), Convert_CiFor);
+      CiTo.Statemets.Add(typeof(CiIf), Convert_CiIf);
+      CiTo.Statemets.Add(typeof(CiNativeBlock), Convert_CiNativeBlock);
+      CiTo.Statemets.Add(typeof(CiReturn), Convert_CiReturn);
+      CiTo.Statemets.Add(typeof(CiSwitch), Convert_CiSwitch);
+      CiTo.Statemets.Add(typeof(CiThrow), Convert_CiThrow);
+      CiTo.Statemets.Add(typeof(CiWhile), Convert_CiWhile);
+    }
+
+    public void IgnoreStatement(ICiStatement statement) {
+    }
+
+    public void Convert_CiBlock(ICiStatement statement) {
+      CiBlock block = (CiBlock)statement;
+      OpenBlock();
+      WriteCode(block.Statements);
+      CloseBlock();
+    }
+
+    public void Convert_CiVar(ICiStatement statement) {
+      CiVar vr = (CiVar)statement;
+      WriteInitVal(vr);
+    }
+
+    public virtual void Convert_CiExpr(ICiStatement statement) {
+      CiTo.Translate((CiExpr)statement);
+    }
+
+    public void Convert_CiAssign(ICiStatement statement) {
+      CiAssign assign = (CiAssign)statement;
+      if (assign.Source is CiAssign) {
+        CiAssign src = (CiAssign)assign.Source;
+        Convert_CiAssign(src);
+        WriteLine(";");
+        WriteAssign(assign.Target, assign.Op, src.Target);
+      }
+      else {
+        WriteAssign(assign.Target, assign.Op, assign.Source);
+      }
+    }
+
+    public void Convert_CiDelete(ICiStatement statement) {
+      CiDelete stmt = (CiDelete)statement;
+      if (stmt.Expr is CiVarAccess) {
+        CiVar var = ((CiVarAccess)stmt.Expr).Var;
+        if (var.Type is CiClassStorageType) {
+          Write("FreeAndNil(");
+          WriteSymbol(var);
+          Write(")");
+        }
+        if (var.Type is CiClassPtrType) {
+          Write("FreeAndNil(");
+          WriteSymbol(var);
+          Write(")");
+        }
+        else if (var.Type is CiArrayStorageType) {
+          TypeMappingInfo info = SuperType.GetTypeInfo(var.Type);
+          WriteSymbol(var);
+          Write(":= ");
+          Write(info.Null);
+        }
+        else if (var.Type is CiArrayPtrType) {
+          TypeMappingInfo info = SuperType.GetTypeInfo(var.Type);
+          WriteSymbol(var);
+          Write(":= ");
+          Write(info.Null);
+        }
+      }
+    }
+
+    public void Convert_CiBreak(ICiStatement statement) {
+      BreakExit label = BreakExit.Peek();
+      if (label != null) {
+        WriteLine("goto " + label.Name + ";");
+      }
+      else {
+        WriteLine("break;");
+      }
+    }
+
+    public virtual void Convert_CiContinue(ICiStatement statement) {
+      WriteLine("continue;");
+    }
+
+    public void Convert_CiDoWhile(ICiStatement statement) {
+      CiDoWhile stmt = (CiDoWhile)statement;
+      BreakExit.Push(stmt);
+      WriteLine("repeat");
+      if ((stmt.Body != null) && (stmt.Body is CiBlock)) {
+        OpenBlock(false);
+        WriteCode(((CiBlock)stmt.Body).Statements);
+        CloseBlock(false);
+      }
+      else {
+        WriteChild(stmt.Body);
+      }
+      Write("until not(");
+      WriteExpr(stmt.Cond);
+      WriteLine(");");
+      BreakExit.Pop();
+    }
+
+    public void Convert_CiFor(ICiStatement statement) {
+      CiFor stmt = (CiFor)statement;
+      BreakExit.Push(stmt);
+      bool hasInit = (stmt.Init != null);
+      bool hasNext = (stmt.Advance != null);
+      bool hasCond = (stmt.Cond != null);
+      if (hasInit && hasNext && hasCond) {
+        if (ValidPascalFor(stmt)) {
+          CiBoolBinaryExpr cond = (CiBoolBinaryExpr)stmt.Cond;
+          CiPostfixExpr mode = (CiPostfixExpr)stmt.Advance;
+          String dir = null;
+          int lmt = 0;
+          if (mode.Op == CiToken.Increment) {
+            dir = " to ";
+            if (cond.Op == CiToken.LessOrEqual) {
+              lmt = 0;
+            }
+            else if (cond.Op == CiToken.Less) {
+              lmt = -1;
+            }
+          }
+          if (mode.Op == CiToken.Decrement) {
+            dir = " downto ";
+            if (cond.Op == CiToken.GreaterOrEqual) {
+              lmt = 0;
+            }
+            else if (cond.Op == CiToken.Greater) {
+              lmt = +1;
+            }
+          }
+          if (dir != null) {
+            CiVar var = (CiVar)stmt.Init;
+            Write("for ");
+            WriteInitVal(var);
+            Write(dir);
+            if ((cond.Right is CiConstExpr) && (((CiConstExpr)cond.Right).Value is Int32)) {
+              Write((Int32)((CiConstExpr)cond.Right).Value + lmt);
+            }
+            else {
+              WriteExpr(cond.Right);
+              if (lmt != 0) {
+                if (lmt > 0) {
+                  Write("+" + lmt);
+                }
+                else {
+                  Write(lmt);
+                }
+              }
+            }
+            Write(" do ");
+            WriteChild(stmt.Body);
+            return;
+          }
+        }
+      }
+      if (hasInit) {
+        CiTo.Translate(stmt.Init);
+        WriteLine(";");
+      }
+      Write("while (");
+      if (hasCond) {
+        WriteExpr(stmt.Cond);
+      }
+      else {
+        Write("true");
+      }
+      Write(") do ");
+      if (hasNext) {
+        OpenBlock();
+        if (stmt.Body is CiBlock) {
+          WriteCode(((CiBlock)stmt.Body).Statements);
+        }
+        else {
+          WriteStatement(stmt.Body);
+        }
+        CiTo.Translate(stmt.Advance);
+        WriteLine(";");
+        CloseBlock();
+      }
+      else {
+        WriteChild(stmt.Body);
+      }
+      BreakExit.Pop();
+    }
+
+    public void Convert_CiIf(ICiStatement statement) {
+      CiIf stmt = (CiIf)statement;
+      Write("if ");
+      NoIIFExpand.Push(1);
+      WriteExpr(stmt.Cond);
+      NoIIFExpand.Pop();
+      Write(" then ");
+      WriteChild(stmt.OnTrue);
+      if (stmt.OnFalse != null) {
+        Write("else ");
+        if (stmt.OnFalse is CiIf) {
+          Write(" ");
+          WriteStatement(stmt.OnFalse);
+        }
+        else {
+          WriteChild(stmt.OnFalse);
+        }
+      }
+    }
+
+    public virtual void Convert_CiNativeBlock(ICiStatement statement) {
+      CiNativeBlock block = (CiNativeBlock)statement;
+      Write(block.Content);
+    }
+
+    public void Convert_CiReturn(ICiStatement statement) {
+      CiReturn stmt = (CiReturn)statement;
+      if (stmt.Value == null) {
+        Write("exit");
+      }
+      else {
+        NoIIFExpand.Push(1);
+        if (stmt.Value is CiCondExpr) {
+          CiCondExpr expr = (CiCondExpr)stmt.Value;
+          Write("if ");
+          WriteChild(expr, expr.Cond, true);
+          Write(" then ");
+          Write("Result:= ");
+          WriteCondChild(expr, expr.OnTrue);
+          Write(" else ");
+          Write("Result:= ");
+          WriteCondChild(expr, expr.OnFalse);
+          WriteLine(";");
+        }
+        else if (stmt.Value is CiNewExpr) {
+          CiVar result = new CiVar();
+          result.Name = "Result";
+          WriteInitNew(result, ((CiNewExpr)stmt.Value).NewType);
+          WriteLine(";");
+        }
+        else {
+          Write("Result:= ");
+          if (stmt.Value is CiConstExpr) {
+            CiMethod call = MethodStack.Peek();
+            WriteValue((call != null ? call.Signature.ReturnType : null), ((CiConstExpr)stmt.Value).Value);
+          }
+          else {
+            WriteExpr(stmt.Value);
+          }
+          WriteLine(";");
+        }
+        Write("exit");
+        NoIIFExpand.Pop();
+      }
+    }
+
+    public void Convert_CiSwitch(ICiStatement statement) {
+      CiSwitch swich = (CiSwitch)statement;
+      BreakExit label = BreakExit.Push(swich);
+      Write("case (");
+      WriteExpr(swich.Value);
+      WriteLine(") of");
+      OpenBlock(false);
+      foreach (CiCase kase in swich.Cases) {
+        bool first = true;
+        foreach (object value in kase.Values) {
+          if (!first) {
+            Write(", ");
+          }
+          else {
+            first = false;
+          }
+          WriteValue(null, value);
+        }
+        Write(": ");
+        WriteCaseInternal(swich, kase, kase.Body, null);
+        WriteLine(";");
+      }
+      if (WriteCaseInternal(swich, null, swich.DefaultBody, "else ")) {
+        WriteLine(";");
+      }
+      CloseBlock(false);
+      WriteLine("end;");
+      BreakExit.Pop();
+      if (label != null) {
+        WriteLine(label.Name + ": ;");
+      }
+    }
+
+    public void Convert_CiThrow(ICiStatement statement) {
+      CiThrow stmt = (CiThrow)statement;
+      Write("Raise Exception.Create(");
+      WriteExpr(stmt.Message);
+      WriteLine(");");
+    }
+
+    public void Convert_CiWhile(ICiStatement statement) {
+      CiWhile stmt = (CiWhile)statement;
+      BreakExit.Push(stmt);
+      Write("while (");
+      WriteExpr(stmt.Cond);
+      Write(") do ");
+      WriteChild(stmt.Body);
+      BreakExit.Pop();
+    }
+    #endregion
     public void EmitInitialization(CiProgram prog) {
       WriteLine();
       WriteLine("initialization");
@@ -399,7 +821,7 @@ namespace Foxoft.Ci {
     public void EmitEnums(CiProgram prog) {
       foreach (CiSymbol symbol in prog.Globals) {
         if (symbol is CiEnum) {
-          Visit((CiEnum)symbol);
+          Convert_CiEnum(symbol);
         }
       }
     }
@@ -435,7 +857,7 @@ namespace Foxoft.Ci {
       OpenBlock(false);
       foreach (CiSymbol member in klass.Members) {
         if (!(member is CiMethod)) {
-          member.Accept(this);
+          CiTo.Translate(member);
         }
       }
       WriteLine("public constructor Create;");
@@ -545,20 +967,6 @@ namespace Foxoft.Ci {
       WriteLine("function  __CINC_Pre (var x: byte): byte; overload; inline; begin inc(x); Result:= x; end;");
       WriteLine("function  __CINC_Post(var x: byte): byte; overload; inline; begin Result:= x; inc(x); end;");
       WriteLine("function  __getMagic(const cond: array of boolean): integer; var i: integer; var o: integer; begin Result:= 0; for i:= low(cond) to high(cond) do begin if (cond[i]) then o:= 1 else o:= 0; Result:= Result shl 1 + o; end; end;");
-    }
-
-    public void WriteOp(CiType type, TokenInfo tokenInfo) {
-      if (tokenInfo.Token == CiToken.Slash) {
-        if ((type is CiIntType) || (type is CiByteType)) {
-          Write(" div ");
-        }
-        else {
-          Write(" / ");
-        }
-      }
-      else {
-        Write(tokenInfo.Symbol);
-      }
     }
 
     protected virtual void WriteSymbol(CiSymbol var) {
@@ -1198,7 +1606,7 @@ namespace Foxoft.Ci {
         WriteExpr(type ?? ExprType.Get(exp), exp);
       }
       else {
-        Visit((CiAssign)expr);
+        Convert_CiAssign((CiAssign)expr);
       }
     }
 
@@ -1271,8 +1679,7 @@ namespace Foxoft.Ci {
             Write(" * ");
             break;
           case CiToken.DivAssign:
-            TokenInfo tokenInfo = Tokens.GetTokenInfo(CiToken.Slash);
-            WriteOp(ExprType.Get(Target), tokenInfo);
+            Write(DecodeDivSymbol(ExprType.Get(Target)));
             break;
           case CiToken.ModAssign:
             Write(" mod ");
@@ -1302,7 +1709,7 @@ namespace Foxoft.Ci {
       if (stmt == null) {
         return;
       }
-      stmt.Accept(this);
+      CiTo.Translate(stmt);
       if (curLine.Length > 0) {
         WriteLine(";");
       }
@@ -1431,346 +1838,8 @@ namespace Foxoft.Ci {
       if (expr is CiExpr)
         WriteExpr((CiExpr)expr);
       else
-        Visit((CiAssign)expr);
+        Convert_CiAssign((CiAssign)expr);
     }
-    #region SymbolVisitor implementation
-    public void Visit(CiEnum enu) {
-      WriteLine();
-      WriteCodeDoc(enu.Documentation);
-      WriteSymbol(enu);
-      WriteLine(" = (");
-      OpenBlock(false);
-      bool first = true;
-      foreach (CiEnumValue value in enu.Values) {
-        if (first) {
-          first = false;
-        }
-        else {
-          WriteLine(",");
-        }
-        WriteCodeDoc(value.Documentation);
-        WriteSymbol(value);
-      }
-      WriteLine();
-      CloseBlock(false);
-      WriteLine(");");
-    }
-
-    void ICiSymbolVisitor.Visit(CiConst konst) {
-      WriteCodeDoc(konst.Documentation);
-      Write("public ");
-      if (!(konst.Type is CiArrayType)) {
-        Write("const ");
-      }
-      WriteSymbol(konst);
-      Write(": ");
-      WriteType(konst.Type);
-      if (!(konst.Type is CiArrayType)) {
-        Write(" = ");
-        WriteValue(konst.Type, konst.Value);
-      }
-      WriteLine(";");
-    }
-
-    public void Visit(CiField field) {
-      WriteField(field, null, true);
-    }
-
-    public void Visit(CiMethod method) {
-      throw new InvalidOperationException("Try to visit a method");
-    }
-
-    public void Visit(CiClass klass) {
-      throw new InvalidOperationException("Try to visit a Class");
-    }
-
-    public void Visit(CiDelegate del) {
-      throw new InvalidOperationException("Unsupported Visit(CiDelegate)");
-    }
-    #endregion
-    #region StatementVisitor implementation
-    public void Visit(CiBlock block) {
-      OpenBlock();
-      WriteCode(block.Statements);
-      CloseBlock();
-    }
-
-    public virtual void Visit(CiConst stmt) {
-    }
-
-    public void Visit(CiVar var) {
-      WriteInitVal(var);
-    }
-
-    public virtual void Visit(CiExpr expr) {
-      WriteExpr(expr);
-    }
-
-    public void Visit(CiAssign assign) {
-      if (assign.Source is CiAssign) {
-        CiAssign prev = (CiAssign)assign.Source;
-        Visit(prev);
-        WriteLine(";");
-        WriteAssign(assign.Target, assign.Op, prev.Target);
-      }
-      else {
-        WriteAssign(assign.Target, assign.Op, assign.Source);
-      }
-    }
-
-    public void Visit(CiDelete stmt) {
-      if (stmt.Expr is CiVarAccess) {
-        CiVar var = ((CiVarAccess)stmt.Expr).Var;
-        if (var.Type is CiClassStorageType) {
-          Write("FreeAndNil(");
-          WriteSymbol(var);
-          Write(")");
-        }
-        if (var.Type is CiClassPtrType) {
-          Write("FreeAndNil(");
-          WriteSymbol(var);
-          Write(")");
-        }
-       else if (var.Type is CiArrayStorageType) {
-          TypeMappingInfo info = SuperType.GetTypeInfo(var.Type);
-          WriteSymbol(var);
-          Write(":= ");
-          Write(info.Null);
-        }
-        else if (var.Type is CiArrayPtrType) {
-          TypeMappingInfo info = SuperType.GetTypeInfo(var.Type);
-          WriteSymbol(var);
-          Write(":= ");
-          Write(info.Null);
-        }
-      }
-    }
-
-    public void Visit(CiBreak stmt) {
-      BreakExit label = BreakExit.Peek();
-      if (label != null) {
-        WriteLine("goto " + label.Name + ";");
-      }
-      else {
-        WriteLine("break;");
-      }
-    }
-
-    public virtual void Visit(CiContinue stmt) {
-      WriteLine("continue;");
-    }
-
-    public void Visit(CiDoWhile stmt) {
-      BreakExit.Push(stmt);
-      WriteLine("repeat");
-      if ((stmt.Body != null) && (stmt.Body is CiBlock)) {
-        OpenBlock(false);
-        WriteCode(((CiBlock)stmt.Body).Statements);
-        CloseBlock(false);
-      }
-      else {
-        WriteChild(stmt.Body);
-      }
-      Write("until not(");
-      WriteExpr(stmt.Cond);
-      WriteLine(");");
-      BreakExit.Pop();
-    }
-
-    public void Visit(CiFor stmt) {
-      BreakExit.Push(stmt);
-      bool hasInit = (stmt.Init != null);
-      bool hasNext = (stmt.Advance != null);
-      bool hasCond = (stmt.Cond != null);
-      if (hasInit && hasNext && hasCond) {
-        if (ValidPascalFor(stmt)) {
-          CiBoolBinaryExpr cond = (CiBoolBinaryExpr)stmt.Cond;
-          CiPostfixExpr mode = (CiPostfixExpr)stmt.Advance;
-          String dir = null;
-          int lmt = 0;
-          if (mode.Op == CiToken.Increment) {
-            dir = " to ";
-            if (cond.Op == CiToken.LessOrEqual) {
-              lmt = 0;
-            }
-            else if (cond.Op == CiToken.Less) {
-              lmt = -1;
-            }
-          }
-          if (mode.Op == CiToken.Decrement) {
-            dir = " downto ";
-            if (cond.Op == CiToken.GreaterOrEqual) {
-              lmt = 0;
-            }
-            else if (cond.Op == CiToken.Greater) {
-              lmt = +1;
-            }
-          }
-          if (dir != null) {
-            CiVar var = (CiVar)stmt.Init;
-            Write("for ");
-            WriteInitVal(var);
-            Write(dir);
-            if ((cond.Right is CiConstExpr) && (((CiConstExpr)cond.Right).Value is Int32)) {
-              Write((Int32)((CiConstExpr)cond.Right).Value + lmt);
-            }
-            else {
-              WriteExpr(cond.Right);
-              if (lmt != 0) {
-                if (lmt > 0) {
-                  Write("+" + lmt);
-                }
-                else {
-                  Write(lmt);
-                }
-              }
-            }
-            Write(" do ");
-            WriteChild(stmt.Body);
-            return;
-          }
-        }
-      }
-      if (hasInit) {
-        stmt.Init.Accept(this);
-        WriteLine(";");
-      }
-      Write("while (");
-      if (hasCond) {
-        WriteExpr(stmt.Cond);
-      }
-      else {
-        Write("true");
-      }
-      Write(") do ");
-      if (hasNext) {
-        OpenBlock();
-        if (stmt.Body is CiBlock) {
-          WriteCode(((CiBlock)stmt.Body).Statements);
-        }
-        else {
-          WriteStatement(stmt.Body);
-        }
-        stmt.Advance.Accept(this);
-        WriteLine(";");
-        CloseBlock();
-      }
-      else {
-        WriteChild(stmt.Body);
-      }
-      BreakExit.Pop();
-    }
-
-    public void Visit(CiIf stmt) {
-      Write("if ");
-      NoIIFExpand.Push(1);
-      WriteExpr(stmt.Cond);
-      NoIIFExpand.Pop();
-      Write(" then ");
-      WriteChild(stmt.OnTrue);
-      if (stmt.OnFalse != null) {
-        Write("else ");
-        if (stmt.OnFalse is CiIf) {
-          Write(" ");
-          WriteStatement(stmt.OnFalse);
-        }
-        else {
-          WriteChild(stmt.OnFalse);
-        }
-      }
-    }
-
-    public virtual void Visit(CiNativeBlock statement) {
-      Write(statement.Content);
-    }
-
-    public void Visit(CiReturn stmt) {
-      if (stmt.Value == null) {
-        Write("exit");
-      }
-      else {
-        NoIIFExpand.Push(1);
-        if (stmt.Value is CiCondExpr) {
-          CiCondExpr expr = (CiCondExpr)stmt.Value;
-          Write("if ");
-          WriteChild(expr, expr.Cond, true);
-          Write(" then ");
-          Write("Result:= ");
-          WriteCondChild(expr, expr.OnTrue);
-          Write(" else ");
-          Write("Result:= ");
-          WriteCondChild(expr, expr.OnFalse);
-          WriteLine(";");
-        }
-        else if (stmt.Value is CiNewExpr) {
-          CiVar result = new CiVar();
-          result.Name = "Result";
-          WriteInitNew(result, ((CiNewExpr)stmt.Value).NewType);
-          WriteLine(";");
-        }
-        else {
-          Write("Result:= ");
-          if (stmt.Value is CiConstExpr) {
-            CiMethod call = MethodStack.Peek();
-            WriteValue((call != null ? call.Signature.ReturnType : null), ((CiConstExpr)stmt.Value).Value);
-          }
-          else {
-            WriteExpr(stmt.Value);
-          }
-          WriteLine(";");
-        }
-        Write("exit");
-        NoIIFExpand.Pop();
-      }
-    }
-
-    public void Visit(CiSwitch swich) {
-      BreakExit label = BreakExit.Push(swich);
-      Write("case (");
-      WriteExpr(swich.Value);
-      WriteLine(") of");
-      OpenBlock(false);
-      foreach (CiCase kase in swich.Cases) {
-        bool first = true;
-        foreach (object value in kase.Values) {
-          if (!first) {
-            Write(", ");
-          }
-          else {
-            first = false;
-          }
-          WriteValue(null, value);
-        }
-        Write(": ");
-        WriteCaseInternal(swich, kase, kase.Body, null);
-        WriteLine(";");
-      }
-      if (WriteCaseInternal(swich, null, swich.DefaultBody, "else ")) {
-        WriteLine(";");
-      }
-      CloseBlock(false);
-      WriteLine("end;");
-      BreakExit.Pop();
-      if (label != null) {
-        WriteLine(label.Name + ": ;");
-      }
-    }
-
-    public void Visit(CiThrow stmt) {
-      Write("Raise Exception.Create(");
-      WriteExpr(stmt.Message);
-      WriteLine(");");
-    }
-
-    public void Visit(CiWhile stmt) {
-      BreakExit.Push(stmt);
-      Write("while (");
-      WriteExpr(stmt.Cond);
-      Write(") do ");
-      WriteChild(stmt.Body);
-      BreakExit.Pop();
-    }
-    #endregion
     #region CiTo Library handlers
     protected override void InitLibrary() {
       // Properties
