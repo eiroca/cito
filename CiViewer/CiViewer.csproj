@@ -7,10 +7,10 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{6BC80053-8B67-4873-8899-193208F91EC6}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>CiToViewer</RootNamespace>
-    <AssemblyName>CiToViewer</AssemblyName>
+    <RootNamespace>CiViewer</RootNamespace>
+    <AssemblyName>CiViewer</AssemblyName>
     <ReleaseVersion>0.5</ReleaseVersion>
-    <ApplicationIcon>..\CiToPAD\ci-logo.ico</ApplicationIcon>
+    <ApplicationIcon>ci-logo.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>
@@ -65,75 +65,75 @@
     <Compile Include="gtk-gui\MainWindow.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="..\CiTo\CiDocLexer.cs">
+    <Compile Include="..\CiLib\CiDocLexer.cs">
       <Link>CiDocLexer.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\CiDocParser.cs">
+    <Compile Include="..\CiLib\CiDocParser.cs">
       <Link>CiDocParser.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\CiLexer.cs">
+    <Compile Include="..\CiLib\CiLexer.cs">
       <Link>CiLexer.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\CiMacroProcessor.cs">
+    <Compile Include="..\CiLib\CiMacroProcessor.cs">
       <Link>CiMacroProcessor.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\CiParser.cs">
+    <Compile Include="..\CiLib\CiParser.cs">
       <Link>CiParser.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\CiResolver.cs">
+    <Compile Include="..\CiLib\CiResolver.cs">
       <Link>CiResolver.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\CiTree.cs">
+    <Compile Include="..\CiLib\CiTree.cs">
       <Link>CiTree.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\SymbolTable.cs">
+    <Compile Include="..\CiLib\SymbolTable.cs">
       <Link>SymbolTable.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\GenAs.cs">
+    <Compile Include="..\CiLib\GenAs.cs">
       <Link>GenAs.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\GenC.cs">
+    <Compile Include="..\CiLib\GenC.cs">
       <Link>GenC.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\GenC89.cs">
+    <Compile Include="..\CiLib\GenC89.cs">
       <Link>GenC89.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\GenCs.cs">
+    <Compile Include="..\CiLib\GenCs.cs">
       <Link>GenCs.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\GenD.cs">
+    <Compile Include="..\CiLib\GenD.cs">
       <Link>GenD.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\GenJava.cs">
+    <Compile Include="..\CiLib\GenJava.cs">
       <Link>GenJava.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\GenJs.cs">
+    <Compile Include="..\CiLib\GenJs.cs">
       <Link>GenJs.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\GenJsWithTypedArrays.cs">
+    <Compile Include="..\CiLib\GenJsWithTypedArrays.cs">
       <Link>GenJsWithTypedArrays.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\GenPas.cs">
+    <Compile Include="..\CiLib\GenPas.cs">
       <Link>GenPas.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\GenPerl5.cs">
+    <Compile Include="..\CiLib\GenPerl5.cs">
       <Link>GenPerl5.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\GenPerl58.cs">
+    <Compile Include="..\CiLib\GenPerl58.cs">
       <Link>GenPerl58.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\GenPerl510.cs">
+    <Compile Include="..\CiLib\GenPerl510.cs">
       <Link>GenPerl510.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\GenPHP.cs">
+    <Compile Include="..\CiLib\GenPHP.cs">
       <Link>GenPHP.cs</Link>
     </Compile>
-    <Compile Include="CiToViewerHelper.cs" />
+    <Compile Include="CiViewerHelper.cs" />
     <Compile Include="GenHelper.cs" />
-    <Compile Include="..\CiTo\SourceGenerator.cs">
+    <Compile Include="..\CiLib\SourceGenerator.cs">
       <Link>SourceGenerator.cs</Link>
     </Compile>
-    <Compile Include="..\CiTo\SourceHelper.cs">
+    <Compile Include="..\CiLib\SourceHelper.cs">
       <Link>SourceHelper.cs</Link>
     </Compile>
     <Compile Include="IgeMacMenuGlobal.cs" />
