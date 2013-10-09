@@ -23,285 +23,16 @@ using System.Collections.Generic;
 
 namespace Foxoft.Ci {
 
-  #region Pascal helper
-  public delegate bool StatementAction(ICiStatement s);
-  //
-  public class PascalPreProcessing {
-    static private string[] PascalWords = new String[] {
-      "absolute",
-      "and",
-      "array",
-      "as",
-      "asm",
-      "begin",
-      "case",
-      "class",
-      "const",
-      "constructor",
-      "destructor",
-      "dispinterface",
-      "div",
-      "do",
-      "downto",
-      "else",
-      "end",
-      "except",
-      "exports",
-      "file",
-      "finalization",
-      "finally",
-      "for",
-      "function",
-      "goto",
-      "if",
-      "implementation",
-      "in",
-      "inherited",
-      "initialization",
-      "inline",
-      "inline",
-      "interface",
-      "is",
-      "label",
-      "library",
-      "mod",
-      "nil",
-      "not",
-      "object",
-      "of",
-      "on",
-      "on",
-      "operator",
-      "or",
-      "out",
-      "packed",
-      "packed",
-      "procedure",
-      "program",
-      "property",
-      "raise",
-      "record",
-      "reintroduce",
-      "repeat",
-      "resourcestring",
-      "result",
-      "self",
-      "set",
-      "shl",
-      "shr",
-      "string",
-      "then",
-      "threadvar",
-      "to",
-      "try",
-      "type",
-      "unit",
-      "until",
-      "uses",
-      "var",
-      "while",
-      "with",
-      "xor",
-      "length"
-    };
-
-    static PascalPreProcessing() {
-      SymbolMapping.SetReservedWords(PascalWords);
-    }
-
-    static public bool Execute(ICiStatement[] stmt, StatementAction action) {
-      if (stmt != null) {
-        foreach (ICiStatement s in stmt) {
-          if (Execute(s, action)) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }
-
-    static public bool Execute(ICiStatement stmt, StatementAction action) {
-      if (stmt == null) {
-        return false;
-      }
-      if (action(stmt)) {
-        return true;
-      }
-      if (stmt is CiBlock) {
-        if (Execute(((CiBlock)stmt).Statements, action)) {
-          return true;
-        }
-      }
-      else if (stmt is CiFor) {
-        CiFor loop = (CiFor)stmt;
-        if (Execute(loop.Init, action)) {
-          return true;
-        }
-        if (Execute(loop.Body, action)) {
-          return true;
-        }
-        if (Execute(loop.Advance, action)) {
-          return true;
-        }
-      }
-      else if (stmt is CiLoop) {
-        CiLoop loop = (CiLoop)stmt;
-        if (Execute(loop.Body, action)) {
-          return true;
-        }
-      }
-      else if (stmt is CiIf) {
-        CiIf iiff = (CiIf)stmt;
-        if (Execute(iiff.OnTrue, action)) {
-          return true;
-        }
-        if (Execute(iiff.OnFalse, action)) {
-          return true;
-        }
-      }
-      else if (stmt is CiSwitch) {
-        CiSwitch swith = (CiSwitch)stmt;
-        foreach (CiCase cas in swith.Cases) {
-          if (Execute(cas.Body, action)) {
-            return true;
-          }
-        }
-        if (Execute(swith.DefaultBody, action)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    public void Parse(CiProgram program) {
-      SymbolMapping.Reset();
-      BreakExit.Reset();
-      ClassOrder.Reset();
-      NoIIFExpand.Reset();
-      ExprType.Reset();
-      SuperType.Reset();
-      MethodStack.Reset();
-      SymbolMapping root = new SymbolMapping(null);
-      foreach (CiSymbol symbol in program.Globals) {
-        if (symbol is CiEnum) {
-          SymbolMapping.AddSymbol(root, symbol);
-        }
-      }
-      foreach (CiSymbol symbol in program.Globals) {
-        if (symbol is CiDelegate) {
-          SymbolMapping.AddSymbol(root, symbol);
-        }
-      }
-      foreach (CiSymbol symbol in program.Globals) {
-        if (symbol is CiClass) {
-          ClassOrder.AddClass((CiClass)symbol);
-        }
-      }
-      foreach (CiClass klass in ClassOrder.GetList()) {
-        SymbolMapping parent = (klass.BaseClass != null ? SymbolMapping.Find(klass.BaseClass) : root);
-        SymbolMapping.AddSymbol(parent, klass);
-      }
-      foreach (CiClass klass in ClassOrder.GetList()) {
-        Parse(klass);
-      }
-    }
-
-    public void Parse(CiClass klass) {
-      SymbolMapping parent = SymbolMapping.Find(klass);
-      foreach (CiSymbol member in klass.Members) {
-        if (member is CiField) {
-          SymbolMapping.AddSymbol(parent, member);
-          SuperType.AddType(((CiField)member).Type);
-        }
-      }
-      foreach (CiConst konst in klass.ConstArrays) {
-        SymbolMapping.AddSymbol(parent, konst);
-        SuperType.AddType(konst.Type);
-      }
-      foreach (CiBinaryResource resource in klass.BinaryResources) {
-        SymbolMapping.AddSymbol(parent, resource);
-        SuperType.AddType(resource.Type);
-      }
-      if (klass.Constructor != null) {
-        SymbolMapping.AddSymbol(parent, klass.Constructor);
-      }
-      foreach (CiSymbol member in klass.Members) {
-        if (member is CiMethod) {
-          SymbolMapping methodContext = SymbolMapping.AddSymbol(parent, member, false);
-          CiMethod method = (CiMethod)member;
-          if (method.Signature.Params.Length > 0) {
-            SymbolMapping methodCall = SymbolMapping.AddSymbol(methodContext, null);
-            foreach (CiParam p in method.Signature.Params) {
-              SymbolMapping.AddSymbol(methodCall, p);
-              SuperType.AddType(p.Type);
-            }
-          }
-          SuperType.AddType(method.Signature.ReturnType);
-        }
-      }
-      if (klass.Constructor != null) {
-        Visit(klass.Constructor);
-      }
-      foreach (CiSymbol member in klass.Members) {
-        if (member is CiMethod) {
-          Visit((CiMethod)member);
-        }
-      }
-    }
-
-    public void Visit(CiMethod method) {
-      Execute((method.Body != null ? method.Body : null), s => VisitStatement(method, s));
-    }
-
-    protected bool CheckCode(ICiStatement[] code) {
-      CiBreak brk = (code != null) ? code[code.Length - 1] as CiBreak : null;
-      return PascalPreProcessing.Execute(code, s => ((s is CiBreak) && (s != brk)));
-    }
-
-    protected bool VisitStatement(CiMethod method, ICiStatement stmt) {
-      if (stmt is CiVar) {
-        var v = (CiVar)stmt;
-        SymbolMapping parent = SymbolMapping.Find(method);
-        string vName = SymbolMapping.GetPascalName(v.Name);
-        // Look if local CiTo var in already defined in Pascal procedure vars
-        foreach (SymbolMapping item in parent.childs) {
-          if (String.Compare(item.NewName, vName, true) == 0) {
-            return false;
-          }
-        }
-        SymbolMapping.AddSymbol(parent, v);
-        SuperType.AddType(v.Type);
-      }
-      else if (stmt is CiSwitch) {
-        CiSwitch swith = (CiSwitch)stmt;
-        bool needExit = false;
-        foreach (CiCase kase in swith.Cases) {
-          needExit = CheckCode(kase.Body);
-          if (needExit) {
-            break;
-          }
-        }
-        if (!needExit) {
-          needExit = CheckCode(swith.DefaultBody);
-        }
-        if (needExit) {
-          BreakExit.AddSwitch(method, swith);
-        }
-      }
-      return false;
-    }
-  }
-  #endregion
-  public class SymbolMapping {
+  public class SymbolMapper {
     //
     static private int suffix = 0;
-    static private Dictionary<CiSymbol, SymbolMapping> varMap = new  Dictionary<CiSymbol, SymbolMapping>();
+    static private Dictionary<CiSymbol, SymbolMapper> varMap = new  Dictionary<CiSymbol, SymbolMapper>();
     static public HashSet<string> ReservedWords = null;
     //
     public CiSymbol Symbol = null;
     public string NewName = "?";
-    public SymbolMapping Parent = null;
-    public List<SymbolMapping> childs = new List<SymbolMapping>();
+    public SymbolMapper Parent = null;
+    public List<SymbolMapper> childs = new List<SymbolMapper>();
 
     static public void SetReservedWords(string[] words) {
       ReservedWords = new HashSet<string>(words);
@@ -316,20 +47,20 @@ namespace Foxoft.Ci {
       return varMap.Count == 0;
     }
 
-    static public SymbolMapping AddSymbol(SymbolMapping aParent, CiSymbol aSymbol) {
+    static public SymbolMapper AddSymbol(SymbolMapper aParent, CiSymbol aSymbol) {
       return AddSymbol(aParent, aSymbol, true);
     }
 
-    static public SymbolMapping AddSymbol(SymbolMapping aParent, CiSymbol aSymbol, bool inParentCheck) {
-      SymbolMapping item = new SymbolMapping(aParent, aSymbol, inParentCheck);
+    static public SymbolMapper AddSymbol(SymbolMapper aParent, CiSymbol aSymbol, bool inParentCheck) {
+      SymbolMapper item = new SymbolMapper(aParent, aSymbol, inParentCheck);
       if (aSymbol != null) {
         varMap.Add(aSymbol, item);
       }
       return item;
     }
 
-    static public SymbolMapping Find(CiSymbol symbol) {
-      SymbolMapping result = null;
+    static public SymbolMapper Find(CiSymbol symbol) {
+      SymbolMapper result = null;
       varMap.TryGetValue(symbol, out result);
       return result;
     }
@@ -346,11 +77,11 @@ namespace Foxoft.Ci {
       return baseName;
     }
 
-    public SymbolMapping(CiSymbol aSymbol) {
+    public SymbolMapper(CiSymbol aSymbol) {
       this.Symbol = aSymbol;
     }
 
-    public SymbolMapping(SymbolMapping aParent, CiSymbol aSymbol, bool inParentCheck) {
+    public SymbolMapper(SymbolMapper aParent, CiSymbol aSymbol, bool inParentCheck) {
       this.Symbol = aSymbol;
       this.Parent = aParent;
       if (aParent != null) {
@@ -364,9 +95,9 @@ namespace Foxoft.Ci {
         return "?";
       }
       string baseName = GetPascalName(this.Symbol.Name);
-      SymbolMapping context = this.Parent;
+      SymbolMapper context = this.Parent;
       while (context!=null) {
-        foreach (SymbolMapping item in context.childs) {
+        foreach (SymbolMapper item in context.childs) {
           if (String.Compare(item.NewName, baseName, true) == 0) {
             //TODO Generate a real unique name
             suffix++;
@@ -420,7 +151,7 @@ namespace Foxoft.Ci {
     public string ItemDefault;
   }
 
-  public class SuperType {
+  public class TypeMapper {
     static private HashSet<CiClass> refClass = new HashSet<CiClass>();
     static private HashSet<CiType> refType = new HashSet<CiType>();
     static private Dictionary<CiType, TypeMappingInfo> TypeCache = new Dictionary<CiType, TypeMappingInfo>();
@@ -553,8 +284,8 @@ namespace Foxoft.Ci {
       info.NullInit = (nulInit.Length > 0 ? String.Format(nulInit.ToString(), info.Name, info.Definition, info.ItemType, info.Null).Replace('[', '{').Replace(']', '}') : null);
       info.Init = (nulInit.Length > 0 ? String.Format(init.ToString(), info.Name, info.Definition, info.ItemType, info.Null) : null);
       if ((!info.Native) && (info.Null != null)) {
-        if (!SymbolMapping.ReservedWords.Contains(info.Null)) {
-          SymbolMapping.ReservedWords.Add(info.Null);
+        if (!SymbolMapper.ReservedWords.Contains(info.Null)) {
+          SymbolMapper.ReservedWords.Add(info.Null);
         }
       }
       return info;
@@ -911,7 +642,7 @@ namespace Foxoft.Ci {
     }
   }
 
-  public class CiToMetadata {
+  public class CiMetadata {
     protected GenericMetadata<CiSymbol> Symbols = new GenericMetadata<CiSymbol>();
     protected GenericMetadata<ICiStatement> Statemets = new GenericMetadata<ICiStatement>();
     public ExpressionMetadata Expressions = new ExpressionMetadata();

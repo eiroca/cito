@@ -60,6 +60,7 @@ namespace Foxoft.Ci {
     }
 
     public BaseGenerator() {
+      SymbolMapper.SetReservedWords(GetReservedWords());
       CreateTextWriter = TextWriterFileFactory.Make;
       InitMetadata();
       InitLibrary();
@@ -147,20 +148,20 @@ namespace Foxoft.Ci {
       WriteLine();
     }
 
-    protected virtual string GetIndentStr() {
-      StringBuilder res = new StringBuilder();
-      for (int i = 0; i < this.Indent; i++) {
-        res.Append(IndentStr);
-      }
-      return res.ToString();
-    }
-
     protected virtual void WriteLine() {
       string newTxt = curLine.ToString().Trim();
       fullCode.Append(GetIndentStr());
       fullCode.Append(newTxt);
       fullCode.Append(NewLineStr);
       curLine = new StringBuilder();
+    }
+
+    protected virtual string GetIndentStr() {
+      StringBuilder res = new StringBuilder();
+      for (int i = 0; i < this.Indent; i++) {
+        res.Append(IndentStr);
+      }
+      return res.ToString();
     }
 
     protected virtual void WriteEscaped(string text) {
@@ -179,7 +180,7 @@ namespace Foxoft.Ci {
             WriteLine();
             break;
           default:
-            Write(c.ToString());
+            Write(c);
             break;
         }
       }
@@ -279,6 +280,11 @@ namespace Foxoft.Ci {
       return -1;
     }
 
+    protected string DecodeSymbol(CiSymbol var) {
+      SymbolMapper symbol = SymbolMapper.Find(var);
+      return (symbol != null) ? symbol.NewName : var.Name;
+    }
+
     protected virtual string DecodeValue(CiType type, object value) {
       return value.ToString();
     }
@@ -306,7 +312,7 @@ namespace Foxoft.Ci {
     }
 
     protected virtual void WriteExpr(CiExpr expr) {
-      CiTo.Translate(expr);
+      Ci.Translate(expr);
     }
 
     protected virtual void WriteChild(CiExpr parent, CiExpr child) {
@@ -322,7 +328,7 @@ namespace Foxoft.Ci {
     }
 
     protected virtual void WriteChild(CiPriority parentPriority, CiExpr child, bool nonAssoc) {
-      ExpressionInfo exprInfo = CiTo.Expressions.GetInfo(child);
+      ExpressionInfo exprInfo = Ci.Expressions.GetInfo(child);
       if (exprInfo == null) {
         throw new ArgumentException(child.ToString());
       }
@@ -341,9 +347,9 @@ namespace Foxoft.Ci {
         return GetPriority((CiExpr)((CiCoercion)expr).Inner);
       }
       if (expr is CiBinaryExpr) {
-        return CiTo.BinaryOperators.GetBinaryOperator(((CiBinaryExpr)expr).Op).Priority;
+        return Ci.BinaryOperators.GetBinaryOperator(((CiBinaryExpr)expr).Op).Priority;
       }
-      ExpressionInfo exprInfo = CiTo.Expressions.GetInfo(expr);
+      ExpressionInfo exprInfo = Ci.Expressions.GetInfo(expr);
       if (exprInfo != null) {
         return exprInfo.Priority;
       }
@@ -351,7 +357,7 @@ namespace Foxoft.Ci {
     }
     #endregion
     #region Tokens, Expressions & Library Helper
-    protected CiToMetadata CiTo = new CiToMetadata();
+    protected CiMetadata Ci = new CiMetadata();
     protected LibraryMetadata Library = new LibraryMetadata();
 
     protected virtual void InitMetadata() {
@@ -361,6 +367,155 @@ namespace Foxoft.Ci {
     protected virtual void InitLibrary() {
       //TODO Use reflection to fill the structure
     }
+    #endregion
+    #region Pre Processor
+    public delegate bool StatementAction(ICiStatement s);
+    //
+    protected virtual string[] GetReservedWords() {
+      return new string[] { };
+    }
+    protected virtual bool Execute(ICiStatement[] stmt, StatementAction action) {
+      if (stmt != null) {
+        foreach (ICiStatement s in stmt) {
+          if (Execute(s, action)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    protected virtual bool Execute(ICiStatement stmt, StatementAction action) {
+      if (stmt == null) {
+        return false;
+      }
+      if (action(stmt)) {
+        return true;
+      }
+      if (stmt is CiBlock) {
+        if (Execute(((CiBlock)stmt).Statements, action)) {
+          return true;
+        }
+      }
+      else if (stmt is CiFor) {
+        CiFor loop = (CiFor)stmt;
+        if (Execute(loop.Init, action)) {
+          return true;
+        }
+        if (Execute(loop.Body, action)) {
+          return true;
+        }
+        if (Execute(loop.Advance, action)) {
+          return true;
+        }
+      }
+      else if (stmt is CiLoop) {
+        CiLoop loop = (CiLoop)stmt;
+        if (Execute(loop.Body, action)) {
+          return true;
+        }
+      }
+      else if (stmt is CiIf) {
+        CiIf iiff = (CiIf)stmt;
+        if (Execute(iiff.OnTrue, action)) {
+          return true;
+        }
+        if (Execute(iiff.OnFalse, action)) {
+          return true;
+        }
+      }
+      else if (stmt is CiSwitch) {
+        CiSwitch swith = (CiSwitch)stmt;
+        foreach (CiCase cas in swith.Cases) {
+          if (Execute(cas.Body, action)) {
+            return true;
+          }
+        }
+        if (Execute(swith.DefaultBody, action)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    protected virtual void PreProcess(CiProgram program) {
+      SymbolMapper.Reset();
+      BreakExit.Reset();
+      ClassOrder.Reset();
+      NoIIFExpand.Reset();
+      ExprType.Reset();
+      TypeMapper.Reset();
+      MethodStack.Reset();
+      SymbolMapper root = new SymbolMapper(null);
+      foreach (CiSymbol symbol in program.Globals) {
+        if (symbol is CiEnum) {
+          SymbolMapper.AddSymbol(root, symbol);
+        }
+      }
+      foreach (CiSymbol symbol in program.Globals) {
+        if (symbol is CiDelegate) {
+          SymbolMapper.AddSymbol(root, symbol);
+        }
+      }
+      foreach (CiSymbol symbol in program.Globals) {
+        if (symbol is CiClass) {
+          ClassOrder.AddClass((CiClass)symbol);
+        }
+      }
+      foreach (CiClass klass in ClassOrder.GetList()) {
+        SymbolMapper parent = (klass.BaseClass != null ? SymbolMapper.Find(klass.BaseClass) : root);
+        SymbolMapper.AddSymbol(parent, klass);
+      }
+      foreach (CiClass klass in ClassOrder.GetList()) {
+        PreProcess(klass);
+      }
+    }
+
+    protected virtual void PreProcess(CiClass klass) {
+      SymbolMapper parent = SymbolMapper.Find(klass);
+      foreach (CiSymbol member in klass.Members) {
+        if (member is CiField) {
+          SymbolMapper.AddSymbol(parent, member);
+          TypeMapper.AddType(((CiField)member).Type);
+        }
+      }
+      foreach (CiConst konst in klass.ConstArrays) {
+        SymbolMapper.AddSymbol(parent, konst);
+        TypeMapper.AddType(konst.Type);
+      }
+      foreach (CiBinaryResource resource in klass.BinaryResources) {
+        SymbolMapper.AddSymbol(parent, resource);
+        TypeMapper.AddType(resource.Type);
+      }
+      if (klass.Constructor != null) {
+        SymbolMapper.AddSymbol(parent, klass.Constructor);
+      }
+      foreach (CiSymbol member in klass.Members) {
+        if (member is CiMethod) {
+          SymbolMapper methodContext = SymbolMapper.AddSymbol(parent, member, false);
+          CiMethod method = (CiMethod)member;
+          if (method.Signature.Params.Length > 0) {
+            SymbolMapper methodCall = SymbolMapper.AddSymbol(methodContext, null);
+            foreach (CiParam p in method.Signature.Params) {
+              SymbolMapper.AddSymbol(methodCall, p);
+              TypeMapper.AddType(p.Type);
+            }
+          }
+          TypeMapper.AddType(method.Signature.ReturnType);
+        }
+      }
+      if (klass.Constructor != null) {
+        PreProcess(klass.Constructor);
+      }
+      foreach (CiSymbol member in klass.Members) {
+        if (member is CiMethod) {
+          PreProcess((CiMethod)member);
+        }
+      }
+    }
+    protected virtual void PreProcess(CiMethod method) {
+    }
+
     #endregion
   }
 

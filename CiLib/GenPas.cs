@@ -25,9 +25,7 @@ using System.IO;
 namespace Foxoft.Ci {
 
   public class GenPas : BaseGenerator {
-    //
-    PascalPreProcessing preProcessor = new PascalPreProcessing();
-
+ 
     public GenPas(string aNamespace) : this() {
       SetNamespace(aNamespace);
     }
@@ -40,7 +38,88 @@ namespace Foxoft.Ci {
     }
     #region Base Generator specialization
     public override void Write(CiProgram prog) {
+      PreProcess(prog);
       EmitProgram(prog);
+    }
+
+    protected override string[] GetReservedWords() {
+      return new String[] {
+        "absolute",
+        "and",
+        "array",
+        "as",
+        "asm",
+        "begin",
+        "case",
+        "class",
+        "const",
+        "constructor",
+        "destructor",
+        "dispinterface",
+        "div",
+        "do",
+        "downto",
+        "else",
+        "end",
+        "except",
+        "exports",
+        "file",
+        "finalization",
+        "finally",
+        "for",
+        "function",
+        "goto",
+        "if",
+        "implementation",
+        "in",
+        "inherited",
+        "initialization",
+        "inline",
+        "inline",
+        "interface",
+        "is",
+        "label",
+        "library",
+        "mod",
+        "nil",
+        "not",
+        "object",
+        "of",
+        "on",
+        "on",
+        "operator",
+        "or",
+        "out",
+        "packed",
+        "packed",
+        "procedure",
+        "program",
+        "property",
+        "raise",
+        "record",
+        "reintroduce",
+        "repeat",
+        "resourcestring",
+        "result",
+        "self",
+        "set",
+        "shl",
+        "shr",
+        "string",
+        "then",
+        "threadvar",
+        "to",
+        "try",
+        "type",
+        "unit",
+        "until",
+        "uses",
+        "var",
+        "while",
+        "with",
+        "xor",
+        "length"
+      };
     }
 
     protected override void InitMetadata() {
@@ -54,13 +133,8 @@ namespace Foxoft.Ci {
       WriteLine("(* Generated automatically with \"cito\". Do not edit. *)");
     }
 
-    protected string DecodeSymbol(CiSymbol var) {
-      SymbolMapping symbol = SymbolMapping.Find(var);
-      return (symbol != null) ? symbol.NewName : var.Name;
-    }
-
     protected string DecodeType(CiType type) {
-      return SuperType.GetTypeInfo(type).Name;
+      return TypeMapper.GetTypeInfo(type).Name;
     }
 
     protected override string DecodeValue(CiType type, object value) {
@@ -86,7 +160,7 @@ namespace Foxoft.Ci {
         res.Append(" )");
       }
       else if (value == null) {
-        TypeMappingInfo info = SuperType.GetTypeInfo(type);
+        TypeMappingInfo info = TypeMapper.GetTypeInfo(type);
         res.Append(info.Null);
       }
       else if (value is bool) {
@@ -177,32 +251,74 @@ namespace Foxoft.Ci {
       }
       base.Close();
     }
+
+    protected override void PreProcess(CiMethod method) {
+      Execute(method.Body, s => PreProcessStatement(method, s));
+    }
+
+    protected virtual bool CheckCode(ICiStatement[] code) {
+      CiBreak brk = (code != null) ? code[code.Length - 1] as CiBreak : null;
+      return Execute(code, s => ((s is CiBreak) && (s != brk)));
+    }
+
+    protected virtual bool PreProcessStatement(CiMethod method, ICiStatement stmt) {
+      if (stmt is CiVar) {
+        CiVar v = (CiVar)stmt;
+        SymbolMapper parent = SymbolMapper.Find(method);
+        string vName = SymbolMapper.GetPascalName(v.Name);
+        // Look if local Ci var in already defined in Pascal procedure vars
+        foreach (SymbolMapper item in parent.childs) {
+          if (String.Compare(item.NewName, vName, true) == 0) {
+            return false;
+          }
+        }
+        SymbolMapper.AddSymbol(parent, v);
+        TypeMapper.AddType(v.Type);
+      }
+      else if (stmt is CiSwitch) {
+        CiSwitch swith = (CiSwitch)stmt;
+        bool needExit = false;
+        foreach (CiCase kase in swith.Cases) {
+          needExit = CheckCode(kase.Body);
+          if (needExit) {
+            break;
+          }
+        }
+        if (!needExit) {
+          needExit = CheckCode(swith.DefaultBody);
+        }
+        if (needExit) {
+          BreakExit.AddSwitch(method, swith);
+        }
+      }
+      return false;
+    }
     #endregion
     #region Converter - Operator(x,y)
     protected void InitOperators() {
-      CiTo.BinaryOperators.Add(CiToken.Plus, CiPriority.Additive, ConvertOperatorAssociative, " + ");
-      CiTo.BinaryOperators.Add(CiToken.Minus, CiPriority.Additive, ConvertOperatorNotAssociative, " - ");
-      CiTo.BinaryOperators.Add(CiToken.Asterisk, CiPriority.Multiplicative, ConvertOperatorAssociative, " * ");
-      CiTo.BinaryOperators.Add(CiToken.Slash, CiPriority.Multiplicative, ConvertOperatorSlash, null);
-      CiTo.BinaryOperators.Add(CiToken.Mod, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " mod ");
-      CiTo.BinaryOperators.Add(CiToken.Less, CiPriority.Ordering, ConvertOperatorAssociative, " < ");
-      CiTo.BinaryOperators.Add(CiToken.LessOrEqual, CiPriority.Ordering, ConvertOperatorAssociative, " <= ");
-      CiTo.BinaryOperators.Add(CiToken.Greater, CiPriority.Ordering, ConvertOperatorNotAssociative, " > ");
-      CiTo.BinaryOperators.Add(CiToken.GreaterOrEqual, CiPriority.Ordering, ConvertOperatorAssociative, " >= ");
-      CiTo.BinaryOperators.Add(CiToken.Equal, CiPriority.Equality, ConvertOperatorAssociative, " = ");
-      CiTo.BinaryOperators.Add(CiToken.NotEqual, CiPriority.Equality, ConvertOperatorAssociative, " <> ");
-      CiTo.BinaryOperators.Add(CiToken.And, CiPriority.And, ConvertOperatorAssociative, " and ");
-      CiTo.BinaryOperators.Add(CiToken.Or, CiPriority.Or, ConvertOperatorAssociative, " or ");
-      CiTo.BinaryOperators.Add(CiToken.Xor, CiPriority.Xor, ConvertOperatorAssociative, " xor ");
-      CiTo.BinaryOperators.Add(CiToken.CondAnd, CiPriority.CondAnd, ConvertOperatorAssociative, " and ");
-      CiTo.BinaryOperators.Add(CiToken.CondOr, CiPriority.CondOr, ConvertOperatorAssociative, " or ");
-      CiTo.BinaryOperators.Add(CiToken.ShiftLeft, CiPriority.Shift, ConvertOperatorNotAssociative, " shl ");
-      CiTo.BinaryOperators.Add(CiToken.ShiftRight, CiPriority.Shift, ConvertOperatorNotAssociative, " shr ");
+      Ci.BinaryOperators.Add(CiToken.Plus, CiPriority.Additive, ConvertOperatorAssociative, " + ");
+      Ci.BinaryOperators.Add(CiToken.Minus, CiPriority.Additive, ConvertOperatorNotAssociative, " - ");
+      Ci.BinaryOperators.Add(CiToken.Asterisk, CiPriority.Multiplicative, ConvertOperatorAssociative, " * ");
+      Ci.BinaryOperators.Add(CiToken.Slash, CiPriority.Multiplicative, ConvertOperatorSlash, null);
+      Ci.BinaryOperators.Add(CiToken.Mod, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " mod ");
+      Ci.BinaryOperators.Add(CiToken.Less, CiPriority.Ordering, ConvertOperatorAssociative, " < ");
+      Ci.BinaryOperators.Add(CiToken.LessOrEqual, CiPriority.Ordering, ConvertOperatorAssociative, " <= ");
+      Ci.BinaryOperators.Add(CiToken.Greater, CiPriority.Ordering, ConvertOperatorNotAssociative, " > ");
+      Ci.BinaryOperators.Add(CiToken.GreaterOrEqual, CiPriority.Ordering, ConvertOperatorAssociative, " >= ");
+      Ci.BinaryOperators.Add(CiToken.Equal, CiPriority.Equality, ConvertOperatorAssociative, " = ");
+      Ci.BinaryOperators.Add(CiToken.NotEqual, CiPriority.Equality, ConvertOperatorAssociative, " <> ");
+      Ci.BinaryOperators.Add(CiToken.And, CiPriority.And, ConvertOperatorAssociative, " and ");
+      Ci.BinaryOperators.Add(CiToken.Or, CiPriority.Or, ConvertOperatorAssociative, " or ");
+      Ci.BinaryOperators.Add(CiToken.Xor, CiPriority.Xor, ConvertOperatorAssociative, " xor ");
+      Ci.BinaryOperators.Add(CiToken.CondAnd, CiPriority.CondAnd, ConvertOperatorAssociative, " and ");
+      Ci.BinaryOperators.Add(CiToken.CondOr, CiPriority.CondOr, ConvertOperatorAssociative, " or ");
+      Ci.BinaryOperators.Add(CiToken.ShiftLeft, CiPriority.Shift, ConvertOperatorNotAssociative, " shl ");
+      Ci.BinaryOperators.Add(CiToken.ShiftRight, CiPriority.Shift, ConvertOperatorNotAssociative, " shr ");
 //
-      CiTo.UnaryOperators.Add(CiToken.Increment, CiPriority.Prefix, ConvertOperatorUnary, "__CINC_Pre(", ")");
-      CiTo.UnaryOperators.Add(CiToken.Decrement, CiPriority.Prefix, ConvertOperatorUnary, "__CINC_Pre(", ")");
-      CiTo.UnaryOperators.Add(CiToken.Minus, CiPriority.Prefix, ConvertOperatorUnary, "-(", ")");
-      CiTo.UnaryOperators.Add(CiToken.Not, CiPriority.Prefix, ConvertOperatorUnary, "not (", ")");
+      Ci.UnaryOperators.Add(CiToken.Increment, CiPriority.Prefix, ConvertOperatorUnary, "__CINC_Pre(", ")");
+      Ci.UnaryOperators.Add(CiToken.Decrement, CiPriority.Prefix, ConvertOperatorUnary, "__CINC_Pre(", ")");
+      Ci.UnaryOperators.Add(CiToken.Minus, CiPriority.Prefix, ConvertOperatorUnary, "-(", ")");
+      Ci.UnaryOperators.Add(CiToken.Not, CiPriority.Prefix, ConvertOperatorUnary, "not (", ")");
     }
 
     public void ConvertOperatorAssociative(CiBinaryExpr expr, BinaryOperatorInfo token) {
@@ -256,21 +372,21 @@ namespace Foxoft.Ci {
     #endregion
     #region Converter - Expression
     protected void InitExpressions() {
-      CiTo.Expressions.Add(typeof(CiConstExpr), CiPriority.Postfix, Convert_CiConstExpr);
-      CiTo.Expressions.Add(typeof(CiConstAccess), CiPriority.Postfix, Convert_CiConstAccess);
-      CiTo.Expressions.Add(typeof(CiVarAccess), CiPriority.Postfix, Convert_CiVarAccess);
-      CiTo.Expressions.Add(typeof(CiFieldAccess), CiPriority.Postfix, Convert_CiFieldAccess);
-      CiTo.Expressions.Add(typeof(CiPropertyAccess), CiPriority.Postfix, Convert_CiPropertyAccess);
-      CiTo.Expressions.Add(typeof(CiArrayAccess), CiPriority.Postfix, Convert_CiArrayAccess);
-      CiTo.Expressions.Add(typeof(CiMethodCall), CiPriority.Postfix, Convert_CiMethodCall);
-      CiTo.Expressions.Add(typeof(CiBinaryResourceExpr), CiPriority.Postfix, Convert_CiBinaryResourceExpr);
-      CiTo.Expressions.Add(typeof(CiNewExpr), CiPriority.Postfix, Convert_CiNewExpr);
-      CiTo.Expressions.Add(typeof(CiUnaryExpr), CiPriority.Prefix, Convert_CiUnaryExpr);
-      CiTo.Expressions.Add(typeof(CiCondNotExpr), CiPriority.Prefix, Convert_CiCondNotExpr);
-      CiTo.Expressions.Add(typeof(CiPostfixExpr), CiPriority.Prefix, Convert_CiPostfixExpr);
-      CiTo.Expressions.Add(typeof(CiCondExpr), CiPriority.CondExpr, Convert_CiCondExpr);
-      CiTo.Expressions.Add(typeof(CiBinaryExpr), CiPriority.Highest, Convert_CiBinaryExpr);
-      CiTo.Expressions.Add(typeof(CiCoercion), CiPriority.Highest, Convert_CiCoercion);
+      Ci.Expressions.Add(typeof(CiConstExpr), CiPriority.Postfix, Convert_CiConstExpr);
+      Ci.Expressions.Add(typeof(CiConstAccess), CiPriority.Postfix, Convert_CiConstAccess);
+      Ci.Expressions.Add(typeof(CiVarAccess), CiPriority.Postfix, Convert_CiVarAccess);
+      Ci.Expressions.Add(typeof(CiFieldAccess), CiPriority.Postfix, Convert_CiFieldAccess);
+      Ci.Expressions.Add(typeof(CiPropertyAccess), CiPriority.Postfix, Convert_CiPropertyAccess);
+      Ci.Expressions.Add(typeof(CiArrayAccess), CiPriority.Postfix, Convert_CiArrayAccess);
+      Ci.Expressions.Add(typeof(CiMethodCall), CiPriority.Postfix, Convert_CiMethodCall);
+      Ci.Expressions.Add(typeof(CiBinaryResourceExpr), CiPriority.Postfix, Convert_CiBinaryResourceExpr);
+      Ci.Expressions.Add(typeof(CiNewExpr), CiPriority.Postfix, Convert_CiNewExpr);
+      Ci.Expressions.Add(typeof(CiUnaryExpr), CiPriority.Prefix, Convert_CiUnaryExpr);
+      Ci.Expressions.Add(typeof(CiCondNotExpr), CiPriority.Prefix, Convert_CiCondNotExpr);
+      Ci.Expressions.Add(typeof(CiPostfixExpr), CiPriority.Prefix, Convert_CiPostfixExpr);
+      Ci.Expressions.Add(typeof(CiCondExpr), CiPriority.CondExpr, Convert_CiCondExpr);
+      Ci.Expressions.Add(typeof(CiBinaryExpr), CiPriority.Highest, Convert_CiBinaryExpr);
+      Ci.Expressions.Add(typeof(CiCoercion), CiPriority.Highest, Convert_CiCoercion);
     }
 
     public void Convert_CiConstExpr(CiExpr expression) {
@@ -342,7 +458,7 @@ namespace Foxoft.Ci {
 
     public void Convert_CiUnaryExpr(CiExpr expression) {
       CiUnaryExpr expr = (CiUnaryExpr)expression;
-      UnaryOperatorInfo tokenInfo = CiTo.UnaryOperators.GetUnaryOperator(expr.Op);
+      UnaryOperatorInfo tokenInfo = Ci.UnaryOperators.GetUnaryOperator(expr.Op);
       tokenInfo.WriteDelegate(expr, tokenInfo);
     }
 
@@ -382,7 +498,7 @@ namespace Foxoft.Ci {
 
     public void Convert_CiBinaryExpr(CiExpr expression) {
       CiBinaryExpr expr = (CiBinaryExpr)expression;
-      BinaryOperatorInfo tokenInfo = CiTo.BinaryOperators.GetBinaryOperator(expr.Op);
+      BinaryOperatorInfo tokenInfo = Ci.BinaryOperators.GetBinaryOperator(expr.Op);
       tokenInfo.WriteDelegate(expr, tokenInfo);
     }
 
@@ -400,13 +516,13 @@ namespace Foxoft.Ci {
     #endregion
     #region Converter - Symbols
     protected void InitSymbols() {
-      CiTo.AddSymbol(typeof(CiEnum), Convert_CiEnum);
-      CiTo.AddSymbol(typeof(CiConst), Convert_CiConst);
-      CiTo.AddSymbol(typeof(CiField), Convert_CiField);
-      CiTo.AddSymbol(typeof(CiMacro), IgnoreSymbol);
-      CiTo.AddSymbol(typeof(CiMethod), IgnoreSymbol);
-      CiTo.AddSymbol(typeof(CiClass), IgnoreSymbol);
-      CiTo.AddSymbol(typeof(CiDelegate), IgnoreSymbol);
+      Ci.AddSymbol(typeof(CiEnum), Convert_CiEnum);
+      Ci.AddSymbol(typeof(CiConst), Convert_CiConst);
+      Ci.AddSymbol(typeof(CiField), Convert_CiField);
+      Ci.AddSymbol(typeof(CiMacro), IgnoreSymbol);
+      Ci.AddSymbol(typeof(CiMethod), IgnoreSymbol);
+      Ci.AddSymbol(typeof(CiClass), IgnoreSymbol);
+      Ci.AddSymbol(typeof(CiDelegate), IgnoreSymbol);
     }
 
     public void IgnoreSymbol(CiSymbol symbol) {
@@ -455,22 +571,22 @@ namespace Foxoft.Ci {
     #endregion
     #region Converter - Statements
     protected void InitStatements() {
-      CiTo.AddStatement(typeof(CiBlock), Convert_CiBlock);
-      CiTo.AddStatement(typeof(CiConst), IgnoreStatement);
-      CiTo.AddStatement(typeof(CiVar), Convert_CiVar);
-      CiTo.AddStatement(typeof(CiExpr), Convert_CiExpr);
-      CiTo.AddStatement(typeof(CiAssign), Convert_CiAssign);
-      CiTo.AddStatement(typeof(CiDelete), Convert_CiDelete);
-      CiTo.AddStatement(typeof(CiBreak), Convert_CiBreak);
-      CiTo.AddStatement(typeof(CiContinue), Convert_CiContinue);
-      CiTo.AddStatement(typeof(CiDoWhile), Convert_CiDoWhile);
-      CiTo.AddStatement(typeof(CiFor), Convert_CiFor);
-      CiTo.AddStatement(typeof(CiIf), Convert_CiIf);
-      CiTo.AddStatement(typeof(CiNativeBlock), Convert_CiNativeBlock);
-      CiTo.AddStatement(typeof(CiReturn), Convert_CiReturn);
-      CiTo.AddStatement(typeof(CiSwitch), Convert_CiSwitch);
-      CiTo.AddStatement(typeof(CiThrow), Convert_CiThrow);
-      CiTo.AddStatement(typeof(CiWhile), Convert_CiWhile);
+      Ci.AddStatement(typeof(CiBlock), Convert_CiBlock);
+      Ci.AddStatement(typeof(CiConst), IgnoreStatement);
+      Ci.AddStatement(typeof(CiVar), Convert_CiVar);
+      Ci.AddStatement(typeof(CiExpr), Convert_CiExpr);
+      Ci.AddStatement(typeof(CiAssign), Convert_CiAssign);
+      Ci.AddStatement(typeof(CiDelete), Convert_CiDelete);
+      Ci.AddStatement(typeof(CiBreak), Convert_CiBreak);
+      Ci.AddStatement(typeof(CiContinue), Convert_CiContinue);
+      Ci.AddStatement(typeof(CiDoWhile), Convert_CiDoWhile);
+      Ci.AddStatement(typeof(CiFor), Convert_CiFor);
+      Ci.AddStatement(typeof(CiIf), Convert_CiIf);
+      Ci.AddStatement(typeof(CiNativeBlock), Convert_CiNativeBlock);
+      Ci.AddStatement(typeof(CiReturn), Convert_CiReturn);
+      Ci.AddStatement(typeof(CiSwitch), Convert_CiSwitch);
+      Ci.AddStatement(typeof(CiThrow), Convert_CiThrow);
+      Ci.AddStatement(typeof(CiWhile), Convert_CiWhile);
     }
 
     public void IgnoreStatement(ICiStatement statement) {
@@ -489,7 +605,7 @@ namespace Foxoft.Ci {
     }
 
     public virtual void Convert_CiExpr(ICiStatement statement) {
-      CiTo.Translate((CiExpr)statement);
+      Ci.Translate((CiExpr)statement);
     }
 
     public void Convert_CiAssign(ICiStatement statement) {
@@ -516,11 +632,11 @@ namespace Foxoft.Ci {
           WriteFormat("FreeAndNil({0})", DecodeSymbol(var));
         }
         else if (var.Type is CiArrayStorageType) {
-          TypeMappingInfo info = SuperType.GetTypeInfo(var.Type);
+          TypeMappingInfo info = TypeMapper.GetTypeInfo(var.Type);
           WriteFormat("{0}:= {1}", DecodeSymbol(var), info.Null);
         }
         else if (var.Type is CiArrayPtrType) {
-          TypeMappingInfo info = SuperType.GetTypeInfo(var.Type);
+          TypeMappingInfo info = TypeMapper.GetTypeInfo(var.Type);
           WriteFormat("{0}:= {1}", DecodeSymbol(var), info.Null);
 
         }
@@ -615,7 +731,7 @@ namespace Foxoft.Ci {
         }
       }
       if (hasInit) {
-        CiTo.Translate(stmt.Init);
+        Ci.Translate(stmt.Init);
         WriteLine(";");
       }
       Write("while (");
@@ -634,7 +750,7 @@ namespace Foxoft.Ci {
         else {
           WriteStatement(stmt.Body);
         }
-        CiTo.Translate(stmt.Advance);
+        Ci.Translate(stmt.Advance);
         WriteLine(";");
         CloseBlock();
       }
@@ -764,12 +880,11 @@ namespace Foxoft.Ci {
     // Emit pascal program
     public void EmitProgram(CiProgram prog) {
       CreateFile(this.OutputFile);
-      preProcessor.Parse(prog);
       // Prologue
       WriteLine("unit " + (!string.IsNullOrEmpty(this.Namespace) ? this.Namespace : "cito") + ";");
       // Declaration
       EmitInterfaceHeader();
-      if (!SymbolMapping.IsEmpty()) {
+      if (!SymbolMapper.IsEmpty()) {
         WriteLine();
         WriteLine("type");
         OpenBlock(false);
@@ -805,7 +920,7 @@ namespace Foxoft.Ci {
 
     public void EmitSuperTypes() {
       bool sep = false;
-      foreach (CiClass klass in SuperType.GetClassList()) {
+      foreach (CiClass klass in TypeMapper.GetClassList()) {
         if (!sep) {
           WriteLine();
           sep = true;
@@ -813,8 +928,8 @@ namespace Foxoft.Ci {
         WriteLine("{0} = class;", DecodeSymbol(klass));
       }
       HashSet<string> types = new HashSet<string>();
-      foreach (CiType t in SuperType.GetTypeList()) {
-        TypeMappingInfo info = SuperType.GetTypeInfo(t);
+      foreach (CiType t in TypeMapper.GetTypeList()) {
+        TypeMappingInfo info = TypeMapper.GetTypeInfo(t);
         if (!info.Native) {
           if (sep) {
             sep = false;
@@ -851,7 +966,7 @@ namespace Foxoft.Ci {
       OpenBlock(false);
       foreach (CiSymbol member in klass.Members) {
         if (!(member is CiMethod)) {
-          CiTo.Translate(member);
+          Ci.Translate(member);
         }
       }
       WriteLine("public constructor Create;");
@@ -871,8 +986,8 @@ namespace Foxoft.Ci {
       bool getResProc = false;
       bool first = true;
       HashSet<string> types = new HashSet<string>();
-      foreach (CiType t in SuperType.GetTypeList()) {
-        TypeMappingInfo info = SuperType.GetTypeInfo(t);
+      foreach (CiType t in TypeMapper.GetTypeList()) {
+        TypeMappingInfo info = TypeMapper.GetTypeInfo(t);
         if (!info.Native) {
           if (first) {
             first = false;
@@ -968,8 +1083,8 @@ namespace Foxoft.Ci {
       WriteLine("initialization");
       OpenBlock(false);
       HashSet<string> types = new HashSet<string>();
-      foreach (CiType t in SuperType.GetTypeList()) {
-        TypeMappingInfo info = SuperType.GetTypeInfo(t);
+      foreach (CiType t in TypeMapper.GetTypeList()) {
+        TypeMappingInfo info = TypeMapper.GetTypeInfo(t);
         if (info.NullInit != null) {
           if (!types.Contains(info.Name)) {
             types.Add(info.Name);
@@ -1082,7 +1197,7 @@ namespace Foxoft.Ci {
         if ((cond.Left is CiVarAccess) && ((cond.Right is CiConstExpr) || (cond.Right is CiVarAccess))) {
           if (((CiVarAccess)cond.Left).Var == loopVar) {
             // loop variabale cannot be changed inside the loop
-            if (PascalPreProcessing.Execute(stmt.Body, s => IsAssignmentOf(s, loopVar))) {
+            if (Execute(stmt.Body, s => IsAssignmentOf(s, loopVar))) {
               return false;
             }
             return true;
@@ -1228,9 +1343,9 @@ namespace Foxoft.Ci {
     }
 
     void WriteVars(CiSymbol symb) {
-      SymbolMapping vars = SymbolMapping.Find(symb);
+      SymbolMapper vars = SymbolMapper.Find(symb);
       if (vars != null) {
-        foreach (SymbolMapping var in vars.childs) {
+        foreach (SymbolMapper var in vars.childs) {
           if (var.Symbol == null) {
             continue;
           }
@@ -1245,9 +1360,9 @@ namespace Foxoft.Ci {
     }
 
     void WriteVarsInit(CiSymbol symb) {
-      SymbolMapping vars = SymbolMapping.Find(symb);
+      SymbolMapper vars = SymbolMapper.Find(symb);
       if (vars != null) {
-        foreach (SymbolMapping var in vars.childs) {
+        foreach (SymbolMapper var in vars.childs) {
           if (var.Symbol == null) {
             continue;
           }
@@ -1662,7 +1777,7 @@ namespace Foxoft.Ci {
       if (stmt == null) {
         return;
       }
-      CiTo.Translate(stmt);
+      Ci.Translate(stmt);
       if (curLine.Length > 0) {
         WriteLine(";");
       }
