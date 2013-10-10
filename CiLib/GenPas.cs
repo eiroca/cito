@@ -256,15 +256,15 @@ namespace Foxoft.Ci {
     protected override bool PreProcess(CiMethod method, ICiStatement stmt) {
       if (stmt is CiVar) {
         CiVar v = (CiVar)stmt;
-        SymbolMapper parent = SymbolMapper.Find(method);
-        string vName = SymbolMapper.GetPascalName(v.Name);
+        SymbolMapping parent = Find(method);
+        string vName = GetSymbolName(v);
         // Look if local Ci var in already defined in Pascal procedure vars
-        foreach (SymbolMapper item in parent.childs) {
+        foreach (SymbolMapping item in parent.childs) {
           if (String.Compare(item.NewName, vName, true) == 0) {
             return false;
           }
         }
-        SymbolMapper.AddSymbol(parent, v);
+        AddSymbol(parent, v);
         TypeMapper.AddType(v.Type);
       }
       else if (stmt is CiSwitch) {
@@ -508,13 +508,13 @@ namespace Foxoft.Ci {
     #endregion
     #region Converter - Symbols
     protected override void InitSymbols() {
-      AddSymbol(typeof(CiEnum), Convert_CiEnum);
-      AddSymbol(typeof(CiConst), Convert_CiConst);
-      AddSymbol(typeof(CiField), Convert_CiField);
-      AddSymbol(typeof(CiMacro), IgnoreSymbol);
-      AddSymbol(typeof(CiMethod), IgnoreSymbol);
-      AddSymbol(typeof(CiClass), IgnoreSymbol);
-      AddSymbol(typeof(CiDelegate), IgnoreSymbol);
+      AddSymbolTranslator(typeof(CiEnum), Convert_CiEnum);
+      AddSymbolTranslator(typeof(CiConst), Convert_CiConst);
+      AddSymbolTranslator(typeof(CiField), Convert_CiField);
+      AddSymbolTranslator(typeof(CiMacro), IgnoreSymbol);
+      AddSymbolTranslator(typeof(CiMethod), IgnoreSymbol);
+      AddSymbolTranslator(typeof(CiClass), IgnoreSymbol);
+      AddSymbolTranslator(typeof(CiDelegate), IgnoreSymbol);
     }
 
     public void IgnoreSymbol(CiSymbol symbol) {
@@ -563,22 +563,22 @@ namespace Foxoft.Ci {
     #endregion
     #region Converter - Statements
     protected override void InitStatements() {
-      AddStatement(typeof(CiBlock), Convert_CiBlock);
-      AddStatement(typeof(CiConst), IgnoreStatement);
-      AddStatement(typeof(CiVar), Convert_CiVar);
-      AddStatement(typeof(CiExpr), Convert_CiExpr);
-      AddStatement(typeof(CiAssign), Convert_CiAssign);
-      AddStatement(typeof(CiDelete), Convert_CiDelete);
-      AddStatement(typeof(CiBreak), Convert_CiBreak);
-      AddStatement(typeof(CiContinue), Convert_CiContinue);
-      AddStatement(typeof(CiDoWhile), Convert_CiDoWhile);
-      AddStatement(typeof(CiFor), Convert_CiFor);
-      AddStatement(typeof(CiIf), Convert_CiIf);
-      AddStatement(typeof(CiNativeBlock), Convert_CiNativeBlock);
-      AddStatement(typeof(CiReturn), Convert_CiReturn);
-      AddStatement(typeof(CiSwitch), Convert_CiSwitch);
-      AddStatement(typeof(CiThrow), Convert_CiThrow);
-      AddStatement(typeof(CiWhile), Convert_CiWhile);
+      AddStatementTranslator(typeof(CiBlock), Convert_CiBlock);
+      AddStatementTranslator(typeof(CiConst), IgnoreStatement);
+      AddStatementTranslator(typeof(CiVar), Convert_CiVar);
+      AddStatementTranslator(typeof(CiExpr), Convert_CiExpr);
+      AddStatementTranslator(typeof(CiAssign), Convert_CiAssign);
+      AddStatementTranslator(typeof(CiDelete), Convert_CiDelete);
+      AddStatementTranslator(typeof(CiBreak), Convert_CiBreak);
+      AddStatementTranslator(typeof(CiContinue), Convert_CiContinue);
+      AddStatementTranslator(typeof(CiDoWhile), Convert_CiDoWhile);
+      AddStatementTranslator(typeof(CiFor), Convert_CiFor);
+      AddStatementTranslator(typeof(CiIf), Convert_CiIf);
+      AddStatementTranslator(typeof(CiNativeBlock), Convert_CiNativeBlock);
+      AddStatementTranslator(typeof(CiReturn), Convert_CiReturn);
+      AddStatementTranslator(typeof(CiSwitch), Convert_CiSwitch);
+      AddStatementTranslator(typeof(CiThrow), Convert_CiThrow);
+      AddStatementTranslator(typeof(CiWhile), Convert_CiWhile);
     }
 
     public void IgnoreStatement(ICiStatement statement) {
@@ -876,7 +876,7 @@ namespace Foxoft.Ci {
       WriteLine("unit " + (!string.IsNullOrEmpty(this.Namespace) ? this.Namespace : "cito") + ";");
       // Declaration
       EmitInterfaceHeader();
-      if (!SymbolMapper.IsEmpty()) {
+      if (!HasSymbols()) {
         WriteLine();
         WriteLine("type");
         OpenBlock(false);
@@ -1335,9 +1335,9 @@ namespace Foxoft.Ci {
     }
 
     void WriteVars(CiSymbol symb) {
-      SymbolMapper vars = SymbolMapper.Find(symb);
+      SymbolMapping vars = Find(symb);
       if (vars != null) {
-        foreach (SymbolMapper var in vars.childs) {
+        foreach (SymbolMapping var in vars.childs) {
           if (var.Symbol == null) {
             continue;
           }
@@ -1352,9 +1352,9 @@ namespace Foxoft.Ci {
     }
 
     void WriteVarsInit(CiSymbol symb) {
-      SymbolMapper vars = SymbolMapper.Find(symb);
+      SymbolMapping vars = Find(symb);
       if (vars != null) {
-        foreach (SymbolMapper var in vars.childs) {
+        foreach (SymbolMapping var in vars.childs) {
           if (var.Symbol == null) {
             continue;
           }
@@ -1867,16 +1867,16 @@ namespace Foxoft.Ci {
     #region CiTo Library handlers
     protected override void InitLibrary() {
       // Properties
-      AddProperty(CiLibrary.SByteProperty, LibPropertySByte);
-      AddProperty(CiLibrary.LowByteProperty, LibPropertyLowByte);
-      AddProperty(CiLibrary.StringLengthProperty, LibPropertyStringLength);
+      AddPropertyTranslator(CiLibrary.SByteProperty, LibPropertySByte);
+      AddPropertyTranslator(CiLibrary.LowByteProperty, LibPropertyLowByte);
+      AddPropertyTranslator(CiLibrary.StringLengthProperty, LibPropertyStringLength);
       // Methods
-      AddMethod(CiLibrary.MulDivMethod, LibMethodMulDiv);
-      AddMethod(CiLibrary.CharAtMethod, LibMethodCharAt);
-      AddMethod(CiLibrary.SubstringMethod, LibMethodSubstring);
-      AddMethod(CiLibrary.ArrayCopyToMethod, LibMethodArrayCopy);
-      AddMethod(CiLibrary.ArrayToStringMethod, LibMethodArrayToString);
-      AddMethod(CiLibrary.ArrayStorageClearMethod, LibMethodArrayStorageClear);
+      AddMethodTranslator(CiLibrary.MulDivMethod, LibMethodMulDiv);
+      AddMethodTranslator(CiLibrary.CharAtMethod, LibMethodCharAt);
+      AddMethodTranslator(CiLibrary.SubstringMethod, LibMethodSubstring);
+      AddMethodTranslator(CiLibrary.ArrayCopyToMethod, LibMethodArrayCopy);
+      AddMethodTranslator(CiLibrary.ArrayToStringMethod, LibMethodArrayToString);
+      AddMethodTranslator(CiLibrary.ArrayStorageClearMethod, LibMethodArrayStorageClear);
     }
 
     public void LibPropertySByte(CiPropertyAccess expr) {

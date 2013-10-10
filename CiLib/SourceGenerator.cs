@@ -263,52 +263,7 @@ namespace Foxoft.Ci {
       }
     }
     #endregion
-    #region Helper
-    protected static int ElemPerRow = 16;
-    protected static string ElemSeparator = ", ";
-
-    protected int GetArraySize(CiType type) {
-      if (type is CiArrayStorageType) {
-        CiArrayStorageType arr = (CiArrayStorageType)type;
-        if (arr.LengthExpr == null) {
-          return ((CiArrayStorageType)type).Length;
-        }
-      }
-      return -1;
-    }
-
-    protected string DecodeSymbol(CiSymbol var) {
-      SymbolMapper symbol = SymbolMapper.Find(var);
-      return (symbol != null) ? symbol.NewName : var.Name;
-    }
-
-    protected virtual string DecodeValue(CiType type, object value) {
-      return value.ToString();
-    }
-
-    protected virtual string DecodeArray(CiType type, Array array) {
-      StringBuilder res = new StringBuilder();
-      if (array.Length >= ElemPerRow) {
-        res.Append(NewLineStr);
-        OpenBlock(false);
-      }
-      for (int i = 0; i < array.Length; i++) {
-        res.Append(DecodeValue(type, array.GetValue(i)));
-        if (i < (array.Length - 1)) {
-          res.Append(ElemSeparator);
-          if (i % ElemPerRow == 0) {
-            res.Append(NewLineStr);
-          }
-        }
-      }
-      if (array.Length >= ElemPerRow) {
-        CloseBlock(false);
-        res.Append(NewLineStr);
-      }
-      return res.ToString();
-    }
-    #endregion
-  }
+ }
 
   public abstract class SourceGenerator : BaseGenerator, ICiStatementVisitor {
     public SourceGenerator(string aNamespace) : base(aNamespace) {

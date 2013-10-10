@@ -23,103 +23,6 @@ using System.Collections.Generic;
 
 namespace Foxoft.Ci {
 
-  public class SymbolMapper {
-    //
-    static private int suffix = 0;
-    static private Dictionary<CiSymbol, SymbolMapper> varMap = new  Dictionary<CiSymbol, SymbolMapper>();
-    static public HashSet<string> ReservedWords = null;
-    //
-    public CiSymbol Symbol = null;
-    public string NewName = "?";
-    public SymbolMapper Parent = null;
-    public List<SymbolMapper> childs = new List<SymbolMapper>();
-
-    static public void SetReservedWords(string[] words) {
-      if (words != null) {
-        ReservedWords = new HashSet<string>(words);
-      }
-      else {
-        ReservedWords = new HashSet<string>();
-      }
-    }
-
-    static public void Reset() {
-      suffix = 0;
-      varMap.Clear();
-    }
-
-    static public bool IsEmpty() {
-      return varMap.Count == 0;
-    }
-
-    static public SymbolMapper AddSymbol(SymbolMapper aParent, CiSymbol aSymbol) {
-      return AddSymbol(aParent, aSymbol, true);
-    }
-
-    static public SymbolMapper AddSymbol(SymbolMapper aParent, CiSymbol aSymbol, bool inParentCheck) {
-      SymbolMapper item = new SymbolMapper(aParent, aSymbol, inParentCheck);
-      if (aSymbol != null) {
-        varMap.Add(aSymbol, item);
-      }
-      return item;
-    }
-
-    static public SymbolMapper Find(CiSymbol symbol) {
-      SymbolMapper result = null;
-      varMap.TryGetValue(symbol, out result);
-      return result;
-    }
-
-    static public string GetPascalName(string name) {
-      StringBuilder tmpName = new StringBuilder(name.Length);
-      foreach (char c in name) {
-        tmpName.Append(CiLexer.IsLetter(c) ? c : '_');
-      }
-      string baseName = tmpName.ToString();
-      if (ReservedWords.Contains(baseName.ToLower())) {
-        baseName = "a" + baseName;
-      }
-      return baseName;
-    }
-
-    public SymbolMapper(CiSymbol aSymbol) {
-      this.Symbol = aSymbol;
-    }
-
-    public SymbolMapper(SymbolMapper aParent, CiSymbol aSymbol, bool inParentCheck) {
-      this.Symbol = aSymbol;
-      this.Parent = aParent;
-      if (aParent != null) {
-        aParent.childs.Add(this);
-      }
-      this.NewName = this.GetUniqueName(inParentCheck);
-    }
-
-    public string GetUniqueName(bool inParentCheck) {
-      if (this.Symbol == null) {
-        return "?";
-      }
-      string baseName = GetPascalName(this.Symbol.Name);
-      SymbolMapper context = this.Parent;
-      while (context!=null) {
-        foreach (SymbolMapper item in context.childs) {
-          if (String.Compare(item.NewName, baseName, true) == 0) {
-            //TODO Generate a real unique name
-            suffix++;
-            return baseName + "__" + suffix;
-          }
-        }
-        if (inParentCheck) {
-          context = context.Parent;
-        }
-        else {
-          context = null;
-        }
-      }
-      return baseName;
-    }
-  }
-
   public class ClassOrder {
     static private List<CiClass> order = new List<CiClass>();
 
@@ -289,9 +192,12 @@ namespace Foxoft.Ci {
       info.NullInit = (nulInit.Length > 0 ? String.Format(nulInit.ToString(), info.Name, info.Definition, info.ItemType, info.Null).Replace('[', '{').Replace(']', '}') : null);
       info.Init = (nulInit.Length > 0 ? String.Format(init.ToString(), info.Name, info.Definition, info.ItemType, info.Null) : null);
       if ((!info.Native) && (info.Null != null)) {
-        if (!SymbolMapper.ReservedWords.Contains(info.Null)) {
+
+ /*TODO decommentare
+        if (!IsReservedWord(info.Null)) {
           SymbolMapper.ReservedWords.Add(info.Null);
         }
+*/
       }
       return info;
     }
