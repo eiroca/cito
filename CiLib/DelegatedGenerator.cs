@@ -25,7 +25,7 @@ using System.Collections.Generic;
 
 namespace Foxoft.Ci {
 
-  public delegate bool StatementAction(ICiStatement s);
+  public delegate bool StatementActionDelegate(ICiStatement s);
   //
   public delegate void WriteSymbolDelegate(CiSymbol statement);
   public delegate void WriteStatementDelegate(ICiStatement statement);
@@ -36,7 +36,9 @@ namespace Foxoft.Ci {
   public delegate void WritePropertyAccessDelegate(CiPropertyAccess expr);
   public delegate void WriteMethodDelegate(CiMethodCall method);
   //
-  public delegate string TranslateSymbolName(CiSymbol aSymbol);
+  public delegate string TranslateSymbolNameDelegate(CiSymbol aSymbol);
+  //
+  public delegate TypeInfo TranslateTypeDelegate(CiType type);
   //
   public class OperatorInfo {
     public CiToken Token;
@@ -84,9 +86,22 @@ namespace Foxoft.Ci {
     }
   }
 
+  public class TypeInfo {
+    public CiType Type;
+    public string Name;
+    public string Definition;
+    public bool IsNative;
+    public string Null;
+    public string NullInit;
+    public string Init;
+    public int Level;
+    public string ItemType;
+    public string ItemDefault;
+  }
+
   public class UnaryOperatorMetadata {
 
-    protected Dictionary<CiToken, UnaryOperatorInfo> Metadata = new Dictionary<CiToken, UnaryOperatorInfo>();
+    public Dictionary<CiToken, UnaryOperatorInfo> Metadata = new Dictionary<CiToken, UnaryOperatorInfo>();
 
     public UnaryOperatorMetadata() {
     }
@@ -113,7 +128,7 @@ namespace Foxoft.Ci {
 
   public class BinaryOperatorMetadata {
 
-    protected Dictionary<CiToken, BinaryOperatorInfo> Metadata = new Dictionary<CiToken, BinaryOperatorInfo>();
+    public Dictionary<CiToken, BinaryOperatorInfo> Metadata = new Dictionary<CiToken, BinaryOperatorInfo>();
 
     public BinaryOperatorMetadata() {
     }
@@ -139,7 +154,7 @@ namespace Foxoft.Ci {
   }
 
   public class ExpressionMetadata {
-    protected Dictionary<Type, ExpressionInfo> Metadata = new Dictionary<Type, ExpressionInfo>();
+    public Dictionary<Type, ExpressionInfo> Metadata = new Dictionary<Type, ExpressionInfo>();
 
     public ExpressionMetadata() {
     }
@@ -184,7 +199,7 @@ namespace Foxoft.Ci {
   public class DelegateMappingMetadata<TYPE, DATA> where TYPE: class where DATA: class {
     public delegate void Delegator(DATA context);
 
-    protected Dictionary<TYPE, Delegator> Metadata = new Dictionary<TYPE, Delegator>();
+    public Dictionary<TYPE, Delegator> Metadata = new Dictionary<TYPE, Delegator>();
 
     public DelegateMappingMetadata() {
     }
@@ -225,7 +240,7 @@ namespace Foxoft.Ci {
   }
 
   public class SymbolMapping {
-    public TranslateSymbolName GetLocalName;
+    public DelegateGenerator Generator;
     public CiSymbol Symbol = null;
     public string NewName = "?";
     public SymbolMapping Parent = null;
@@ -234,8 +249,8 @@ namespace Foxoft.Ci {
     public SymbolMapping() {
     }
 
-    public SymbolMapping(SymbolMapping aParent, CiSymbol aSymbol, bool inParentCheck, TranslateSymbolName NameTranslator) {
-      this.GetLocalName = NameTranslator;
+    public SymbolMapping(SymbolMapping aParent, CiSymbol aSymbol, bool inParentCheck, DelegateGenerator Generator) {
+      this.Generator = Generator;
       this.Symbol = aSymbol;
       this.Parent = aParent;
       if (aParent != null) {
@@ -245,6 +260,9 @@ namespace Foxoft.Ci {
     }
 
     public bool IsUnique(string baseName, bool inParentCheck) {
+      if (Generator.IsReservedWord(baseName)) {
+        return false;
+      }
       SymbolMapping context = this.Parent;
       while (context!=null) {
         foreach (SymbolMapping item in context.childs) {
@@ -266,7 +284,7 @@ namespace Foxoft.Ci {
       if (Symbol == null) {
         return "?";
       }
-      string curName = GetLocalName(Symbol);
+      string curName = Generator.TranslateSymbolName(Symbol);
       if (!IsUnique(curName, inParentCheck)) {
         string baseName = curName;
         curName = ((baseName.StartsWith("a") ? "an" : "a")) + char.ToUpperInvariant(baseName[0]) + baseName.Substring(1);
@@ -289,7 +307,11 @@ namespace Foxoft.Ci {
     }
 
     public DelegateGenerator() : base() {
-      InitMetadata();
+      TranslateSymbolName = SymbolNameTranslator;
+      InitSymbols();
+      InitStatements();
+      InitExpressions();
+      InitOperators();
       InitLibrary();
     }
 
@@ -300,26 +322,19 @@ namespace Foxoft.Ci {
 
     public abstract void EmitProgram(CiProgram prog);
     #region Ci Language Translation
-    protected virtual void InitMetadata() {
-      InitSymbols();
-      InitStatements();
-      InitExpressions();
-      InitOperators();
-    }
-
-    protected virtual void InitSymbols() {
+    public virtual void InitSymbols() {
       //TODO Use reflection to fill the structure
     }
 
-    protected virtual void InitStatements() {
+    public virtual void InitStatements() {
       //TODO Use reflection to fill the structure
     }
 
-    protected virtual void InitExpressions() {
+    public virtual void InitExpressions() {
       //TODO Use reflection to fill the structure
     }
 
-    protected virtual void InitOperators() {
+    public virtual void InitOperators() {
       //TODO Use reflection to fill the structure
     }
 
@@ -329,23 +344,23 @@ namespace Foxoft.Ci {
     protected BinaryOperatorMetadata BinaryOperators = new BinaryOperatorMetadata();
     protected UnaryOperatorMetadata UnaryOperators = new UnaryOperatorMetadata();
 
-    protected void AddSymbolTranslator(Type symbol, GenericMetadata<CiSymbol>.Delegator delegat) {
+    public void AddSymbolTranslator(Type symbol, GenericMetadata<CiSymbol>.Delegator delegat) {
       Symbols.Add(symbol, delegat);
     }
 
-    protected void AddStatementTranslator(Type statemenent, GenericMetadata<ICiStatement>.Delegator delegat) {
+    public void AddStatementTranslator(Type statemenent, GenericMetadata<ICiStatement>.Delegator delegat) {
       Statemets.Add(statemenent, delegat);
     }
 
-    protected void Translate(CiExpr expr) {
+    public void Translate(CiExpr expr) {
       Expressions.Translate(expr);
     }
 
-    protected void Translate(CiSymbol expr) {
+    public void Translate(CiSymbol expr) {
       Symbols.Translate(expr);
     }
 
-    protected void Translate(ICiStatement expr) {
+    public void Translate(ICiStatement expr) {
       Statemets.Translate(expr);
     }
     #endregion
@@ -353,19 +368,19 @@ namespace Foxoft.Ci {
     protected DelegateMappingMetadata<CiProperty, CiPropertyAccess> Properties = new DelegateMappingMetadata<CiProperty, CiPropertyAccess>();
     protected DelegateMappingMetadata<CiMethod, CiMethodCall> Methods = new DelegateMappingMetadata<CiMethod, CiMethodCall>();
 
-    protected virtual void InitLibrary() {
+    public virtual void InitLibrary() {
       //TODO Use reflection to fill the structure
     }
 
-    protected void AddPropertyTranslator(CiProperty prop, DelegateMappingMetadata<CiProperty, CiPropertyAccess>.Delegator del) {
+    public void AddPropertyTranslator(CiProperty prop, DelegateMappingMetadata<CiProperty, CiPropertyAccess>.Delegator del) {
       Properties.Add(prop, del);
     }
 
-    protected void AddMethodTranslator(CiMethod met, DelegateMappingMetadata<CiMethod, CiMethodCall>.Delegator del) {
+    public void AddMethodTranslator(CiMethod met, DelegateMappingMetadata<CiMethod, CiMethodCall>.Delegator del) {
       Methods.Add(met, del);
     }
 
-    protected bool Translate(CiPropertyAccess prop) {
+    public bool Translate(CiPropertyAccess prop) {
       if (prop.Property != null) {
         return Properties.TryTranslate(prop.Property, prop);
       }
@@ -374,7 +389,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    protected bool Translate(CiMethodCall call) {
+    public bool Translate(CiMethodCall call) {
       if (call.Method != null) {
         return Methods.TryTranslate(call.Method, call);
       }
@@ -384,7 +399,7 @@ namespace Foxoft.Ci {
     }
     #endregion
     #region Pre Processor
-    protected virtual bool Execute(ICiStatement[] stmt, StatementAction action) {
+    public virtual bool Execute(ICiStatement[] stmt, StatementActionDelegate action) {
       if (stmt != null) {
         foreach (ICiStatement s in stmt) {
           if (Execute(s, action)) {
@@ -395,7 +410,7 @@ namespace Foxoft.Ci {
       return false;
     }
 
-    protected virtual bool Execute(ICiStatement stmt, StatementAction action) {
+    public virtual bool Execute(ICiStatement stmt, StatementActionDelegate action) {
       if (stmt == null) {
         return false;
       }
@@ -448,10 +463,10 @@ namespace Foxoft.Ci {
       return false;
     }
 
-    protected virtual void PreProcess(CiProgram program) {
+    public virtual void PreProcess(CiProgram program) {
       ResetSymbolMapping();
       ResetClassOrder();
-      TypeMapper.Reset();
+      ResetType();
       SymbolMapping root = new SymbolMapping();
       foreach (CiSymbol symbol in program.Globals) {
         if (symbol is CiEnum) {
@@ -477,21 +492,21 @@ namespace Foxoft.Ci {
       }
     }
 
-    protected virtual void PreProcess(CiProgram program, CiClass klass) {
+    public virtual void PreProcess(CiProgram program, CiClass klass) {
       SymbolMapping parent = FindSymbol(klass);
       foreach (CiSymbol member in klass.Members) {
         if (member is CiField) {
           AddSymbol(parent, member);
-          TypeMapper.AddType(((CiField)member).Type);
+          AddType(((CiField)member).Type);
         }
       }
       foreach (CiConst konst in klass.ConstArrays) {
         AddSymbol(parent, konst);
-        TypeMapper.AddType(konst.Type);
+        AddType(konst.Type);
       }
       foreach (CiBinaryResource resource in klass.BinaryResources) {
         AddSymbol(parent, resource);
-        TypeMapper.AddType(resource.Type);
+        AddType(resource.Type);
       }
       if (klass.Constructor != null) {
         AddSymbol(parent, klass.Constructor);
@@ -504,10 +519,10 @@ namespace Foxoft.Ci {
             SymbolMapping methodCall = AddSymbol(methodContext, null);
             foreach (CiParam p in method.Signature.Params) {
               AddSymbol(methodCall, p);
-              TypeMapper.AddType(p.Type);
+              AddType(p.Type);
             }
           }
-          TypeMapper.AddType(method.Signature.ReturnType);
+          AddType(method.Signature.ReturnType);
         }
       }
       if (klass.Constructor != null) {
@@ -520,28 +535,24 @@ namespace Foxoft.Ci {
       }
     }
 
-    protected virtual void PreProcess(CiClass klass, CiMethod method) {
+    public virtual void PreProcess(CiClass klass, CiMethod method) {
       Execute(method.Body, s => PreProcess(method, s));
     }
 
-    protected virtual bool PreProcess(CiMethod method, ICiStatement stmt) {
+    public virtual bool PreProcess(CiMethod method, ICiStatement stmt) {
       return false;
     }
     #endregion
     #region Symbol Mapper
     //
-    private HashSet<string> ReservedWords = null;
-    private Dictionary<CiSymbol, SymbolMapping> varMap = new  Dictionary<CiSymbol, SymbolMapping>();
+    public TranslateSymbolNameDelegate TranslateSymbolName { get; set; }
+
+    protected HashSet<string> ReservedWords = null;
+    protected Dictionary<CiSymbol, SymbolMapping> varMap = new  Dictionary<CiSymbol, SymbolMapping>();
     //
-    protected virtual string[] GetReservedWords() {
-      return null;
-    }
+    public abstract string[] GetReservedWords();
 
-    protected virtual TranslateSymbolName GetSymbolNameTranslator() {
-      return TranslateSymbolName;
-    }
-
-    protected void ResetSymbolMapping() {
+    public void ResetSymbolMapping() {
       string[] words = GetReservedWords();
       if (words != null) {
         ReservedWords = new HashSet<string>(words);
@@ -552,33 +563,33 @@ namespace Foxoft.Ci {
       varMap.Clear();
     }
 
-    protected bool HasSymbols() {
+    public bool HasSymbols() {
       return varMap.Count == 0;
     }
 
-    protected bool IsReservedWord(string aName) {
+    public bool IsReservedWord(string aName) {
       return ReservedWords.Contains(aName.ToLower());
     }
 
-    protected SymbolMapping AddSymbol(SymbolMapping aParent, CiSymbol aSymbol) {
+    public SymbolMapping AddSymbol(SymbolMapping aParent, CiSymbol aSymbol) {
       return AddSymbol(aParent, aSymbol, true);
     }
 
-    protected SymbolMapping AddSymbol(SymbolMapping aParent, CiSymbol aSymbol, bool inParentCheck) {
-      SymbolMapping item = new SymbolMapping(aParent, aSymbol, inParentCheck, GetSymbolNameTranslator());
+    public SymbolMapping AddSymbol(SymbolMapping aParent, CiSymbol aSymbol, bool inParentCheck) {
+      SymbolMapping item = new SymbolMapping(aParent, aSymbol, inParentCheck, this);
       if (aSymbol != null) {
         varMap.Add(aSymbol, item);
       }
       return item;
     }
 
-    protected SymbolMapping FindSymbol(CiSymbol symbol) {
+    public SymbolMapping FindSymbol(CiSymbol symbol) {
       SymbolMapping result = null;
       varMap.TryGetValue(symbol, out result);
       return result;
     }
 
-    protected string TranslateSymbolName(CiSymbol aSymbol) {
+    public string SymbolNameTranslator(CiSymbol aSymbol) {
       String name = aSymbol.Name;
       if (IsReservedWord(name)) {
         name = "_" + name;
@@ -587,9 +598,9 @@ namespace Foxoft.Ci {
     }
     #endregion
     #region Class Order
-    private List<CiClass> classOrder = new List<CiClass>();
+    protected List<CiClass> classOrder = new List<CiClass>();
 
-    protected void ResetClassOrder() {
+    public void ResetClassOrder() {
       classOrder.Clear();
     }
 
@@ -608,11 +619,70 @@ namespace Foxoft.Ci {
       classOrder.Add(klass);
     }
     #endregion
-    #region Helper
-    protected static int ElemPerRow = 16;
-    protected static string ElemSeparator = ", ";
+    #region Type Mapper
+    public TranslateTypeDelegate TranslateType { get; set; }
 
-    protected int GetArraySize(CiType type) {
+    protected HashSet<CiClass> refClass = new HashSet<CiClass>();
+    protected HashSet<CiType> refType = new HashSet<CiType>();
+    protected Dictionary<CiType, TypeInfo> TypeCache = new Dictionary<CiType, TypeInfo>();
+
+    public HashSet<CiClass>GetClassTypeList() {
+      return refClass;
+    }
+
+    public HashSet<CiType>GetTypeList() {
+      return refType;
+    }
+
+    public string GetTypeName(CiType type) {
+      return GetTypeInfo(type).Name;
+    }
+
+    public TypeInfo GetTypeInfo(CiType type) {
+      if (TypeCache.ContainsKey(type)) {
+        return TypeCache[type];
+      }
+      TypeInfo info = TranslateType(type);
+      TypeCache.Add(type, info);
+      return info;
+    }
+
+    public void AddType(CiType type) {
+      if (type == null) {
+        return;
+      }
+      if (refType.Contains(type)) {
+        return;
+      }
+      if (type is CiArrayType) {
+        CiArrayType arr = (CiArrayType)type;
+        if (arr.BaseType is CiClassType) {
+          CiClass klass = ((CiClassType)arr.BaseType).Class;
+          if (!refClass.Contains(klass)) {
+            refClass.Add(klass);
+          }
+        }
+      }
+      if (type is CiClassType) {
+        CiClass klass = ((CiClassType)type).Class;
+        if (!refClass.Contains(klass)) {
+          refClass.Add(klass);
+        }
+      }
+      refType.Add(type);
+    }
+
+    public void ResetType() {
+      refClass.Clear();
+      refType.Clear();
+      TypeCache.Clear();
+    }
+    #endregion
+    #region Helper
+    protected int ElemPerRow = 16;
+    protected string ElemSeparator = ", ";
+
+    public int GetArraySize(CiType type) {
       if (type is CiArrayStorageType) {
         CiArrayStorageType arr = (CiArrayStorageType)type;
         if (arr.LengthExpr == null) {
@@ -622,7 +692,7 @@ namespace Foxoft.Ci {
       return -1;
     }
 
-    protected virtual string DecodeArray(CiType type, Array array) {
+    public virtual string DecodeArray(CiType type, Array array) {
       StringBuilder res = new StringBuilder();
       if (array.Length >= ElemPerRow) {
         res.Append(NewLineStr);
@@ -644,28 +714,28 @@ namespace Foxoft.Ci {
       return res.ToString();
     }
 
-    protected virtual string DecodeValue(CiType type, object value) {
+    public virtual string DecodeValue(CiType type, object value) {
       return value.ToString();
     }
 
-    protected string DecodeSymbol(CiSymbol var) {
+    public string DecodeSymbol(CiSymbol var) {
       SymbolMapping symbol = FindSymbol(var);
       return (symbol != null) ? symbol.NewName : var.Name;
     }
 
-    protected virtual void WriteChild(CiExpr parent, CiExpr child) {
+    public virtual void WriteChild(CiExpr parent, CiExpr child) {
       WriteChild(GetPriority(parent), child, false);
     }
 
-    protected virtual void WriteChild(CiExpr parent, CiExpr child, bool nonAssoc) {
+    public virtual void WriteChild(CiExpr parent, CiExpr child, bool nonAssoc) {
       WriteChild(GetPriority(parent), child, nonAssoc);
     }
 
-    protected virtual void WriteChild(CiPriority parentPriority, CiExpr child) {
+    public virtual void WriteChild(CiPriority parentPriority, CiExpr child) {
       WriteChild(parentPriority, child, false);
     }
 
-    protected virtual void WriteChild(CiPriority parentPriority, CiExpr child, bool nonAssoc) {
+    public virtual void WriteChild(CiPriority parentPriority, CiExpr child, bool nonAssoc) {
       ExpressionInfo exprInfo = Expressions.GetInfo(child);
       if (exprInfo == null) {
         throw new ArgumentException(child.ToString());
@@ -680,7 +750,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    protected virtual CiPriority GetPriority(CiExpr expr) {
+    public virtual CiPriority GetPriority(CiExpr expr) {
       if (expr is CiCoercion) {
         return GetPriority((CiExpr)((CiCoercion)expr).Inner);
       }

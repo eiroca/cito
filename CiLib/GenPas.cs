@@ -35,6 +35,9 @@ namespace Foxoft.Ci {
       BlockCloseStr = "end";
       BlockOpenStr = "begin";
       BlockCloseCR = false;
+      TranslateType = TypeTranslator;
+      TranslateSymbolName = PascalSymbolNameTranslator;
+
     }
     #region Base Generator specialization
     public override void Write(CiProgram prog) {
@@ -45,7 +48,7 @@ namespace Foxoft.Ci {
       base.Write(prog);
     }
 
-    protected override string[] GetReservedWords() {
+    public override string[] GetReservedWords() {
       return new String[] {
         "absolute",
         "and",
@@ -129,11 +132,7 @@ namespace Foxoft.Ci {
       WriteLine("(* Generated automatically with \"cito\". Do not edit. *)");
     }
 
-    protected string DecodeType(CiType type) {
-      return TypeMapper.GetTypeInfo(type).Name;
-    }
-
-    protected override string DecodeValue(CiType type, object value) {
+    public override string DecodeValue(CiType type, object value) {
       StringBuilder res = new StringBuilder();
       if (value is string) {
         res.Append('\'');
@@ -156,7 +155,7 @@ namespace Foxoft.Ci {
         res.Append(" )");
       }
       else if (value == null) {
-        TypeMappingInfo info = TypeMapper.GetTypeInfo(type);
+        TypeInfo info = GetTypeInfo(type);
         res.Append(info.Null);
       }
       else if (value is bool) {
@@ -180,7 +179,7 @@ namespace Foxoft.Ci {
       return res.ToString();
     }
 
-    protected override CiPriority GetPriority(CiExpr expr) {
+    public override CiPriority GetPriority(CiExpr expr) {
       if (expr is CiPropertyAccess) {
         CiProperty prop = ((CiPropertyAccess)expr).Property;
         if (prop == CiLibrary.SByteProperty || prop == CiLibrary.LowByteProperty)
@@ -194,7 +193,7 @@ namespace Foxoft.Ci {
       return base.GetPriority(expr);
     }
 
-    protected StringBuilder oldLine = null;
+    public StringBuilder oldLine = null;
     private static char[] trimmedChar = new char[] { '\r', '\t', '\n', ' ' };
     private static string trimmedString = new string(trimmedChar);
 
@@ -248,12 +247,12 @@ namespace Foxoft.Ci {
       base.Close();
     }
 
-    protected virtual bool CheckCode(ICiStatement[] code) {
+    public virtual bool CheckCode(ICiStatement[] code) {
       CiBreak brk = (code != null) ? code[code.Length - 1] as CiBreak : null;
       return Execute(code, s => ((s is CiBreak) && (s != brk)));
     }
 
-    protected override bool PreProcess(CiMethod method, ICiStatement stmt) {
+    public override bool PreProcess(CiMethod method, ICiStatement stmt) {
       if (stmt is CiVar) {
         CiVar v = (CiVar)stmt;
         SymbolMapping parent = FindSymbol(method);
@@ -265,7 +264,7 @@ namespace Foxoft.Ci {
           }
         }
         AddSymbol(parent, v);
-        TypeMapper.AddType(v.Type);
+        AddType(v.Type);
       }
       else if (stmt is CiSwitch) {
         CiSwitch swith = (CiSwitch)stmt;
@@ -286,11 +285,7 @@ namespace Foxoft.Ci {
       return false;
     }
 
-    protected override TranslateSymbolName GetSymbolNameTranslator() {
-      return TranslatePascalSymbolName;
-    }
-
-    protected string TranslatePascalSymbolName(CiSymbol aSymbol) {
+    public string PascalSymbolNameTranslator(CiSymbol aSymbol) {
       String name = aSymbol.Name;
       StringBuilder tmpName = new StringBuilder(name.Length);
       foreach (char c in name) {
@@ -302,9 +297,123 @@ namespace Foxoft.Ci {
       }
       return baseName;
     }
+
+    public TypeInfo TypeTranslator(CiType type) {
+      TypeInfo info = new TypeInfo();
+      info.Type = type;
+      info.IsNative = true;
+      info.Level = 0;
+      StringBuilder name = new StringBuilder();
+      StringBuilder def = new StringBuilder();
+      StringBuilder nul = new StringBuilder();
+      StringBuilder nulInit = new StringBuilder();
+      StringBuilder init = new StringBuilder();
+      CiType elem = type;
+      if (type.ArrayLevel > 0) {
+        nul.Append("EMPTY_");
+        nulInit.Append("SetLength({3}");
+        init.Append("SetLength([0]");
+        for (int i = 0; i < type.ArrayLevel; i++) {
+          def.Append("array of ");
+          name.Append("ArrayOf_");
+          nul.Append("ArrayOf_");
+          nulInit.Append(", 0");
+          init.Append(", [" + (i + 1) + "]");
+        }
+        info.IsNative = false;
+        nulInit.Append(")");
+        init.Append(")");
+        info.Level = type.ArrayLevel;
+        elem = type.BaseType;
+      }
+      if (elem is CiStringType) {
+        name.Append("string");
+        def.Append("string");
+        info.ItemDefault = "''";
+        info.ItemType = "string";
+        if (info.IsNative) {
+          nul.Append("''");
+        }
+        else {
+          nul.Append("string");
+        }
+      }
+      else if (elem == CiBoolType.Value) {
+        name.Append("boolean");
+        def.Append("boolean");
+        info.ItemDefault = "false";
+        info.ItemType = "boolean";
+        if (info.IsNative) {
+          nul.Append("''");
+        }
+        else {
+          nul.Append("boolean");
+        }
+      }
+      else if (elem == CiByteType.Value) {
+        name.Append("byte");
+        def.Append("byte");
+        info.ItemDefault = "0";
+        info.ItemType = "byte";
+        if (info.IsNative) {
+          nul.Append("0");
+        }
+        else {
+          nul.Append("byte");
+        }
+      }
+      else if (elem == CiIntType.Value) {
+        name.Append("integer");
+        def.Append("integer");
+        info.ItemDefault = "0";
+        info.ItemType = "integer";
+        if (info.IsNative) {
+          nul.Append("0");
+        }
+        else {
+          nul.Append("integer");
+        }
+      }
+      else if (elem is CiEnum) {
+        name.Append(elem.Name);
+        def.Append(elem.Name);
+        var ev = ((CiEnum)elem).Values[0];
+        info.ItemDefault = ev.Type.Name + "." + ev.Name;
+        if (info.IsNative) {
+          nul.Append(info.ItemDefault);
+        }
+        else {
+          nul.Append(elem.Name);
+        }
+        info.ItemType = elem.Name;
+      }
+      else {
+        name.Append(elem.Name);
+        def.Append(elem.Name);
+        info.ItemDefault = "nil";
+        if (info.IsNative) {
+          nul.Append("nil");
+        }
+        else {
+          nul.Append(elem.Name);
+        }
+        info.ItemType = elem.Name;
+      }
+      info.Name = name.ToString();
+      info.Definition = def.ToString();
+      info.Null = nul.ToString();
+      info.NullInit = (nulInit.Length > 0 ? String.Format(nulInit.ToString(), info.Name, info.Definition, info.ItemType, info.Null).Replace('[', '{').Replace(']', '}') : null);
+      info.Init = (nulInit.Length > 0 ? String.Format(init.ToString(), info.Name, info.Definition, info.ItemType, info.Null) : null);
+      if ((!info.IsNative) && (info.Null != null)) {
+        if (!IsReservedWord(info.Null)) {
+          ReservedWords.Add(info.Null);
+        }
+      }
+      return info;
+    }
     #endregion
     #region Converter - Operator(x,y)
-    protected override void InitOperators() {
+    public override void InitOperators() {
       BinaryOperators.Add(CiToken.Plus, CiPriority.Additive, ConvertOperatorAssociative, " + ");
       BinaryOperators.Add(CiToken.Minus, CiPriority.Additive, ConvertOperatorNotAssociative, " - ");
       BinaryOperators.Add(CiToken.Asterisk, CiPriority.Multiplicative, ConvertOperatorAssociative, " * ");
@@ -380,7 +489,7 @@ namespace Foxoft.Ci {
     }
     #endregion
     #region Converter - Expression
-    protected override void InitExpressions() {
+    public override void InitExpressions() {
       Expressions.Add(typeof(CiConstExpr), CiPriority.Postfix, Convert_CiConstExpr);
       Expressions.Add(typeof(CiConstAccess), CiPriority.Postfix, Convert_CiConstAccess);
       Expressions.Add(typeof(CiVarAccess), CiPriority.Postfix, Convert_CiVarAccess);
@@ -524,7 +633,7 @@ namespace Foxoft.Ci {
     }
     #endregion
     #region Converter - Symbols
-    protected override void InitSymbols() {
+    public override void InitSymbols() {
       AddSymbolTranslator(typeof(CiEnum), Convert_CiEnum);
       AddSymbolTranslator(typeof(CiConst), Convert_CiConst);
       AddSymbolTranslator(typeof(CiField), Convert_CiField);
@@ -567,7 +676,7 @@ namespace Foxoft.Ci {
       if (!(konst.Type is CiArrayType)) {
         Write("const ");
       }
-      WriteFormat("{0}: {1}", DecodeSymbol(konst), DecodeType(konst.Type));
+      WriteFormat("{0}: {1}", DecodeSymbol(konst), GetTypeName(konst.Type));
       if (!(konst.Type is CiArrayType)) {
         WriteFormat(" = {0}", DecodeValue(konst.Type, konst.Value));
       }
@@ -579,7 +688,7 @@ namespace Foxoft.Ci {
     }
     #endregion
     #region Converter - Statements
-    protected override void InitStatements() {
+    public override void InitStatements() {
       AddStatementTranslator(typeof(CiBlock), Convert_CiBlock);
       AddStatementTranslator(typeof(CiConst), IgnoreStatement);
       AddStatementTranslator(typeof(CiVar), Convert_CiVar);
@@ -641,11 +750,11 @@ namespace Foxoft.Ci {
           WriteFormat("FreeAndNil({0})", DecodeSymbol(var));
         }
         else if (var.Type is CiArrayStorageType) {
-          TypeMappingInfo info = TypeMapper.GetTypeInfo(var.Type);
+          TypeInfo info = GetTypeInfo(var.Type);
           WriteFormat("{0}:= {1}", DecodeSymbol(var), info.Null);
         }
         else if (var.Type is CiArrayPtrType) {
-          TypeMappingInfo info = TypeMapper.GetTypeInfo(var.Type);
+          TypeInfo info = GetTypeInfo(var.Type);
           WriteFormat("{0}:= {1}", DecodeSymbol(var), info.Null);
 
         }
@@ -931,7 +1040,7 @@ namespace Foxoft.Ci {
 
     public void EmitSuperTypes() {
       bool sep = false;
-      foreach (CiClass klass in TypeMapper.GetClassList()) {
+      foreach (CiClass klass in GetClassTypeList()) {
         if (!sep) {
           WriteLine();
           sep = true;
@@ -939,9 +1048,9 @@ namespace Foxoft.Ci {
         WriteLine("{0} = class;", DecodeSymbol(klass));
       }
       HashSet<string> types = new HashSet<string>();
-      foreach (CiType t in TypeMapper.GetTypeList()) {
-        TypeMappingInfo info = TypeMapper.GetTypeInfo(t);
-        if (!info.Native) {
+      foreach (CiType t in GetTypeList()) {
+        TypeInfo info = GetTypeInfo(t);
+        if (!info.IsNative) {
           if (sep) {
             sep = false;
             WriteLine();
@@ -997,9 +1106,9 @@ namespace Foxoft.Ci {
       bool getResProc = false;
       bool first = true;
       HashSet<string> types = new HashSet<string>();
-      foreach (CiType t in TypeMapper.GetTypeList()) {
-        TypeMappingInfo info = TypeMapper.GetTypeInfo(t);
-        if (!info.Native) {
+      foreach (CiType t in GetTypeList()) {
+        TypeInfo info = GetTypeInfo(t);
+        if (!info.IsNative) {
           if (first) {
             first = false;
           }
@@ -1042,7 +1151,7 @@ namespace Foxoft.Ci {
               OpenBlock(false);
               first = false;
             }
-            WriteFormat("{0}: {1}", DecodeSymbol(konst), DecodeType(konst.Type));
+            WriteFormat("{0}: {1}", DecodeSymbol(konst), GetTypeName(konst.Type));
             WriteLine(";");
           }
         }
@@ -1094,8 +1203,8 @@ namespace Foxoft.Ci {
       WriteLine("initialization");
       OpenBlock(false);
       HashSet<string> types = new HashSet<string>();
-      foreach (CiType t in TypeMapper.GetTypeList()) {
-        TypeMappingInfo info = TypeMapper.GetTypeInfo(t);
+      foreach (CiType t in GetTypeList()) {
+        TypeInfo info = GetTypeInfo(t);
         if (info.NullInit != null) {
           if (!types.Contains(info.Name)) {
             types.Add(info.Name);
@@ -1390,11 +1499,11 @@ namespace Foxoft.Ci {
         else if (param.Type is CiStringType) {
           Write(""); // TODO should be var but constant propagration must be handled
         }
-        WriteFormat("{0}: {1}", DecodeSymbol(param), DecodeType(param.Type));
+        WriteFormat("{0}: {1}", DecodeSymbol(param), GetTypeName(param.Type));
       }
       Write(')');
       if (del.ReturnType != CiType.Void) {
-        WriteFormat(": {0}", DecodeType(del.ReturnType));
+        WriteFormat(": {0}", GetTypeName(del.ReturnType));
       }
       if (typeDeclare) {
         if (prefix != null) {
@@ -1439,14 +1548,14 @@ namespace Foxoft.Ci {
       if (docs) {
         WriteCodeDoc(field.Documentation);
       }
-      WriteLine("{0} {1}: {2};", DecodeVisibility(field.Visibility), DecodeSymbol(field), DecodeType(field.Type));
+      WriteLine("{0} {1}: {2};", DecodeVisibility(field.Visibility), DecodeSymbol(field), GetTypeName(field.Type));
     }
 
     void WriteVar(CiVar var, string NewName, bool docs) {
       if (docs) {
         WriteCodeDoc(var.Documentation);
       }
-      WriteLine("var {0}: {1};", DecodeSymbol(var), DecodeType(var.Type));
+      WriteLine("var {0}: {1};", DecodeSymbol(var), GetTypeName(var.Type));
     }
 
     void WriteAssignNew(CiVar Target, CiType Type) {
@@ -1902,7 +2011,7 @@ namespace Foxoft.Ci {
         Convert_CiAssign((CiAssign)expr);
     }
     #region CiTo Library handlers
-    protected override void InitLibrary() {
+    public override void InitLibrary() {
       // Properties
       AddPropertyTranslator(CiLibrary.SByteProperty, LibPropertySByte);
       AddPropertyTranslator(CiLibrary.LowByteProperty, LibPropertyLowByte);
