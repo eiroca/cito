@@ -266,12 +266,18 @@ namespace Foxoft.Ci {
       if (Symbol == null) {
         return "?";
       }
-      string baseName = GetLocalName(Symbol);
-      string curName = baseName;
-      int suffix = 1;
-      while (!IsUnique(curName, inParentCheck)) {
-        curName = baseName + "__" + suffix;
-        suffix++;
+      string curName = GetLocalName(Symbol);
+      if (!IsUnique(curName, inParentCheck)) {
+        string baseName = curName;
+        curName = ((baseName.StartsWith("a") ? "an" : "a")) + char.ToUpperInvariant(baseName[0]) + baseName.Substring(1);
+        if (!IsUnique(curName, inParentCheck)) {
+          int suffix = 1;
+          do {
+            curName = baseName + "__" + suffix;
+            suffix++;
+          }
+          while (!IsUnique(curName, inParentCheck));
+        }
       }
       return curName;
     }
@@ -444,8 +450,8 @@ namespace Foxoft.Ci {
 
     protected virtual void PreProcess(CiProgram program) {
       ResetSymbolMapping();
+      ResetClassOrder();
       TypeMapper.Reset();
-      ClassOrder.Reset();
       SymbolMapping root = new SymbolMapping();
       foreach (CiSymbol symbol in program.Globals) {
         if (symbol is CiEnum) {
@@ -459,20 +465,20 @@ namespace Foxoft.Ci {
       }
       foreach (CiSymbol symbol in program.Globals) {
         if (symbol is CiClass) {
-          ClassOrder.AddClass((CiClass)symbol);
+          AddClass((CiClass)symbol);
         }
       }
-      foreach (CiClass klass in ClassOrder.GetList()) {
-        SymbolMapping parent = (klass.BaseClass != null ? Find(klass.BaseClass) : root);
+      foreach (CiClass klass in GetOrderedClassList()) {
+        SymbolMapping parent = (klass.BaseClass != null ? FindSymbol(klass.BaseClass) : root);
         AddSymbol(parent, klass);
       }
-      foreach (CiClass klass in ClassOrder.GetList()) {
+      foreach (CiClass klass in GetOrderedClassList()) {
         PreProcess(program, klass);
       }
     }
 
     protected virtual void PreProcess(CiProgram program, CiClass klass) {
-      SymbolMapping parent = Find(klass);
+      SymbolMapping parent = FindSymbol(klass);
       foreach (CiSymbol member in klass.Members) {
         if (member is CiField) {
           AddSymbol(parent, member);
@@ -522,6 +528,86 @@ namespace Foxoft.Ci {
       return false;
     }
     #endregion
+    #region Symbol Mapper
+    //
+    private HashSet<string> ReservedWords = null;
+    private Dictionary<CiSymbol, SymbolMapping> varMap = new  Dictionary<CiSymbol, SymbolMapping>();
+    //
+    protected virtual string[] GetReservedWords() {
+      return null;
+    }
+
+    protected virtual TranslateSymbolName GetSymbolNameTranslator() {
+      return TranslateSymbolName;
+    }
+
+    protected void ResetSymbolMapping() {
+      string[] words = GetReservedWords();
+      if (words != null) {
+        ReservedWords = new HashSet<string>(words);
+      }
+      else {
+        ReservedWords = new HashSet<string>();
+      }
+      varMap.Clear();
+    }
+
+    protected bool HasSymbols() {
+      return varMap.Count == 0;
+    }
+
+    protected bool IsReservedWord(string aName) {
+      return ReservedWords.Contains(aName.ToLower());
+    }
+
+    protected SymbolMapping AddSymbol(SymbolMapping aParent, CiSymbol aSymbol) {
+      return AddSymbol(aParent, aSymbol, true);
+    }
+
+    protected SymbolMapping AddSymbol(SymbolMapping aParent, CiSymbol aSymbol, bool inParentCheck) {
+      SymbolMapping item = new SymbolMapping(aParent, aSymbol, inParentCheck, GetSymbolNameTranslator());
+      if (aSymbol != null) {
+        varMap.Add(aSymbol, item);
+      }
+      return item;
+    }
+
+    protected SymbolMapping FindSymbol(CiSymbol symbol) {
+      SymbolMapping result = null;
+      varMap.TryGetValue(symbol, out result);
+      return result;
+    }
+
+    protected string TranslateSymbolName(CiSymbol aSymbol) {
+      String name = aSymbol.Name;
+      if (IsReservedWord(name)) {
+        name = "_" + name;
+      }
+      return name;
+    }
+    #endregion
+    #region Class Order
+    private List<CiClass> classOrder = new List<CiClass>();
+
+    protected void ResetClassOrder() {
+      classOrder.Clear();
+    }
+
+    public List<CiClass>GetOrderedClassList() {
+      return classOrder;
+    }
+
+    public void AddClass(CiClass klass) {
+      if (klass == null) {
+        return;
+      }
+      if (classOrder.Contains(klass)) {
+        return;
+      }
+      AddClass(klass.BaseClass);
+      classOrder.Add(klass);
+    }
+    #endregion
     #region Helper
     protected static int ElemPerRow = 16;
     protected static string ElemSeparator = ", ";
@@ -563,7 +649,7 @@ namespace Foxoft.Ci {
     }
 
     protected string DecodeSymbol(CiSymbol var) {
-      SymbolMapping symbol = Find(var);
+      SymbolMapping symbol = FindSymbol(var);
       return (symbol != null) ? symbol.NewName : var.Name;
     }
 
@@ -606,70 +692,6 @@ namespace Foxoft.Ci {
         return exprInfo.Priority;
       }
       throw new ArgumentException(expr.GetType().Name);
-    }
-    #endregion
-    #region Symbol Mapper
-    //
-    private HashSet<string> ReservedWords = null;
-    private Dictionary<CiSymbol, SymbolMapping> varMap = new  Dictionary<CiSymbol, SymbolMapping>();
-    //
-    protected virtual string[] GetReservedWords() {
-      return null;
-    }
-
-    protected virtual TranslateSymbolName GetSymbolNameTranslator() {
-      return GetSymbolName;
-    }
-
-    public void ResetSymbolMapping() {
-      string[] words = GetReservedWords();
-      if (words != null) {
-        ReservedWords = new HashSet<string>(words);
-      }
-      else {
-        ReservedWords = new HashSet<string>();
-      }
-      varMap.Clear();
-    }
-
-    public bool HasSymbols() {
-      return varMap.Count == 0;
-    }
-
-    public bool IsReservedWord(string aName) {
-      return ReservedWords.Contains(aName.ToLower());
-    }
-
-    public SymbolMapping AddSymbol(SymbolMapping aParent, CiSymbol aSymbol) {
-      return AddSymbol(aParent, aSymbol, true);
-    }
-
-    public SymbolMapping AddSymbol(SymbolMapping aParent, CiSymbol aSymbol, bool inParentCheck) {
-      SymbolMapping item = null;
-      if (aSymbol != null) {
-        item = new SymbolMapping(aParent, aSymbol, inParentCheck, GetSymbolNameTranslator());
-        varMap.Add(aSymbol, item);
-      }
-      return item;
-    }
-
-    public SymbolMapping Find(CiSymbol symbol) {
-      SymbolMapping result = null;
-      varMap.TryGetValue(symbol, out result);
-      return result;
-    }
-
-    public string GetSymbolName(CiSymbol aSymbol) {
-      String name = aSymbol.Name;
-      StringBuilder tmpName = new StringBuilder(name.Length);
-      foreach (char c in name) {
-        tmpName.Append(CiLexer.IsLetter(c) ? c : '_');
-      }
-      string baseName = tmpName.ToString();
-      if (IsReservedWord(baseName)) {
-        baseName = "a" + baseName;
-      }
-      return baseName;
     }
     #endregion
   }

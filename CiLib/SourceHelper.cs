@@ -23,29 +23,6 @@ using System.Collections.Generic;
 
 namespace Foxoft.Ci {
 
-  public class ClassOrder {
-    static private List<CiClass> order = new List<CiClass>();
-
-    static public List<CiClass>GetList() {
-      return order;
-    }
-
-    static public void AddClass(CiClass klass) {
-      if (klass == null) {
-        return;
-      }
-      if (order.Contains(klass)) {
-        return;
-      }
-      AddClass(klass.BaseClass);
-      order.Add(klass);
-    }
-
-    static public void Reset() {
-      order.Clear();
-    }
-  }
-
   public struct TypeMappingInfo {
     public CiType Type;
     public string Name;
@@ -193,7 +170,7 @@ namespace Foxoft.Ci {
       info.Init = (nulInit.Length > 0 ? String.Format(init.ToString(), info.Name, info.Definition, info.ItemType, info.Null) : null);
       if ((!info.Native) && (info.Null != null)) {
 
- /*TODO decommentare
+        /*TODO decommentare
         if (!IsReservedWord(info.Null)) {
           SymbolMapper.ReservedWords.Add(info.Null);
         }

@@ -256,8 +256,8 @@ namespace Foxoft.Ci {
     protected override bool PreProcess(CiMethod method, ICiStatement stmt) {
       if (stmt is CiVar) {
         CiVar v = (CiVar)stmt;
-        SymbolMapping parent = Find(method);
-        string vName = GetSymbolName(v);
+        SymbolMapping parent = FindSymbol(method);
+        string vName = TranslateSymbolName(v);
         // Look if local Ci var in already defined in Pascal procedure vars
         foreach (SymbolMapping item in parent.childs) {
           if (String.Compare(item.NewName, vName, true) == 0) {
@@ -284,6 +284,23 @@ namespace Foxoft.Ci {
         }
       }
       return false;
+    }
+
+    protected override TranslateSymbolName GetSymbolNameTranslator() {
+      return TranslatePascalSymbolName;
+    }
+
+    protected string TranslatePascalSymbolName(CiSymbol aSymbol) {
+      String name = aSymbol.Name;
+      StringBuilder tmpName = new StringBuilder(name.Length);
+      foreach (char c in name) {
+        tmpName.Append(CiLexer.IsLetter(c) ? c : '_');
+      }
+      string baseName = tmpName.ToString();
+      if (IsReservedWord(baseName)) {
+        baseName = ((baseName.StartsWith("a") ? "an" : "a")) + char.ToUpperInvariant(baseName[0]) + baseName.Substring(1);
+      }
+      return baseName;
     }
     #endregion
     #region Converter - Operator(x,y)
@@ -653,14 +670,7 @@ namespace Foxoft.Ci {
       CiDoWhile stmt = (CiDoWhile)statement;
       BreakExit.Push(stmt);
       WriteLine("repeat");
-      if ((stmt.Body != null) && (stmt.Body is CiBlock)) {
-        OpenBlock(false);
-        WriteCode(((CiBlock)stmt.Body).Statements);
-        CloseBlock(false);
-      }
-      else {
-        WriteChild(stmt.Body);
-      }
+      WriteStatement(stmt.Body, true, true);
       Write("until not(");
       Translate(stmt.Cond);
       WriteLine(");");
@@ -736,12 +746,7 @@ namespace Foxoft.Ci {
       Write(") do ");
       if (hasNext) {
         OpenBlock();
-        if (stmt.Body is CiBlock) {
-          WriteCode(((CiBlock)stmt.Body).Statements);
-        }
-        else {
-          WriteStatement(stmt.Body);
-        }
+        WriteStatement(stmt.Body, true, false);
         Translate(stmt.Advance);
         WriteLine(";");
         CloseBlock();
@@ -754,6 +759,20 @@ namespace Foxoft.Ci {
 
     public void Convert_CiIf(ICiStatement statement) {
       CiIf stmt = (CiIf)statement;
+      if (stmt.Cond is CiConstExpr) {
+        CiConstExpr expr = (CiConstExpr)stmt.Cond;
+        if (expr.Value is bool) {
+          bool val = (bool)expr.Value;
+          WriteLine("// Unecessary IF removed");
+          if (val) {
+            WriteStatement(stmt.OnTrue, true, false);
+          }
+          else {
+            WriteStatement(stmt.OnFalse, true, false);
+          }
+          return;
+        }
+      }
       Write("if ");
       NoIIFExpand.Push(1);
       Translate(stmt.Cond);
@@ -764,7 +783,7 @@ namespace Foxoft.Ci {
         Write("else ");
         if (stmt.OnFalse is CiIf) {
           Write(" ");
-          WriteStatement(stmt.OnFalse);
+          WriteCode(stmt.OnFalse);
         }
         else {
           WriteChild(stmt.OnFalse);
@@ -945,7 +964,7 @@ namespace Foxoft.Ci {
           WriteLine(";");
         }
       }
-      foreach (CiClass klass in ClassOrder.GetList()) {
+      foreach (CiClass klass in GetOrderedClassList()) {
         EmitClassInterface(klass);
       }
     }
@@ -954,7 +973,7 @@ namespace Foxoft.Ci {
       WriteLine();
       WriteCodeDoc(klass.Documentation);
       string baseType = (klass.BaseClass != null) ? DecodeSymbol(klass.BaseClass) : "TInterfacedObject";
-      WriteFormat("{0} = class({1})", DecodeSymbol(klass), baseType);
+      WriteLine("{0} = class({1})", DecodeSymbol(klass), baseType);
       OpenBlock(false);
       foreach (CiSymbol member in klass.Members) {
         if (!(member is CiMethod)) {
@@ -1052,7 +1071,7 @@ namespace Foxoft.Ci {
     }
 
     public void EmitClassesImplementation() {
-      foreach (CiClass klass in ClassOrder.GetList()) {
+      foreach (CiClass klass in GetOrderedClassList()) {
         EmitClassImplementation(klass);
       }
     }
@@ -1199,11 +1218,61 @@ namespace Foxoft.Ci {
       return false;
     }
 
+    public void WriteStatement(ICiStatement stmt, bool removeBlock, bool Indent) {
+      if (stmt == null) {
+        return;
+      }
+      if (removeBlock && (stmt is CiBlock)) {
+        if (Indent) {
+          OpenBlock(false);
+        }
+        WriteCode(((CiBlock)stmt).Statements);
+        if (Indent) {
+          CloseBlock(false);
+        }
+      }
+      else {
+        WriteChild(stmt);
+      }
+    }
+
+    void WriteCode(ICiStatement[] block) {
+      foreach (ICiStatement stmt in block) {
+        WriteCode(stmt);
+      }
+    }
+
+    void WriteCode(ICiStatement stmt) {
+      if (stmt == null) {
+        return;
+      }
+      Translate(stmt);
+      if (curLine.Length > 0) {
+        WriteLine(";");
+      }
+    }
+
+    void WriteChild(ICiStatement stmt) {
+      if (stmt is CiBlock) {
+        WriteCode((CiBlock)stmt);
+      }
+      else {
+        if ((stmt is CiReturn) && (((CiReturn)stmt).Value != null)) {
+          OpenBlock();
+          WriteCode(stmt);
+          CloseBlock();
+        }
+        else {
+          WriteCode(stmt);
+        }
+      }
+    }
+
     void WriteMethodIntf(CiMethod method) {
       WriteCodeDoc(method.Documentation);
       foreach (CiParam param in method.Signature.Params) {
         if (param.Documentation != null) {
-          WriteLine("{{ @param '{0}' ", DecodeSymbol(param));
+          WriteFormat("{{ @param '{0}' ", DecodeSymbol(param));
           WriteDocPara(param.Documentation.Summary);
           WriteLine("}");
         }
@@ -1249,7 +1318,7 @@ namespace Foxoft.Ci {
           WriteCode(((CiBlock)klass.Constructor.Body).Statements);
         }
         else {
-          WriteStatement(klass.Constructor.Body);
+          WriteCode(klass.Constructor.Body);
         }
       }
       CloseBlock();
@@ -1274,7 +1343,7 @@ namespace Foxoft.Ci {
         WriteCode(((CiBlock)method.Body).Statements);
       }
       else {
-        WriteStatement(method.Body);
+        WriteCode(method.Body);
       }
       CloseBlock();
       WriteLine(";");
@@ -1335,7 +1404,7 @@ namespace Foxoft.Ci {
     }
 
     void WriteVars(CiSymbol symb) {
-      SymbolMapping vars = Find(symb);
+      SymbolMapping vars = FindSymbol(symb);
       if (vars != null) {
         foreach (SymbolMapping var in vars.childs) {
           if (var.Symbol == null) {
@@ -1352,7 +1421,7 @@ namespace Foxoft.Ci {
     }
 
     void WriteVarsInit(CiSymbol symb) {
-      SymbolMapping vars = Find(symb);
+      SymbolMapping vars = FindSymbol(symb);
       if (vars != null) {
         foreach (SymbolMapping var in vars.childs) {
           if (var.Symbol == null) {
@@ -1362,28 +1431,6 @@ namespace Foxoft.Ci {
             CiTypedSymbol v = (CiTypedSymbol)var.Symbol;
             WriteInitNew(v, v.Type);
           }
-        }
-      }
-    }
-
-    void WriteCode(ICiStatement[] block) {
-      foreach (ICiStatement stmt in block) {
-        WriteStatement(stmt);
-      }
-    }
-
-    void WriteChild(ICiStatement stmt) {
-      if (stmt is CiBlock) {
-        WriteStatement((CiBlock)stmt);
-      }
-      else {
-        if ((stmt is CiReturn) && (((CiReturn)stmt).Value != null)) {
-          OpenBlock();
-          WriteStatement(stmt);
-          CloseBlock();
-        }
-        else {
-          WriteStatement(stmt);
         }
       }
     }
@@ -1522,11 +1569,11 @@ namespace Foxoft.Ci {
       CiBreak breakFound = null;
       foreach (ICiStatement bodyStmt in body) {
         if (breakFound != null) {
-          WriteStatement(breakFound);
+          WriteCode(breakFound);
           breakFound = null;
         }
         if (!(bodyStmt is CiBreak)) {
-          WriteStatement(bodyStmt);
+          WriteCode(bodyStmt);
         }
         else {
           breakFound = (CiBreak)bodyStmt;
@@ -1762,16 +1809,6 @@ namespace Foxoft.Ci {
           default:
             throw new ArgumentException(Op.ToString());
         }
-      }
-    }
-
-    void WriteStatement(ICiStatement stmt) {
-      if (stmt == null) {
-        return;
-      }
-      Translate(stmt);
-      if (curLine.Length > 0) {
-        WriteLine(";");
       }
     }
 

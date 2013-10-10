@@ -263,7 +263,7 @@ namespace Foxoft.Ci {
       }
     }
     #endregion
- }
+  }
 
   public abstract class SourceGenerator : BaseGenerator, ICiStatementVisitor {
     public SourceGenerator(string aNamespace) : base(aNamespace) {
