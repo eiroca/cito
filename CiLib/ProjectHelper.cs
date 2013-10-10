@@ -1,4 +1,4 @@
-// CiToViewerHelper.cs - Helper classes for CiToViewer
+// ProjectHelper.cs - Helper classes for project translation
 //
 // Copyright (C) 2013  Enrico Croce
 //
@@ -24,7 +24,63 @@ using System.Collections;
 using System.Collections.Generic;
 using Foxoft.Ci;
 
-namespace CiToViewer {
+namespace Foxoft.Ci {
+
+  public class GeneratorInfo {
+    public string ID;
+    public string Language;
+    public string Extension;
+    public bool SplitFile;
+    public IGenerator Generator;
+
+    public GeneratorInfo(string ID, string language, string extension, bool splitFile, IGenerator generator) {
+      this.ID = ID;
+      this.Language = language;
+      this.Extension = extension;
+      this.SplitFile = splitFile;
+      this.Generator = generator;
+    }
+  }
+
+  public class GeneratorHelper {
+
+    private static Dictionary<string, GeneratorInfo> Generators = new Dictionary<string, GeneratorInfo>();
+
+    static GeneratorHelper() {
+      Add(new GeneratorInfo("10", "Object Pascal", "pas", false, new GenPas()));
+      Add(new GeneratorInfo("20", "PHP", "php", false, new GenPHP()));
+      Add(new GeneratorInfo("30", "Java", "java", true, new GenJava()));
+      Add(new GeneratorInfo("40", "C89", "c", false, new GenC89()));
+      Add(new GeneratorInfo("41", "C99", "c99", false, new GenC()));
+      Add(new GeneratorInfo("50", "D", "d", false, new GenD()));
+      Add(new GeneratorInfo("60", "C#", "cs", false, new GenCs()));
+      Add(new GeneratorInfo("70", "Perl 5.8", "pm", false, new GenPerl58()));
+      Add(new GeneratorInfo("71", "Perl 5.10", "pm510", false, new GenPerl510()));
+      Add(new GeneratorInfo("80", "JavaScript", "js", false, new GenJs()));
+      Add(new GeneratorInfo("81", "JavaScript (Typed Arrays)", "js-ta", false, new GenJsWithTypedArrays()));
+      Add(new GeneratorInfo("90", "Action Script", "as", true, new GenAs()));
+    }
+
+    protected static void Add(GeneratorInfo generator) {
+      Generators.Add(generator.Language, generator);
+    }
+
+    public static GeneratorInfo GetGenerator(string Language) {
+      GeneratorInfo result = null;
+      if (Language != null) {
+        Generators.TryGetValue(Language, out result);
+      }
+      return result;
+    }
+
+    public static string[] GetLanguages() {
+      return Generators.Select(x => x.Value).OrderBy(x => x.ID).Select(x => x.Language).ToArray();
+    }
+
+    public static GeneratorInfo[] GetGenerators() {
+      return Generators.Select(x => x.Value).OrderBy(x => x.Extension).ToArray();
+    }
+  }
 
   public class ProjectFile {
     public string Path;
@@ -38,7 +94,6 @@ namespace CiToViewer {
   }
 
   public class ProjectFiles {
-    public GenHelper Generator = new GenHelper();
     public Dictionary<string, ProjectFile> Source = new Dictionary<string, ProjectFile>();
     public Dictionary<string, ProjectFile> Target = new Dictionary<string, ProjectFile>();
 
@@ -97,7 +152,7 @@ namespace CiToViewer {
       if (Language == null) {
         return;
       }
-      GenInfo generator = Generator.GetGenerator(Language);
+      GeneratorInfo generator = GeneratorHelper.GetGenerator(Language);
       if (generator == null) {
         return;
       }

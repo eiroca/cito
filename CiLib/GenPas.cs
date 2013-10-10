@@ -24,6 +24,14 @@ using System.IO;
 
 namespace Foxoft.Ci {
 
+  public class BeakInfo {
+    public string Name;
+
+    public BeakInfo(string aName) {
+      this.Name = aName;
+    }
+  }
+
   public class GenPas : DelegateGenerator {
  
     public GenPas(string aNamespace) : this() {
@@ -40,12 +48,9 @@ namespace Foxoft.Ci {
 
     }
     #region Base Generator specialization
-    public override void Write(CiProgram prog) {
-      BreakExit.Reset();
-      NoIIFExpand.Reset();
-      ExprType.Reset();
-      MethodStack.Reset();
-      base.Write(prog);
+    public override void PreProcess(CiProgram prog) {
+      ResetSwitch();
+      base.PreProcess(prog);
     }
 
     public override string[] GetReservedWords() {
@@ -279,7 +284,7 @@ namespace Foxoft.Ci {
           needExit = CheckCode(swith.DefaultBody);
         }
         if (needExit) {
-          BreakExit.AddSwitch(method, swith);
+          AddSwitch(method, swith);
         }
       }
       return false;
@@ -441,7 +446,7 @@ namespace Foxoft.Ci {
 
     public void ConvertOperatorAssociative(CiBinaryExpr expr, BinaryOperatorInfo token) {
       // Work-around to have correct left and right type
-      ExprType.Get(expr);
+      GetExprType(expr);
       if (token.ForcePar) {
         Write("(");
       }
@@ -455,7 +460,7 @@ namespace Foxoft.Ci {
 
     public void ConvertOperatorNotAssociative(CiBinaryExpr expr, BinaryOperatorInfo token) {
       // Work-around to have correct left and right type
-      ExprType.Get(expr);
+      GetExprType(expr);
       if (token.ForcePar) {
         Write("(");
       }
@@ -469,12 +474,12 @@ namespace Foxoft.Ci {
 
     public void ConvertOperatorSlash(CiBinaryExpr expr, BinaryOperatorInfo token) {
       // Work-around to have correct left and right type
-      ExprType.Get(expr);
+      GetExprType(expr);
       if (token.ForcePar) {
         Write("(");
       }
       WriteChild(expr, expr.Left);
-      CiType type = ExprType.Get(expr.Left);
+      CiType type = GetExprType(expr.Left);
       Write(DecodeDivSymbol(type));
       WriteChild(expr, expr.Right, true);
       if (token.ForcePar) {
@@ -509,7 +514,7 @@ namespace Foxoft.Ci {
 
     public void Convert_CiConstExpr(CiExpr expression) {
       CiConstExpr expr = (CiConstExpr)expression;
-      Write(DecodeValue(ExprType.Get(expr), expr.Value));
+      Write(DecodeValue(GetExprType(expr), expr.Value));
     }
 
     public void Convert_CiConstAccess(CiExpr expression) {
@@ -762,7 +767,7 @@ namespace Foxoft.Ci {
     }
 
     public void Convert_CiBreak(ICiStatement statement) {
-      BreakExit label = BreakExit.Peek();
+      BeakInfo label = CurrentBreakableBlock();
       if (label != null) {
         WriteLine("goto " + label.Name + ";");
       }
@@ -777,18 +782,18 @@ namespace Foxoft.Ci {
 
     public void Convert_CiDoWhile(ICiStatement statement) {
       CiDoWhile stmt = (CiDoWhile)statement;
-      BreakExit.Push(stmt);
+      EnterBreakableBlock(stmt);
       WriteLine("repeat");
       WriteStatement(stmt.Body, true, true);
       Write("until not(");
       Translate(stmt.Cond);
       WriteLine(");");
-      BreakExit.Pop();
+      ExitBreakableBlock();
     }
 
     public void Convert_CiFor(ICiStatement statement) {
       CiFor stmt = (CiFor)statement;
-      BreakExit.Push(stmt);
+      EnterBreakableBlock(stmt);
       bool hasInit = (stmt.Init != null);
       bool hasNext = (stmt.Advance != null);
       bool hasCond = (stmt.Cond != null);
@@ -863,7 +868,7 @@ namespace Foxoft.Ci {
       else {
         WriteChild(stmt.Body);
       }
-      BreakExit.Pop();
+      ExitBreakableBlock();
     }
 
     public void Convert_CiIf(ICiStatement statement) {
@@ -883,9 +888,9 @@ namespace Foxoft.Ci {
         }
       }
       Write("if ");
-      NoIIFExpand.Push(1);
+      EnterContext(1);
       Translate(stmt.Cond);
-      NoIIFExpand.Pop();
+      ExitContext();
       Write(" then ");
       WriteChild(stmt.OnTrue);
       if (stmt.OnFalse != null) {
@@ -911,7 +916,7 @@ namespace Foxoft.Ci {
         Write("exit");
       }
       else {
-        NoIIFExpand.Push(1);
+        EnterContext(1);
         if (stmt.Value is CiCondExpr) {
           CiCondExpr expr = (CiCondExpr)stmt.Value;
           Write("if ");
@@ -933,7 +938,7 @@ namespace Foxoft.Ci {
         else {
           Write("Result:= ");
           if (stmt.Value is CiConstExpr) {
-            CiMethod call = MethodStack.Peek();
+            CiMethod call = CurrentMethod();
             CiType type = (call != null ? call.Signature.ReturnType : null);
             Write(DecodeValue(type, ((CiConstExpr)stmt.Value).Value));
           }
@@ -943,13 +948,13 @@ namespace Foxoft.Ci {
           WriteLine(";");
         }
         Write("exit");
-        NoIIFExpand.Pop();
+        ExitContext();
       }
     }
 
     public void Convert_CiSwitch(ICiStatement statement) {
       CiSwitch swich = (CiSwitch)statement;
-      BreakExit label = BreakExit.Push(swich);
+      BeakInfo label = EnterBreakableBlock(swich);
       Write("case (");
       Translate(swich.Value);
       WriteLine(") of");
@@ -974,7 +979,7 @@ namespace Foxoft.Ci {
       }
       CloseBlock(false);
       WriteLine("end;");
-      BreakExit.Pop();
+      ExitBreakableBlock();
       if (label != null) {
         WriteLine(label.Name + ": ;");
       }
@@ -989,12 +994,12 @@ namespace Foxoft.Ci {
 
     public void Convert_CiWhile(ICiStatement statement) {
       CiWhile stmt = (CiWhile)statement;
-      BreakExit.Push(stmt);
+      EnterBreakableBlock(stmt);
       Write("while (");
       Translate(stmt.Cond);
       Write(") do ");
       WriteChild(stmt.Body);
-      BreakExit.Pop();
+      ExitBreakableBlock();
     }
     #endregion
     // Emit pascal program
@@ -1435,7 +1440,7 @@ namespace Foxoft.Ci {
     }
 
     void WriteMethodImpl(CiMethod method) {
-      MethodStack.Push(method);
+      EnterMethod(method);
       WriteLine();
       if (method.CallType == CiCallType.Static) {
         Write("class ");
@@ -1456,13 +1461,13 @@ namespace Foxoft.Ci {
       }
       CloseBlock();
       WriteLine(";");
-      MethodStack.Pop();
+      ExitMethod();
     }
 
     void WriteLabels(CiMethod method) {
-      List<BreakExit> labels = BreakExit.GetLabels(method);
+      List<BeakInfo> labels = GetExitLabels(method);
       if (labels != null) {
-        foreach (BreakExit label in labels) {
+        foreach (BeakInfo label in labels) {
           WriteLine("label " + label.Name + ";");
         }
       }
@@ -1777,7 +1782,7 @@ namespace Foxoft.Ci {
     void WriteMethodCall(CiMethodCall expr) {
       bool processed = false;
       if (expr.Arguments.Length > 0) {
-        if (!NoIIFExpand.In(1)) {
+        if (!InContext(1)) {
           List<CiExpr> iifs = expr.Arguments.Where(arg => arg is CiCondExpr).ToList();
           int level = iifs.Count;
           if (level > 0) {
@@ -1820,7 +1825,7 @@ namespace Foxoft.Ci {
     void WriteInline(CiType type, CiMaybeAssign expr) {
       if (expr is CiExpr) {
         var exp = (CiExpr)expr;
-        WriteExpr(type ?? ExprType.Get(exp), exp);
+        WriteExpr(type ?? GetExprType(exp), exp);
       }
       else {
         Convert_CiAssign((CiAssign)expr);
@@ -1828,7 +1833,7 @@ namespace Foxoft.Ci {
     }
 
     void WriteAssign(CiVar Target, CiExpr Source) {
-      if (!NoIIFExpand.In(1) && (Source is CiCondExpr)) {
+      if (!InContext(1) && (Source is CiCondExpr)) {
         CiCondExpr expr = (CiCondExpr)Source;
         Write("if ");
         WriteChild(expr, expr.Cond, true);
@@ -1843,10 +1848,10 @@ namespace Foxoft.Ci {
         WriteAssignNew(Target, ((CiNewExpr)Source).NewType);
       }
       else {
-        NoIIFExpand.Push(1);
+        EnterContext(1);
         WriteAssign(Target);
         WriteInline(Target.Type, Source);
-        NoIIFExpand.Pop();
+        ExitContext();
       }
 			
     }
@@ -1867,10 +1872,10 @@ namespace Foxoft.Ci {
         WriteAssignNew(Target, Op, ((CiNewExpr)Source).NewType);
       }
       else {
-        NoIIFExpand.Push(1);
+        EnterContext(1);
         WriteAssign(Target, Op);
         WriteInline(Target.Type, Source);
-        NoIIFExpand.Pop();
+        ExitContext();
       }
     }
 
@@ -1895,7 +1900,7 @@ namespace Foxoft.Ci {
             Write(" * ");
             break;
           case CiToken.DivAssign:
-            Write(DecodeDivSymbol(ExprType.Get(Target)));
+            Write(DecodeDivSymbol(GetExprType(Target)));
             break;
           case CiToken.ModAssign:
             Write(" mod ");
@@ -2097,6 +2102,58 @@ namespace Foxoft.Ci {
       Write("__CCLEAR(");
       Translate(expr.Obj);
       Write(")");
+    }
+    #endregion
+    #region BreakTracker 
+    //
+    private Dictionary<ICiStatement, BeakInfo> mapping = new  Dictionary<ICiStatement, BeakInfo>();
+    private Dictionary<CiMethod, List<BeakInfo>> methods = new Dictionary<CiMethod, List<BeakInfo>>();
+    private Stack<BeakInfo> exitPoints = new Stack<BeakInfo>();
+    //
+    public void AddSwitch(CiMethod method, CiSwitch aSymbol) {
+      List<BeakInfo> labels = null;
+      methods.TryGetValue(method, out labels);
+      if (labels == null) {
+        labels = new List<BeakInfo>();
+        methods.Add(method, labels);
+      }
+      BeakInfo label = new BeakInfo("goto__" + labels.Count);
+      labels.Add(label);
+      mapping.Add(aSymbol, label);
+    }
+
+    public List<BeakInfo> GetExitLabels(CiMethod method) {
+      List<BeakInfo> labels = null;
+      methods.TryGetValue(method, out labels);
+      return labels;
+    }
+
+    public BeakInfo GetExitLabel(ICiStatement stmt) {
+      BeakInfo label = null;
+      mapping.TryGetValue(stmt, out label);
+      return label;
+    }
+
+    public void ResetSwitch() {
+      mapping.Clear();
+      methods.Clear();
+    }
+
+    public BeakInfo EnterBreakableBlock(ICiStatement stmt) {
+      BeakInfo label = GetExitLabel(stmt);
+      exitPoints.Push(label);
+      return label;
+    }
+
+    public void ExitBreakableBlock() {
+      exitPoints.Pop();
+    }
+
+    public BeakInfo CurrentBreakableBlock() {
+      if (exitPoints.Count == 0) {
+        return null;
+      }
+      return exitPoints.Peek();
     }
     #endregion
   }

@@ -103,11 +103,14 @@
     <Compile Include="..\CiLib\SourceGenerator.cs">
       <Link>SourceGenerator.cs</Link>
     </Compile>
-    <Compile Include="..\CiLib\SourceHelper.cs">
-      <Link>SourceHelper.cs</Link>
-    </Compile>
     <Compile Include="..\CiLib\DelegatedGenerator.cs">
       <Link>DelegatedGenerator.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\BaseGenerator.cs">
+      <Link>BaseGenerator.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\ProjectHelper.cs">
+      <Link>ProjectHelper.cs</Link>
     </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

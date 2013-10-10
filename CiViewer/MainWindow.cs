@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using Gtk;
 using CiToViewer;
 using IgeMacIntegration;
+using Foxoft.Ci;
 
 public partial class MainWindow: Gtk.Window {	
 
@@ -37,7 +38,7 @@ public partial class MainWindow: Gtk.Window {
     lbMsg.Text = "";
     TranslateCode();
     PopulateCombo(cbSource, Project.GetSources());
-    PopulateCombo(cbLanguage, Project.Generator.GetLanguages());
+    PopulateCombo(cbLanguage, GeneratorHelper.GetLanguages());
     FixMac();
   }
 
@@ -159,7 +160,7 @@ public partial class MainWindow: Gtk.Window {
   }
 
   protected void SaveCode(Dictionary<string, ProjectFile> db) {
-    foreach (CiToViewer.ProjectFile file in db.Values) {
+    foreach (ProjectFile file in db.Values) {
       if (file.Changed) {
         System.IO.File.WriteAllText(file.Path, file.Code);
         file.Changed = false;

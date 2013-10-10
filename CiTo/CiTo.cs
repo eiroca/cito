@@ -36,25 +36,18 @@ namespace Foxoft.Ci {
       string me = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
       Console.WriteLine("Usage: " + me + " [OPTIONS] -o FILE INPUT.ci");
       Console.WriteLine("Options:");
-      Console.WriteLine("-l c       Translate to C89");
-      Console.WriteLine("-l c99     Translate to C99");
-      Console.WriteLine("-l java    Translate to Java");
-      Console.WriteLine("-l cs      Translate to C#");
-      Console.WriteLine("-l js      Translate to JavaScript");
-      Console.WriteLine("-l js-ta   Translate to JavaScript with Typed Arrays");
-      Console.WriteLine("-l as      Translate to ActionScript 3");
-      Console.WriteLine("-l d       Translate to D");
-      Console.WriteLine("-l pm      Translate to Perl 5 Module");
-      Console.WriteLine("-l pm510   Translate to Perl 5.10+ Module");
-      Console.WriteLine("-l pas     Translate to ObjectPascal");
-      Console.WriteLine("-l php     Translate to PHP");
-      Console.WriteLine("-o FILE    Write to the specified file");
-      Console.WriteLine("-n NAME    Specify C# namespace, package for Java/ActionScript/Perl or unit for Pascal");
-      Console.WriteLine("-D NAME    Define conditional compilation symbol");
-      Console.WriteLine("-I DIR     Add directory to BinaryResource search path");
       Console.WriteLine("--help     Display this information");
       Console.WriteLine("--version  Display version information");
+      Console.WriteLine("-o FILE    Write to the specified file");
+      Console.WriteLine("-n NAME    Specify namespace, package or unit for appropriate languages");
+      Console.WriteLine("-D NAME    Define conditional compilation symbol");
+      Console.WriteLine("-I DIR     Add directory to BinaryResource search path");
+      foreach (GeneratorInfo info in gens) {
+        Console.WriteLine("-l {0,-7} Translate to {1}", info.Extension, info.Language);
+      }
     }
+
+    static GeneratorInfo[] gens = GeneratorHelper.GetGenerators();
 
     public static int Main(string[] args) {
       HashSet<string> preSymbols = new HashSet<string>();
@@ -113,7 +106,6 @@ namespace Foxoft.Ci {
         Usage();
         return 1;
       }
-
       CiParser parser = new CiParser();
       parser.PreSymbols = preSymbols;
       foreach (string inputFile in inputFiles) {
@@ -130,7 +122,6 @@ namespace Foxoft.Ci {
         }
       }
       CiProgram program = parser.Program;
-
       CiResolver resolver = new CiResolver();
       resolver.SearchDirs = searchDirs;
       try {
@@ -148,46 +139,15 @@ namespace Foxoft.Ci {
         return 1;
       }
 
-      IGenerator gen;
-      switch (lang) {
-        case "c":
-          gen = new GenC89();
+      IGenerator gen = null;
+      foreach (GeneratorInfo info in gens) {
+        if (info.Extension.Equals(lang)) {
+          gen = info.Generator;
           break;
-        case "c99":
-          gen = new GenC();
-          break;
-        case "java":
-          gen = new GenJava();
-          break;
-        case "cs":
-          gen = new GenCs();
-          break;
-        case "js":
-          gen = new GenJs();
-          break;
-        case "js-ta":
-          gen = new GenJsWithTypedArrays();
-          break;
-        case "as":
-          gen = new GenAs();
-          break;
-        case "d":
-          gen = new GenD();
-          break;
-        case "pm":
-          gen = new GenPerl58();
-          break;
-        case "pm510":
-          gen = new GenPerl510();
-          break;
-        case "pas":
-          gen = new GenPas();
-          break;
-        case "php":
-          gen = new GenPHP();
-          break;
-        default:
-          throw new ArgumentException("Unknown language: " + lang);
+        }
+      }
+      if (gen == null) {
+        throw new ArgumentException("Unknown language: " + lang);
       }
       gen.SetOutputFile(outputFile);
       gen.SetNamespace(aNamespace);

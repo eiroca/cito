@@ -22,6 +22,7 @@ using System.IO;
 using System.Text;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Foxoft.Ci {
 
@@ -467,6 +468,9 @@ namespace Foxoft.Ci {
       ResetSymbolMapping();
       ResetClassOrder();
       ResetType();
+      ResetContext();
+      ResetMethodStack();
+      ResetExprType();
       SymbolMapping root = new SymbolMapping();
       foreach (CiSymbol symbol in program.Globals) {
         if (symbol is CiEnum) {
@@ -762,6 +766,91 @@ namespace Foxoft.Ci {
         return exprInfo.Priority;
       }
       throw new ArgumentException(expr.GetType().Name);
+    }
+    #endregion
+    #region Context Tracker
+    private Stack<int> instructions = new Stack<int>();
+
+    public void ResetContext() {
+      instructions.Clear();
+    }
+
+    public void EnterContext(int step) {
+      instructions.Push(step);
+    }
+
+    public void ExitContext() {
+      instructions.Pop();
+    }
+
+    public bool InContext(int inst) {
+      return instructions.Any(step => (step == inst));
+    }
+    #endregion
+    #region MethodStack
+    private Stack<CiMethod> methods = new Stack<CiMethod>();
+
+    public void ResetMethodStack() {
+      methods.Clear();
+    }
+
+    public void EnterMethod(CiMethod call) {
+      methods.Push(call);
+    }
+
+    public void ExitMethod() {
+      methods.Pop();
+    }
+
+    public CiMethod CurrentMethod() {
+      if (methods.Count > 0) {
+        return methods.Peek();
+      }
+      return null;
+    }
+    #endregion
+    #region ExprType {
+    private Dictionary<CiExpr, CiType> exprMap = new  Dictionary<CiExpr, CiType>();
+
+    public void ResetExprType() {
+      exprMap.Clear();
+    }
+
+    public CiType GetExprType(CiExpr expr) {
+      CiType result;
+      exprMap.TryGetValue(expr, out result);
+      if (result == null) {
+        result = AnalyzeExpr(expr);
+        exprMap.Add(expr, result);
+      }
+      return result;
+    }
+
+    public CiType AnalyzeExpr(CiExpr expr) {
+      if (expr == null)
+        return CiType.Null;
+      else if (expr is CiUnaryExpr) {
+        var e = (CiUnaryExpr)expr;
+        CiType t = GetExprType(e.Inner);
+        return t;
+      }
+      else if (expr is CiPostfixExpr) {
+        var e = (CiPostfixExpr)expr;
+        CiType t = GetExprType(e.Inner);
+        return t;
+      }
+      else if (expr is CiBinaryExpr) {
+        var e = (CiBinaryExpr)expr;
+        CiType left = GetExprType(e.Left);
+        CiType right = GetExprType(e.Right);
+        CiType t = ((left == null) || (left == CiType.Null)) ? right : left;
+        exprMap[e.Left] = t;
+        exprMap[e.Right] = t;
+        return t;
+      }
+      else {
+        return expr.Type;
+      }
     }
     #endregion
   }
