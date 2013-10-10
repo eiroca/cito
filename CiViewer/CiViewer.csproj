@@ -137,6 +137,7 @@
       <Link>SourceHelper.cs</Link>
     </Compile>
     <Compile Include="IgeMacMenuGlobal.cs" />
+    <Compile Include="..\CiLib\DelegatedGenerator.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

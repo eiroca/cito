@@ -106,6 +106,9 @@
     <Compile Include="..\CiLib\SourceHelper.cs">
       <Link>SourceHelper.cs</Link>
     </Compile>
+    <Compile Include="..\CiLib\DelegatedGenerator.cs">
+      <Link>DelegatedGenerator.cs</Link>
+    </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
