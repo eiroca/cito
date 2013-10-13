@@ -33,7 +33,6 @@ namespace Foxoft.Ci {
   }
 
   public class GenPas : DelegateGenerator {
- 
     public GenPas(string aNamespace) : this() {
       SetNamespace(aNamespace);
     }
@@ -47,6 +46,7 @@ namespace Foxoft.Ci {
       TranslateSymbolName = PascalSymbolNameTranslator;
 
     }
+
     #region Base Generator specialization
     public override void PreProcess(CiProgram prog) {
       ResetSwitch();
@@ -417,6 +417,7 @@ namespace Foxoft.Ci {
       return info;
     }
     #endregion
+
     #region Converter - Operator(x,y)
     public override void InitOperators() {
       BinaryOperators.Add(CiToken.Plus, CiPriority.Additive, ConvertOperatorAssociative, " + ");
@@ -493,6 +494,7 @@ namespace Foxoft.Ci {
       Write(token.Suffix);
     }
     #endregion
+
     #region Converter - Expression
     public override void InitExpressions() {
       Expressions.Add(typeof(CiConstExpr), CiPriority.Postfix, Convert_CiConstExpr);
@@ -637,21 +639,9 @@ namespace Foxoft.Ci {
       }
     }
     #endregion
-    #region Converter - Symbols
-    public override void InitSymbols() {
-      AddSymbolTranslator(typeof(CiEnum), Convert_CiEnum);
-      AddSymbolTranslator(typeof(CiConst), Convert_CiConst);
-      AddSymbolTranslator(typeof(CiField), Convert_CiField);
-      AddSymbolTranslator(typeof(CiMacro), IgnoreSymbol);
-      AddSymbolTranslator(typeof(CiMethod), IgnoreSymbol);
-      AddSymbolTranslator(typeof(CiClass), IgnoreSymbol);
-      AddSymbolTranslator(typeof(CiDelegate), IgnoreSymbol);
-    }
 
-    public void IgnoreSymbol(CiSymbol symbol) {
-    }
-
-    public void Convert_CiEnum(CiSymbol symbol) {
+    #region Converter Symbols
+    public void Symbol_CiEnum(CiSymbol symbol) {
       CiEnum enu = (CiEnum)symbol;
       WriteLine();
       WriteCodeDoc(enu.Documentation);
@@ -674,7 +664,7 @@ namespace Foxoft.Ci {
       WriteLine(");");
     }
 
-    public void Convert_CiConst(CiSymbol symbol) {
+    public void Symbol_CiConst(CiSymbol symbol) {
       CiConst konst = (CiConst)symbol;
       WriteCodeDoc(konst.Documentation);
       Write("public ");
@@ -688,54 +678,33 @@ namespace Foxoft.Ci {
       WriteLine(";");
     }
 
-    public void Convert_CiField(CiSymbol symbol) {
+    public void Symbol_CiField(CiSymbol symbol) {
       WriteField((CiField)symbol, null, true);
     }
     #endregion
-    #region Converter - Statements
-    public override void InitStatements() {
-      AddStatementTranslator(typeof(CiBlock), Convert_CiBlock);
-      AddStatementTranslator(typeof(CiConst), IgnoreStatement);
-      AddStatementTranslator(typeof(CiVar), Convert_CiVar);
-      AddStatementTranslator(typeof(CiExpr), Convert_CiExpr);
-      AddStatementTranslator(typeof(CiAssign), Convert_CiAssign);
-      AddStatementTranslator(typeof(CiDelete), Convert_CiDelete);
-      AddStatementTranslator(typeof(CiBreak), Convert_CiBreak);
-      AddStatementTranslator(typeof(CiContinue), Convert_CiContinue);
-      AddStatementTranslator(typeof(CiDoWhile), Convert_CiDoWhile);
-      AddStatementTranslator(typeof(CiFor), Convert_CiFor);
-      AddStatementTranslator(typeof(CiIf), Convert_CiIf);
-      AddStatementTranslator(typeof(CiNativeBlock), Convert_CiNativeBlock);
-      AddStatementTranslator(typeof(CiReturn), Convert_CiReturn);
-      AddStatementTranslator(typeof(CiSwitch), Convert_CiSwitch);
-      AddStatementTranslator(typeof(CiThrow), Convert_CiThrow);
-      AddStatementTranslator(typeof(CiWhile), Convert_CiWhile);
-    }
 
-    public void IgnoreStatement(ICiStatement statement) {
-    }
-
-    public void Convert_CiBlock(ICiStatement statement) {
+    #region Converter Statements
+    public void Statement_CiBlock(ICiStatement statement) {
       CiBlock block = (CiBlock)statement;
       OpenBlock();
       WriteCode(block.Statements);
       CloseBlock();
     }
 
-    public void Convert_CiVar(ICiStatement statement) {
+    public void Statement_CiVar(ICiStatement statement) {
       CiVar vr = (CiVar)statement;
       WriteInitVal(vr);
     }
 
-    public virtual void Convert_CiExpr(ICiStatement statement) {
+    public void Statement_CiExpr(ICiStatement statement) {
       Translate((CiExpr)statement);
     }
 
-    public void Convert_CiAssign(ICiStatement statement) {
+    public void Statement_CiAssign(ICiStatement statement) {
       CiAssign assign = (CiAssign)statement;
       if (assign.Source is CiAssign) {
         CiAssign src = (CiAssign)assign.Source;
-        Convert_CiAssign(src);
+        Statement_CiAssign(src);
         WriteLine(";");
         WriteAssign(assign.Target, assign.Op, src.Target);
       }
@@ -744,7 +713,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    public void Convert_CiDelete(ICiStatement statement) {
+    public void Statement_CiDelete(ICiStatement statement) {
       CiDelete stmt = (CiDelete)statement;
       if (stmt.Expr is CiVarAccess) {
         CiVar var = ((CiVarAccess)stmt.Expr).Var;
@@ -766,7 +735,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    public void Convert_CiBreak(ICiStatement statement) {
+    public void Statement_CiBreak(ICiStatement statement) {
       BeakInfo label = CurrentBreakableBlock();
       if (label != null) {
         WriteLine("goto " + label.Name + ";");
@@ -776,11 +745,11 @@ namespace Foxoft.Ci {
       }
     }
 
-    public virtual void Convert_CiContinue(ICiStatement statement) {
+    public void Statement_CiContinue(ICiStatement statement) {
       WriteLine("continue;");
     }
 
-    public void Convert_CiDoWhile(ICiStatement statement) {
+    public void Statement_CiDoWhile(ICiStatement statement) {
       CiDoWhile stmt = (CiDoWhile)statement;
       EnterBreakableBlock(stmt);
       WriteLine("repeat");
@@ -791,7 +760,7 @@ namespace Foxoft.Ci {
       ExitBreakableBlock();
     }
 
-    public void Convert_CiFor(ICiStatement statement) {
+    public void Statement_CiFor(ICiStatement statement) {
       CiFor stmt = (CiFor)statement;
       EnterBreakableBlock(stmt);
       bool hasInit = (stmt.Init != null);
@@ -871,7 +840,7 @@ namespace Foxoft.Ci {
       ExitBreakableBlock();
     }
 
-    public void Convert_CiIf(ICiStatement statement) {
+    public void Statement_CiIf(ICiStatement statement) {
       CiIf stmt = (CiIf)statement;
       if (stmt.Cond is CiConstExpr) {
         CiConstExpr expr = (CiConstExpr)stmt.Cond;
@@ -905,12 +874,12 @@ namespace Foxoft.Ci {
       }
     }
 
-    public virtual void Convert_CiNativeBlock(ICiStatement statement) {
+    public void Statement_CiNativeBlock(ICiStatement statement) {
       CiNativeBlock block = (CiNativeBlock)statement;
       Write(block.Content);
     }
 
-    public void Convert_CiReturn(ICiStatement statement) {
+    public void Statement_CiReturn(ICiStatement statement) {
       CiReturn stmt = (CiReturn)statement;
       if (stmt.Value == null) {
         Write("exit");
@@ -952,7 +921,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    public void Convert_CiSwitch(ICiStatement statement) {
+    public void Statement_CiSwitch(ICiStatement statement) {
       CiSwitch swich = (CiSwitch)statement;
       BeakInfo label = EnterBreakableBlock(swich);
       Write("case (");
@@ -985,14 +954,14 @@ namespace Foxoft.Ci {
       }
     }
 
-    public void Convert_CiThrow(ICiStatement statement) {
+    public void Statement_CiThrow(ICiStatement statement) {
       CiThrow stmt = (CiThrow)statement;
       Write("Raise Exception.Create(");
       Translate(stmt.Message);
       WriteLine(");");
     }
 
-    public void Convert_CiWhile(ICiStatement statement) {
+    public void Statement_CiWhile(ICiStatement statement) {
       CiWhile stmt = (CiWhile)statement;
       EnterBreakableBlock(stmt);
       Write("while (");
@@ -1002,6 +971,7 @@ namespace Foxoft.Ci {
       ExitBreakableBlock();
     }
     #endregion
+
     // Emit pascal program
     public override void EmitProgram(CiProgram prog) {
       CreateFile(this.OutputFile);
@@ -1038,7 +1008,7 @@ namespace Foxoft.Ci {
     public void EmitEnums(CiProgram prog) {
       foreach (CiSymbol symbol in prog.Globals) {
         if (symbol is CiEnum) {
-          Convert_CiEnum(symbol);
+          Symbol_CiEnum(symbol);
         }
       }
     }
@@ -1828,7 +1798,7 @@ namespace Foxoft.Ci {
         WriteExpr(type ?? GetExprType(exp), exp);
       }
       else {
-        Convert_CiAssign((CiAssign)expr);
+        Statement_CiAssign((CiAssign)expr);
       }
     }
 
@@ -2013,42 +1983,29 @@ namespace Foxoft.Ci {
       if (expr is CiExpr)
         Translate((CiExpr)expr);
       else
-        Convert_CiAssign((CiAssign)expr);
-    }
-    #region CiTo Library handlers
-    public override void InitLibrary() {
-      // Properties
-      AddPropertyTranslator(CiLibrary.SByteProperty, LibPropertySByte);
-      AddPropertyTranslator(CiLibrary.LowByteProperty, LibPropertyLowByte);
-      AddPropertyTranslator(CiLibrary.StringLengthProperty, LibPropertyStringLength);
-      // Methods
-      AddMethodTranslator(CiLibrary.MulDivMethod, LibMethodMulDiv);
-      AddMethodTranslator(CiLibrary.CharAtMethod, LibMethodCharAt);
-      AddMethodTranslator(CiLibrary.SubstringMethod, LibMethodSubstring);
-      AddMethodTranslator(CiLibrary.ArrayCopyToMethod, LibMethodArrayCopy);
-      AddMethodTranslator(CiLibrary.ArrayToStringMethod, LibMethodArrayToString);
-      AddMethodTranslator(CiLibrary.ArrayStorageClearMethod, LibMethodArrayStorageClear);
+        Statement_CiAssign((CiAssign)expr);
     }
 
-    public void LibPropertySByte(CiPropertyAccess expr) {
+    #region CiTo Library handlers
+    public void Library_SByte(CiPropertyAccess expr) {
       Write("shortint(");
       WriteChild(expr, expr.Obj);
       Write(")");
     }
 
-    public void LibPropertyLowByte(CiPropertyAccess expr) {
+    public void Library_LowByte(CiPropertyAccess expr) {
       Write("byte(");
       WriteChild(expr, expr.Obj);
       Write(")");
     }
 
-    public void LibPropertyStringLength(CiPropertyAccess expr) {
+    public void Library_Length(CiPropertyAccess expr) {
       Write("Length(");
       WriteChild(expr, expr.Obj);
       Write(")");
     }
 
-    public void LibMethodMulDiv(CiMethodCall expr) {
+    public void Library_MulDiv(CiMethodCall expr) {
       Write("(int64(");
       WriteChild(CiPriority.Prefix, expr.Obj);
       Write(") * int64(");
@@ -2058,7 +2015,7 @@ namespace Foxoft.Ci {
       Write(")");
     }
 
-    public void LibMethodCharAt(CiMethodCall expr) {
+    public void Library_CharAt(CiMethodCall expr) {
       Write("ord(");
       Translate(expr.Obj);
       Write("[");
@@ -2066,7 +2023,7 @@ namespace Foxoft.Ci {
       Write("+1])");
     }
 
-    public void LibMethodSubstring(CiMethodCall expr) {
+    public void Library_Substring(CiMethodCall expr) {
       Write("MidStr(");
       Translate(expr.Obj);
       Write(", ");
@@ -2076,7 +2033,7 @@ namespace Foxoft.Ci {
       Write(")");
     }
 
-    public void LibMethodArrayCopy(CiMethodCall expr) {
+    public void Library_CopyTo(CiMethodCall expr) {
       Write("__CCOPY(");
       Translate(expr.Obj);
       Write(", ");
@@ -2090,7 +2047,7 @@ namespace Foxoft.Ci {
       Write(')');
     }
 
-    public void LibMethodArrayToString(CiMethodCall expr) {
+    public void Library_ToString(CiMethodCall expr) {
       Write("__TOSTR(");
       Translate(expr.Obj);
       //        Write(expr.Arguments[0]);
@@ -2098,14 +2055,14 @@ namespace Foxoft.Ci {
       Write(")");
     }
 
-    public void LibMethodArrayStorageClear(CiMethodCall expr) {
+    public void Library_Clear(CiMethodCall expr) {
       Write("__CCLEAR(");
       Translate(expr.Obj);
       Write(")");
     }
     #endregion
-    #region BreakTracker 
-    //
+
+    #region BreakTracker
     private Dictionary<ICiStatement, BeakInfo> mapping = new  Dictionary<ICiStatement, BeakInfo>();
     private Dictionary<CiMethod, List<BeakInfo>> methods = new Dictionary<CiMethod, List<BeakInfo>>();
     private Stack<BeakInfo> exitPoints = new Stack<BeakInfo>();
@@ -2156,5 +2113,6 @@ namespace Foxoft.Ci {
       return exitPoints.Peek();
     }
     #endregion
+
   }
 }

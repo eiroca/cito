@@ -61,6 +61,7 @@ namespace Foxoft.Ci {
     public BaseGenerator() {
       CreateTextWriter = TextWriterFileFactory.Make;
     }
+
     #region IGenerator
     public virtual void SetTextWriterFactory(TextWriterFactory aFactory) {
       CreateTextWriter = aFactory;
@@ -76,6 +77,7 @@ namespace Foxoft.Ci {
 
     public abstract void Write(CiProgram program);
     #endregion
+
     #region TextWriterFactory
     protected virtual void CreateFile(string filename) {
       Open(CreateTextWriter(filename));
@@ -94,6 +96,7 @@ namespace Foxoft.Ci {
     protected virtual void WriteFooter() {
     }
     #endregion
+
     #region LowLevelWrite
     protected string IndentStr = "  ";
     protected string NewLineStr = "\r\n";
@@ -223,6 +226,7 @@ namespace Foxoft.Ci {
       }
     }
     #endregion
+
     #region Blocks
     private int Indent = 0;
     protected string BlockOpenStr = "{";
@@ -262,5 +266,6 @@ namespace Foxoft.Ci {
       }
     }
     #endregion
+
   }
 }
