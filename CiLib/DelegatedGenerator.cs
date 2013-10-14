@@ -77,16 +77,6 @@ namespace Foxoft.Ci {
     }
   }
 
-  public class ExpressionInfo {
-    public CiPriority Priority;
-    public WriteExprDelegate WriteDelegate;
-
-    public ExpressionInfo(CiPriority priority, WriteExprDelegate writeDelegate) {
-      this.Priority = priority;
-      this.WriteDelegate = writeDelegate;
-    }
-  }
-
   public class TypeInfo {
     public CiType Type;
     public string Name;
@@ -120,7 +110,7 @@ namespace Foxoft.Ci {
       UnaryOperatorInfo result = null;
       Metadata.TryGetValue(token, out result);
       if (result == null) {
-        throw new InvalidOperationException("No delegate for " + token);
+        throw new InvalidOperationException("No metadata for " + token);
       }
       return result;
     }
@@ -146,85 +136,63 @@ namespace Foxoft.Ci {
       BinaryOperatorInfo result = null;
       Metadata.TryGetValue(token, out result);
       if (result == null) {
-        throw new InvalidOperationException("No delegate for " + token);
+        throw new InvalidOperationException("No metadata for " + token);
       }
       return result;
     }
   }
 
-  public class ExpressionMetadata {
-    public Dictionary<Type, ExpressionInfo> Metadata = new Dictionary<Type, ExpressionInfo>();
-
-    public ExpressionMetadata() {
-    }
-
-    public void Add(Type exprType, CiPriority priority, WriteExprDelegate writeDelegate) {
-      ExpressionInfo info = new ExpressionInfo(priority, writeDelegate);
-      if (!Metadata.ContainsKey(exprType)) {
-        Metadata.Add(exprType, info);
-      }
-      else {
-        Metadata[exprType] = info;
-      }
-    }
-
-    public ExpressionInfo GetInfo(CiExpr expr) {
-      ExpressionInfo result = null;
-      Type exprType = expr.GetType();
-      Type baseType = exprType;
-      bool searched = false;
-      while (exprType != null) {
-        Metadata.TryGetValue(exprType, out result);
-        if (result != null) {
-          break;
-        }
-        exprType = exprType.BaseType;
-        searched = true;
-      }
-      if (result == null) {
-        throw new InvalidOperationException("No delegate for " + expr.GetType());
-      }
-      if (searched) {
-        Metadata.Add(baseType, result);
-      }
-      return result;
-    }
-
-    public virtual void Translate(CiExpr expr) {
-      ExpressionInfo exprInfo = GetInfo(expr);
-      if (exprInfo != null) {
-        exprInfo.WriteDelegate(expr);
-      }
-      else {
-        throw new ArgumentException(expr.ToString());
-      }
-    }
-  }
-
-  public class DelegateMappingMetadata<TYPE, DATA> where TYPE: class where DATA: class {
+  public class MappingMetadata<TYPE, DATA, INFO> where TYPE: class where DATA: class {
     public delegate void Delegator(DATA context);
 
-    public Dictionary<TYPE, Delegator> Metadata = new Dictionary<TYPE, Delegator>();
+    public class MappingData {
+      public INFO Info;
+      public Delegator MethodDelegate;
+    }
 
-    public DelegateMappingMetadata() {
+    public Dictionary<TYPE, MappingData> Metadata = new Dictionary<TYPE, MappingData>();
+
+    public MappingMetadata() {
     }
 
     public void Add(TYPE typ, Delegator delegat) {
       if (!Metadata.ContainsKey(typ)) { 
-        Metadata.Add(typ, delegat);
+        MappingData map = new MappingData();
+        map.MethodDelegate = delegat;
+        Metadata.Add(typ, map);
       }
       else {
-        Metadata[typ] = delegat;
+        Metadata[typ].MethodDelegate = delegat;
+      }
+    }
+
+    public void Add(TYPE typ, INFO info, Delegator delegat) {
+      if (!Metadata.ContainsKey(typ)) { 
+        MappingData map = new MappingData();
+        map.Info = info;
+        map.MethodDelegate = delegat;
+        Metadata.Add(typ, map);
+      }
+      else {
+        MappingData map = Metadata[typ];
+        map.Info = info;
+        map.MethodDelegate = delegat;
       }
     }
 
     public bool CallDelegate(TYPE typ, DATA context) {
-      Delegator callDelegate = null;
-      Metadata.TryGetValue(typ, out callDelegate);
-      if (callDelegate != null) {
-        callDelegate(context);
+      MappingData info = null;
+      Metadata.TryGetValue(typ, out info);
+      if (info != null) {
+        info.MethodDelegate(context);
       }
-      return (callDelegate != null);
+      return (info != null);
+    }
+
+    public INFO GetInfo(TYPE typ) {
+      MappingData info = null;
+      Metadata.TryGetValue(typ, out info);
+      return info.Info;
     }
 
     public Delegator FindAppropriate(string name, Object implementer) {
@@ -244,30 +212,37 @@ namespace Foxoft.Ci {
     }
   }
 
-  public class GenericMetadata<TYPE> : DelegateMappingMetadata<Type, TYPE> where TYPE: class {
-    public void Translate(TYPE obj) {
+  public class GenericMetadata<TYPE> : MappingMetadata<Type, TYPE, CiPriority> where TYPE: class {
+    public MappingData GetMetadata(TYPE obj) {
       Type type = obj.GetType();
       Type baseType = type;
       bool found = false;
       bool searched = false;
-      Delegator del = null;
-      while (!found) {
-        Metadata.TryGetValue(type, out del);
-        found = (del != null);
-        if (found) {
-          del(obj);
-        }
-        else {
+      MappingData info = null;
+      while (info == null) {
+        Metadata.TryGetValue(type, out info);
+        if (info == null) {
           type = type.BaseType;
           searched = true;
           if (type == null) {
-            throw new InvalidOperationException("No delegate for " + obj);
+            throw new InvalidOperationException("No mapping data for " + obj);
           }
         }
       }
       if (searched) {
-        Metadata.Add(baseType, del);
+        Metadata.Add(baseType, info);
       }
+      return info;
+    }
+
+    public CiPriority GetPriority(TYPE obj) {
+      MappingData info = GetMetadata(obj);
+      return info.Info;
+    }
+
+    public void Translate(TYPE obj) {
+      MappingData info = GetMetadata(obj);
+      info.MethodDelegate(obj);
     }
   }
 
@@ -341,7 +316,6 @@ namespace Foxoft.Ci {
     public DelegateGenerator() : base() {
       TranslateSymbolName = SymbolNameTranslator;
       InitCiLanguage();
-      InitExpressions();
       InitOperators();
       InitLibrary();
     }
@@ -379,10 +353,30 @@ namespace Foxoft.Ci {
       SetStatementTranslator(typeof(CiSwitch));
       SetStatementTranslator(typeof(CiThrow));
       SetStatementTranslator(typeof(CiWhile));
+      //TODO Use reflection to define the expression priority
+      Expressions.Add(typeof(CiConstExpr), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiConstExpr", this) ?? IgnoreExpr);
+      Expressions.Add(typeof(CiConstAccess), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiConstAccess", this) ?? IgnoreExpr);
+      Expressions.Add(typeof(CiVarAccess), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiVarAccess", this) ?? IgnoreExpr);
+      Expressions.Add(typeof(CiFieldAccess), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiFieldAccess", this) ?? IgnoreExpr);
+      Expressions.Add(typeof(CiPropertyAccess), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiPropertyAccess", this) ?? IgnoreExpr);
+      Expressions.Add(typeof(CiArrayAccess), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiArrayAccess", this) ?? IgnoreExpr);
+      Expressions.Add(typeof(CiMethodCall), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiMethodCall", this) ?? IgnoreExpr);
+      Expressions.Add(typeof(CiBinaryResourceExpr), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiBinaryResourceExpr", this) ?? IgnoreExpr);
+      Expressions.Add(typeof(CiNewExpr), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiNewExpr", this) ?? IgnoreExpr);
+      Expressions.Add(typeof(CiUnaryExpr), CiPriority.Prefix, Expressions.FindAppropriate("Expression_CiUnaryExpr", this) ?? IgnoreExpr);
+      Expressions.Add(typeof(CiCondNotExpr), CiPriority.Prefix, Expressions.FindAppropriate("Expression_CiCondNotExpr", this) ?? IgnoreExpr);
+      Expressions.Add(typeof(CiPostfixExpr), CiPriority.Prefix, Expressions.FindAppropriate("Expression_CiPostfixExpr", this) ?? IgnoreExpr);
+      Expressions.Add(typeof(CiCondExpr), CiPriority.CondExpr, Expressions.FindAppropriate("Expression_CiCondExpr", this) ?? IgnoreExpr);
+      Expressions.Add(typeof(CiBinaryExpr), CiPriority.Highest, Expressions.FindAppropriate("Expression_CiBinaryExpr", this) ?? IgnoreExpr);
+      Expressions.Add(typeof(CiCoercion), CiPriority.Highest, Expressions.FindAppropriate("Expression_CiCoercion", this) ?? IgnoreExpr);
     }
 
     protected GenericMetadata<CiSymbol> Symbols = new GenericMetadata<CiSymbol>();
     protected GenericMetadata<ICiStatement> Statemets = new GenericMetadata<ICiStatement>();
+    protected GenericMetadata<CiExpr> Expressions = new GenericMetadata<CiExpr>();
+
+    public void IgnoreSymbol(CiSymbol symbol) {
+    }
 
     public void SetSymbolTranslator(Type symbol) {
       string name = "Symbol_" + symbol.Name;
@@ -391,6 +385,13 @@ namespace Foxoft.Ci {
 
     public void SetSymbolTranslator(Type symbol, GenericMetadata<CiSymbol>.Delegator delegat) {
       Symbols.Add(symbol, delegat);
+    }
+
+    public void Translate(CiSymbol expr) {
+      Symbols.Translate(expr);
+    }
+
+    public void IgnoreStatement(ICiStatement statement) {
     }
 
     public void SetStatementTranslator(Type statemenent) {
@@ -402,40 +403,28 @@ namespace Foxoft.Ci {
       Statemets.Add(statemenent, delegat);
     }
 
-    public void Translate(CiSymbol expr) {
-      Symbols.Translate(expr);
-    }
-
     public void Translate(ICiStatement expr) {
       Statemets.Translate(expr);
     }
 
-    public void IgnoreSymbol(CiSymbol symbol) {
-    }
-
-    public void IgnoreStatement(ICiStatement statement) {
-    }
-
-    protected ExpressionMetadata Expressions = new ExpressionMetadata();
-    protected BinaryOperatorMetadata BinaryOperators = new BinaryOperatorMetadata();
-    protected UnaryOperatorMetadata UnaryOperators = new UnaryOperatorMetadata();
-
-    public virtual void InitExpressions() {
-      //TODO Use reflection to fill the structure
-    }
-
-    public virtual void InitOperators() {
-      //TODO Use reflection to fill the structure
+    public void IgnoreExpr(CiExpr expression) {
     }
 
     public void Translate(CiExpr expr) {
       Expressions.Translate(expr);
     }
+
+    protected BinaryOperatorMetadata BinaryOperators = new BinaryOperatorMetadata();
+    protected UnaryOperatorMetadata UnaryOperators = new UnaryOperatorMetadata();
+
+    public virtual void InitOperators() {
+      //TODO Use reflection to fill the structure
+    }
     #endregion
 
     #region Library Translation
-    protected DelegateMappingMetadata<CiProperty, CiPropertyAccess> Properties = new DelegateMappingMetadata<CiProperty, CiPropertyAccess>();
-    protected DelegateMappingMetadata<CiMethod, CiMethodCall> Methods = new DelegateMappingMetadata<CiMethod, CiMethodCall>();
+    protected MappingMetadata<CiProperty, CiPropertyAccess, CiPriority> Properties = new MappingMetadata<CiProperty, CiPropertyAccess, CiPriority>();
+    protected MappingMetadata<CiMethod, CiMethodCall, CiPriority> Methods = new MappingMetadata<CiMethod, CiMethodCall, CiPriority>();
 
     public virtual void InitLibrary() {
       // Properties
@@ -456,7 +445,7 @@ namespace Foxoft.Ci {
       SetPropertyTranslator(prop, Properties.FindAppropriate(name, this));
     }
 
-    public void SetPropertyTranslator(CiProperty prop, DelegateMappingMetadata<CiProperty, CiPropertyAccess>.Delegator del) {
+    public void SetPropertyTranslator(CiProperty prop, MappingMetadata<CiProperty, CiPropertyAccess, CiPriority>.Delegator del) {
       if (del == null) {
         throw new ArgumentNullException();
       }
@@ -468,7 +457,7 @@ namespace Foxoft.Ci {
       SetMethodTranslator(met, Methods.FindAppropriate(name, this));
     }
 
-    public void SetMethodTranslator(CiMethod met, DelegateMappingMetadata<CiMethod, CiMethodCall>.Delegator del) {
+    public void SetMethodTranslator(CiMethod met, MappingMetadata<CiMethod, CiMethodCall, CiPriority>.Delegator del) {
       if (del == null) {
         throw new ArgumentNullException();
       }
@@ -829,17 +818,14 @@ namespace Foxoft.Ci {
     }
 
     public virtual void WriteChild(CiPriority parentPriority, CiExpr child, bool nonAssoc) {
-      ExpressionInfo exprInfo = Expressions.GetInfo(child);
-      if (exprInfo == null) {
-        throw new ArgumentException(child.ToString());
-      }
-      if ((exprInfo.Priority < parentPriority) || (nonAssoc && (exprInfo.Priority == parentPriority))) {
+      GenericMetadata<CiExpr>.MappingData exprInfo = Expressions.GetMetadata(child);
+      if ((exprInfo.Info < parentPriority) || (nonAssoc && (exprInfo.Info == parentPriority))) {
         Write('(');
-        exprInfo.WriteDelegate(child);
+        exprInfo.MethodDelegate(child);
         Write(')');
       }
       else {
-        exprInfo.WriteDelegate(child);
+        exprInfo.MethodDelegate(child);
       }
     }
 
@@ -850,11 +836,7 @@ namespace Foxoft.Ci {
       if (expr is CiBinaryExpr) {
         return BinaryOperators.GetBinaryOperator(((CiBinaryExpr)expr).Op).Priority;
       }
-      ExpressionInfo exprInfo = Expressions.GetInfo(expr);
-      if (exprInfo != null) {
-        return exprInfo.Priority;
-      }
-      throw new ArgumentException(expr.GetType().Name);
+      return Expressions.GetPriority(expr);
     }
     #endregion
 

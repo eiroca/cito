@@ -495,36 +495,18 @@ namespace Foxoft.Ci {
     }
     #endregion
 
-    #region Converter - Expression
-    public override void InitExpressions() {
-      Expressions.Add(typeof(CiConstExpr), CiPriority.Postfix, Convert_CiConstExpr);
-      Expressions.Add(typeof(CiConstAccess), CiPriority.Postfix, Convert_CiConstAccess);
-      Expressions.Add(typeof(CiVarAccess), CiPriority.Postfix, Convert_CiVarAccess);
-      Expressions.Add(typeof(CiFieldAccess), CiPriority.Postfix, Convert_CiFieldAccess);
-      Expressions.Add(typeof(CiPropertyAccess), CiPriority.Postfix, Convert_CiPropertyAccess);
-      Expressions.Add(typeof(CiArrayAccess), CiPriority.Postfix, Convert_CiArrayAccess);
-      Expressions.Add(typeof(CiMethodCall), CiPriority.Postfix, Convert_CiMethodCall);
-      Expressions.Add(typeof(CiBinaryResourceExpr), CiPriority.Postfix, Convert_CiBinaryResourceExpr);
-      Expressions.Add(typeof(CiNewExpr), CiPriority.Postfix, Convert_CiNewExpr);
-      Expressions.Add(typeof(CiUnaryExpr), CiPriority.Prefix, Convert_CiUnaryExpr);
-      Expressions.Add(typeof(CiCondNotExpr), CiPriority.Prefix, Convert_CiCondNotExpr);
-      Expressions.Add(typeof(CiPostfixExpr), CiPriority.Prefix, Convert_CiPostfixExpr);
-      Expressions.Add(typeof(CiCondExpr), CiPriority.CondExpr, Convert_CiCondExpr);
-      Expressions.Add(typeof(CiBinaryExpr), CiPriority.Highest, Convert_CiBinaryExpr);
-      Expressions.Add(typeof(CiCoercion), CiPriority.Highest, Convert_CiCoercion);
-    }
-
-    public void Convert_CiConstExpr(CiExpr expression) {
+    #region Converter Expression
+    public void Expression_CiConstExpr(CiExpr expression) {
       CiConstExpr expr = (CiConstExpr)expression;
       Write(DecodeValue(GetExprType(expr), expr.Value));
     }
 
-    public void Convert_CiConstAccess(CiExpr expression) {
+    public void Expression_CiConstAccess(CiExpr expression) {
       CiConstAccess expr = (CiConstAccess)expression;
       Write(DecodeSymbol(expr.Const));
     }
 
-    public void Convert_CiVarAccess(CiExpr expression) {
+    public void Expression_CiVarAccess(CiExpr expression) {
       CiVarAccess expr = (CiVarAccess)expression;
       string name = expr.Var.Name;
       if (name.Equals("this")) {
@@ -535,21 +517,21 @@ namespace Foxoft.Ci {
       }
     }
 
-    public void Convert_CiFieldAccess(CiExpr expression) {
+    public void Expression_CiFieldAccess(CiExpr expression) {
       CiFieldAccess expr = (CiFieldAccess)expression;
       WriteChild(expr, expr.Obj);
       Write('.');
       Write(DecodeSymbol(expr.Field));
     }
 
-    public void Convert_CiPropertyAccess(CiExpr expression) {
+    public void Expression_CiPropertyAccess(CiExpr expression) {
       CiPropertyAccess expr = (CiPropertyAccess)expression;
       if (!Translate(expr)) {
         throw new ArgumentException(expr.Property.Name);
       }
     }
 
-    public void Convert_CiArrayAccess(CiExpr expression) {
+    public void Expression_CiArrayAccess(CiExpr expression) {
       CiArrayAccess expr = (CiArrayAccess)expression;
       WriteChild(expr, expr.Array);
       Write('[');
@@ -557,19 +539,19 @@ namespace Foxoft.Ci {
       Write(']');
     }
 
-    public void Convert_CiMethodCall(CiExpr expression) {
+    public void Expression_CiMethodCall(CiExpr expression) {
       CiMethodCall expr = (CiMethodCall)expression;
       if (!Translate(expr)) {
         WriteMethodCall(expr);
       }
     }
 
-    public void Convert_CiBinaryResourceExpr(CiExpr expression) {
+    public void Expression_CiBinaryResourceExpr(CiExpr expression) {
       CiBinaryResourceExpr expr = (CiBinaryResourceExpr)expression;
       Write(DecodeSymbol(expr.Resource));
     }
 
-    public void Convert_CiNewExpr(CiExpr expression) {
+    public void Expression_CiNewExpr(CiExpr expression) {
       CiNewExpr expr = (CiNewExpr)expression;
       if (expr.NewType is CiClassStorageType) {
         CiClassStorageType classType = (CiClassStorageType)expr.NewType;
@@ -581,20 +563,20 @@ namespace Foxoft.Ci {
       }
     }
 
-    public void Convert_CiUnaryExpr(CiExpr expression) {
+    public void Expression_CiUnaryExpr(CiExpr expression) {
       CiUnaryExpr expr = (CiUnaryExpr)expression;
       UnaryOperatorInfo tokenInfo = UnaryOperators.GetUnaryOperator(expr.Op);
       tokenInfo.WriteDelegate(expr, tokenInfo);
     }
 
-    public void Convert_CiCondNotExpr(CiExpr expression) {
+    public void Expression_CiCondNotExpr(CiExpr expression) {
       CiCondNotExpr expr = (CiCondNotExpr)expression;
       Write("not (");
       WriteChild(expr, expr.Inner);
       Write(")");
     }
 
-    public void Convert_CiPostfixExpr(CiExpr expression) {
+    public void Expression_CiPostfixExpr(CiExpr expression) {
       CiPostfixExpr expr = (CiPostfixExpr)expression;
       switch (expr.Op) {
         case CiToken.Increment:
@@ -610,7 +592,7 @@ namespace Foxoft.Ci {
       Write(")");
     }
 
-    public void Convert_CiCondExpr(CiExpr expression) {
+    public void Expression_CiCondExpr(CiExpr expression) {
       CiCondExpr expr = (CiCondExpr)expression;
       Write("IfThen(");
       WriteChild(expr, expr.Cond, true);
@@ -621,13 +603,13 @@ namespace Foxoft.Ci {
       Write(")");
     }
 
-    public void Convert_CiBinaryExpr(CiExpr expression) {
+    public void Expression_CiBinaryExpr(CiExpr expression) {
       CiBinaryExpr expr = (CiBinaryExpr)expression;
       BinaryOperatorInfo tokenInfo = BinaryOperators.GetBinaryOperator(expr.Op);
       tokenInfo.WriteDelegate(expr, tokenInfo);
     }
 
-    public void Convert_CiCoercion(CiExpr expression) {
+    public void Expression_CiCoercion(CiExpr expression) {
       CiCoercion expr = (CiCoercion)expression;
       if (expr.ResultType == CiByteType.Value && expr.Inner.Type == CiIntType.Value) {
         Write("byte(");
