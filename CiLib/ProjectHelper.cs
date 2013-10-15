@@ -59,6 +59,7 @@ namespace Foxoft.Ci {
       Add(new GeneratorInfo("80", "JavaScript", "js", false, new GenJs()));
       Add(new GeneratorInfo("81", "JavaScript (Typed Arrays)", "js-ta", false, new GenJsWithTypedArrays()));
       Add(new GeneratorInfo("90", "Action Script", "as", true, new GenAs()));
+      Add(new GeneratorInfo("99", "Ć", "ci", true, new CiGenerator()));
     }
 
     protected static void Add(GeneratorInfo generator) {

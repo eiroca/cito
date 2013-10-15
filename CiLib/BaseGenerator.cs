@@ -40,6 +40,10 @@ namespace Foxoft.Ci {
 
     void SetNamespace(string aNamespace);
 
+    void SetOption(string option, object value);
+
+    object GetOption(string option, object def);
+
     void Write(CiProgram program);
   }
 
@@ -51,6 +55,8 @@ namespace Foxoft.Ci {
     public string OutputFile { get; set; }
 
     public string Namespace { get; set; }
+
+    public Dictionary<string, object> Options = new Dictionary<string, object>();
 
     public TextWriterFactory CreateTextWriter { get; set; }
 
@@ -73,6 +79,21 @@ namespace Foxoft.Ci {
 
     public virtual void SetNamespace(string aNamespace) {
       this.Namespace = aNamespace;
+    }
+
+    public virtual void SetOption(string option, object value) {
+      if (!Options.ContainsKey(option)) {
+        Options.Add(option, value);
+      }
+      else {
+        Options[option] = value;
+      }
+    }
+
+    public virtual object GetOption(string option, object def) {
+      object result = def;
+      Options.TryGetValue(option, out result);
+      return result;
     }
 
     public abstract void Write(CiProgram program);

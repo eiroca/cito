@@ -38,13 +38,12 @@ namespace Foxoft.Ci {
     }
 
     public GenPas() : base() {
-      Namespace = "cito";
+      Namespace = "ci";
       BlockCloseStr = "end";
       BlockOpenStr = "begin";
       BlockCloseCR = false;
       TranslateType = TypeTranslator;
       TranslateSymbolName = PascalSymbolNameTranslator;
-
     }
 
     #region Base Generator specialization
@@ -97,11 +96,9 @@ namespace Foxoft.Ci {
         "object",
         "of",
         "on",
-        "on",
         "operator",
         "or",
         "out",
-        "packed",
         "packed",
         "procedure",
         "program",
@@ -416,82 +413,42 @@ namespace Foxoft.Ci {
       }
       return info;
     }
-    #endregion
 
-    #region Converter - Operator(x,y)
     public override void InitOperators() {
       BinaryOperators.Add(CiToken.Plus, CiPriority.Additive, ConvertOperatorAssociative, " + ");
       BinaryOperators.Add(CiToken.Minus, CiPriority.Additive, ConvertOperatorNotAssociative, " - ");
       BinaryOperators.Add(CiToken.Asterisk, CiPriority.Multiplicative, ConvertOperatorAssociative, " * ");
       BinaryOperators.Add(CiToken.Slash, CiPriority.Multiplicative, ConvertOperatorSlash, null);
       BinaryOperators.Add(CiToken.Mod, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " mod ");
-      BinaryOperators.Add(CiToken.Less, CiPriority.Ordering, ConvertOperatorAssociative, " < ");
-      BinaryOperators.Add(CiToken.LessOrEqual, CiPriority.Ordering, ConvertOperatorAssociative, " <= ");
-      BinaryOperators.Add(CiToken.Greater, CiPriority.Ordering, ConvertOperatorNotAssociative, " > ");
-      BinaryOperators.Add(CiToken.GreaterOrEqual, CiPriority.Ordering, ConvertOperatorAssociative, " >= ");
-      BinaryOperators.Add(CiToken.Equal, CiPriority.Equality, ConvertOperatorAssociative, " = ");
-      BinaryOperators.Add(CiToken.NotEqual, CiPriority.Equality, ConvertOperatorAssociative, " <> ");
-      BinaryOperators.Add(CiToken.And, CiPriority.And, ConvertOperatorAssociative, " and ");
-      BinaryOperators.Add(CiToken.Or, CiPriority.Or, ConvertOperatorAssociative, " or ");
-      BinaryOperators.Add(CiToken.Xor, CiPriority.Xor, ConvertOperatorAssociative, " xor ");
-      BinaryOperators.Add(CiToken.CondAnd, CiPriority.CondAnd, ConvertOperatorAssociative, " and ");
-      BinaryOperators.Add(CiToken.CondOr, CiPriority.CondOr, ConvertOperatorAssociative, " or ");
-      BinaryOperators.Add(CiToken.ShiftLeft, CiPriority.Shift, ConvertOperatorNotAssociative, " shl ");
-      BinaryOperators.Add(CiToken.ShiftRight, CiPriority.Shift, ConvertOperatorNotAssociative, " shr ");
+      BinaryOperators.Add(CiToken.ShiftLeft, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " shl ");
+      BinaryOperators.Add(CiToken.ShiftRight, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " shr ");
+      //
+      BinaryOperators.Add(CiToken.Equal, CiPriority.Equality, ConvertOperatorNotAssociative, " = ");
+      BinaryOperators.Add(CiToken.NotEqual, CiPriority.Equality, ConvertOperatorNotAssociative, " <> ");
+      BinaryOperators.Add(CiToken.Less, CiPriority.Equality, ConvertOperatorNotAssociative, " < ");
+      BinaryOperators.Add(CiToken.LessOrEqual, CiPriority.Equality, ConvertOperatorNotAssociative, " <= ");
+      BinaryOperators.Add(CiToken.Greater, CiPriority.Equality, ConvertOperatorNotAssociative, " > ");
+      BinaryOperators.Add(CiToken.GreaterOrEqual, CiPriority.Equality, ConvertOperatorNotAssociative, " >= ");
+      BinaryOperators.Add(CiToken.CondAnd, CiPriority.Equality, ConvertOperatorNotAssociative, " and ");
+      BinaryOperators.Add(CiToken.CondOr, CiPriority.Equality, ConvertOperatorNotAssociative, " or ");
+      //
+      BinaryOperators.Add(CiToken.And, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " and ");
+      BinaryOperators.Add(CiToken.Or, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " or ");
+      BinaryOperators.Add(CiToken.Xor, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " xor ");
 //
       UnaryOperators.Add(CiToken.Increment, CiPriority.Prefix, ConvertOperatorUnary, "__CINC_Pre(", ")");
-      UnaryOperators.Add(CiToken.Decrement, CiPriority.Prefix, ConvertOperatorUnary, "__CINC_Pre(", ")");
+      UnaryOperators.Add(CiToken.Decrement, CiPriority.Prefix, ConvertOperatorUnary, "__CDEC_Pre(", ")");
       UnaryOperators.Add(CiToken.Minus, CiPriority.Prefix, ConvertOperatorUnary, "-(", ")");
       UnaryOperators.Add(CiToken.Not, CiPriority.Prefix, ConvertOperatorUnary, "not (", ")");
-    }
-
-    public void ConvertOperatorAssociative(CiBinaryExpr expr, BinaryOperatorInfo token) {
-      // Work-around to have correct left and right type
-      GetExprType(expr);
-      if (token.ForcePar) {
-        Write("(");
-      }
-      WriteChild(expr, expr.Left);
-      Write(token.Symbol);
-      WriteChild(expr, expr.Right);
-      if (token.ForcePar) {
-        Write(")");
-      }
-    }
-
-    public void ConvertOperatorNotAssociative(CiBinaryExpr expr, BinaryOperatorInfo token) {
-      // Work-around to have correct left and right type
-      GetExprType(expr);
-      if (token.ForcePar) {
-        Write("(");
-      }
-      WriteChild(expr, expr.Left);
-      Write(token.Symbol);
-      WriteChild(expr, expr.Right, true);
-      if (token.ForcePar) {
-        Write(")");
-      }
     }
 
     public void ConvertOperatorSlash(CiBinaryExpr expr, BinaryOperatorInfo token) {
       // Work-around to have correct left and right type
       GetExprType(expr);
-      if (token.ForcePar) {
-        Write("(");
-      }
       WriteChild(expr, expr.Left);
       CiType type = GetExprType(expr.Left);
       Write(DecodeDivSymbol(type));
       WriteChild(expr, expr.Right, true);
-      if (token.ForcePar) {
-        Write(")");
-      }
-    }
-
-    public void ConvertOperatorUnary(CiUnaryExpr expr, UnaryOperatorInfo token) {
-      Write(token.Prefix);
-      WriteChild(expr, expr.Inner);
-      Write(token.Suffix);
     }
     #endregion
 
@@ -653,7 +610,7 @@ namespace Foxoft.Ci {
       if (!(konst.Type is CiArrayType)) {
         Write("const ");
       }
-      WriteFormat("{0}: {1}", DecodeSymbol(konst), GetTypeName(konst.Type));
+      WriteFormat("{0}: {1}", DecodeSymbol(konst), DecodeType(konst.Type));
       if (!(konst.Type is CiArrayType)) {
         WriteFormat(" = {0}", DecodeValue(konst.Type, konst.Value));
       }
@@ -954,6 +911,84 @@ namespace Foxoft.Ci {
     }
     #endregion
 
+    #region CiTo Library handlers
+    public void Library_SByte(CiPropertyAccess expr) {
+      Write("shortint(");
+      WriteChild(expr, expr.Obj);
+      Write(")");
+    }
+
+    public void Library_LowByte(CiPropertyAccess expr) {
+      Write("byte(");
+      WriteChild(expr, expr.Obj);
+      Write(")");
+    }
+
+    public void Library_Length(CiPropertyAccess expr) {
+      Write("Length(");
+      WriteChild(expr, expr.Obj);
+      Write(")");
+    }
+
+    public void Library_MulDiv(CiMethodCall expr) {
+      Write("(int64(");
+      WriteChild(CiPriority.Prefix, expr.Obj);
+      Write(") * int64(");
+      WriteChild(CiPriority.Multiplicative, expr.Arguments[0]);
+      Write(") div ");
+      WriteChild(CiPriority.Multiplicative, expr.Arguments[1], true);
+      Write(")");
+    }
+
+    public void Library_CharAt(CiMethodCall expr) {
+      Write("ord(");
+      Translate(expr.Obj);
+      Write("[");
+      Translate(expr.Arguments[0]);
+      Write("+1])");
+    }
+
+    public void Library_Substring(CiMethodCall expr) {
+      Write("MidStr(");
+      Translate(expr.Obj);
+      Write(", ");
+      Translate(expr.Arguments[0]);
+      Write("+1, ");
+      Translate(expr.Arguments[1]);
+      Write(")");
+    }
+
+    public void Library_CopyTo(CiMethodCall expr) {
+      Write("__CCOPY(");
+      Translate(expr.Obj);
+      Write(", ");
+      Translate(expr.Arguments[0]);
+      Write(", ");
+      Translate(expr.Arguments[1]);
+      Write(", ");
+      Translate(expr.Arguments[2]);
+      Write(", ");
+      Translate(expr.Arguments[3]);
+      Write(')');
+    }
+
+    public void Library_ToString(CiMethodCall expr) {
+      Write("__TOSTR(");
+      Translate(expr.Obj);
+      Write(", ");
+      Translate(expr.Arguments[0]);
+      Write(", ");
+      Translate(expr.Arguments[1]);
+      Write(")");
+    }
+
+    public void Library_Clear(CiMethodCall expr) {
+      Write("__CCLEAR(");
+      Translate(expr.Obj);
+      Write(")");
+    }
+    #endregion
+
     // Emit pascal program
     public override void EmitProgram(CiProgram prog) {
       CreateFile(this.OutputFile);
@@ -1083,7 +1118,7 @@ namespace Foxoft.Ci {
       }
       if (getResProc) {
         WriteLine("function  __getBinaryResource(const aName: string): ArrayOf_byte; var myfile: TFileStream; begin myFile:= TFileStream.Create(aName, fmOpenRead); SetLength(Result, myFile.Size); try myFile.seek(0, soFromBeginning); myFile.ReadBuffer(Result, myFile.Size); finally myFile.free; end; end;");
-        WriteLine("function  __TOSTR (const x: ArrayOf_byte): string; var i: integer; begin Result:= ''; for i:= low(x) to high(x) do Result:= Result + chr(x[i]); end;");
+        WriteLine("function  __TOSTR (const x: ArrayOf_byte; sourceIndex: integer; len: integer): string; var i: integer; begin Result:= ''; for i:= sourceIndex to sourceIndex+len do Result:= Result + chr(x[i]); end;");
       }
       WriteLine("function  __CDEC_Pre (var x: integer): integer; overload; inline; begin dec(x); Result:= x; end;");
       WriteLine("function  __CDEC_Post(var x: integer): integer; overload; inline; begin Result:= x; dec(x); end;");
@@ -1108,7 +1143,7 @@ namespace Foxoft.Ci {
               OpenBlock(false);
               first = false;
             }
-            WriteFormat("{0}: {1}", DecodeSymbol(konst), GetTypeName(konst.Type));
+            WriteFormat("{0}: {1}", DecodeSymbol(konst), DecodeType(konst.Type));
             WriteLine(";");
           }
         }
@@ -1456,11 +1491,11 @@ namespace Foxoft.Ci {
         else if (param.Type is CiStringType) {
           Write(""); // TODO should be var but constant propagration must be handled
         }
-        WriteFormat("{0}: {1}", DecodeSymbol(param), GetTypeName(param.Type));
+        WriteFormat("{0}: {1}", DecodeSymbol(param), DecodeType(param.Type));
       }
       Write(')');
       if (del.ReturnType != CiType.Void) {
-        WriteFormat(": {0}", GetTypeName(del.ReturnType));
+        WriteFormat(": {0}", DecodeType(del.ReturnType));
       }
       if (typeDeclare) {
         if (prefix != null) {
@@ -1505,14 +1540,14 @@ namespace Foxoft.Ci {
       if (docs) {
         WriteCodeDoc(field.Documentation);
       }
-      WriteLine("{0} {1}: {2};", DecodeVisibility(field.Visibility), DecodeSymbol(field), GetTypeName(field.Type));
+      WriteLine("{0} {1}: {2};", DecodeVisibility(field.Visibility), DecodeSymbol(field), DecodeType(field.Type));
     }
 
     void WriteVar(CiVar var, string NewName, bool docs) {
       if (docs) {
         WriteCodeDoc(var.Documentation);
       }
-      WriteLine("var {0}: {1};", DecodeSymbol(var), GetTypeName(var.Type));
+      WriteLine("var {0}: {1};", DecodeSymbol(var), DecodeType(var.Type));
     }
 
     void WriteAssignNew(CiVar Target, CiType Type) {
@@ -1967,82 +2002,6 @@ namespace Foxoft.Ci {
       else
         Statement_CiAssign((CiAssign)expr);
     }
-
-    #region CiTo Library handlers
-    public void Library_SByte(CiPropertyAccess expr) {
-      Write("shortint(");
-      WriteChild(expr, expr.Obj);
-      Write(")");
-    }
-
-    public void Library_LowByte(CiPropertyAccess expr) {
-      Write("byte(");
-      WriteChild(expr, expr.Obj);
-      Write(")");
-    }
-
-    public void Library_Length(CiPropertyAccess expr) {
-      Write("Length(");
-      WriteChild(expr, expr.Obj);
-      Write(")");
-    }
-
-    public void Library_MulDiv(CiMethodCall expr) {
-      Write("(int64(");
-      WriteChild(CiPriority.Prefix, expr.Obj);
-      Write(") * int64(");
-      WriteChild(CiPriority.Multiplicative, expr.Arguments[0]);
-      Write(") div ");
-      WriteChild(CiPriority.Multiplicative, expr.Arguments[1], true);
-      Write(")");
-    }
-
-    public void Library_CharAt(CiMethodCall expr) {
-      Write("ord(");
-      Translate(expr.Obj);
-      Write("[");
-      Translate(expr.Arguments[0]);
-      Write("+1])");
-    }
-
-    public void Library_Substring(CiMethodCall expr) {
-      Write("MidStr(");
-      Translate(expr.Obj);
-      Write(", ");
-      Translate(expr.Arguments[0]);
-      Write("+1, ");
-      Translate(expr.Arguments[1]);
-      Write(")");
-    }
-
-    public void Library_CopyTo(CiMethodCall expr) {
-      Write("__CCOPY(");
-      Translate(expr.Obj);
-      Write(", ");
-      Translate(expr.Arguments[0]);
-      Write(", ");
-      Translate(expr.Arguments[1]);
-      Write(", ");
-      Translate(expr.Arguments[2]);
-      Write(", ");
-      Translate(expr.Arguments[3]);
-      Write(')');
-    }
-
-    public void Library_ToString(CiMethodCall expr) {
-      Write("__TOSTR(");
-      Translate(expr.Obj);
-      //        Write(expr.Arguments[0]);
-      //        Write(expr.Arguments[1]);
-      Write(")");
-    }
-
-    public void Library_Clear(CiMethodCall expr) {
-      Write("__CCLEAR(");
-      Translate(expr.Obj);
-      Write(")");
-    }
-    #endregion
 
     #region BreakTracker
     private Dictionary<ICiStatement, BeakInfo> mapping = new  Dictionary<ICiStatement, BeakInfo>();

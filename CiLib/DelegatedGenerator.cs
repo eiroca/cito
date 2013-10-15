@@ -61,15 +61,10 @@ namespace Foxoft.Ci {
   }
 
   public class BinaryOperatorInfo: OperatorInfo {
-    public bool ForcePar;
     public string Symbol;
     public WriteBinaryOperatorDelegate WriteDelegate;
 
     public BinaryOperatorInfo(CiToken token, CiPriority priority, WriteBinaryOperatorDelegate writeDelegate, string symbol) {
-      this.ForcePar = true;
-      if ((token == CiToken.Plus) || (token == CiToken.Minus) || (token == CiToken.Asterisk) || (token == CiToken.Slash)) {
-        this.ForcePar = false;
-      }
       this.Token = token;
       this.Priority = priority;
       this.Symbol = symbol;
@@ -216,7 +211,6 @@ namespace Foxoft.Ci {
     public MappingData GetMetadata(TYPE obj) {
       Type type = obj.GetType();
       Type baseType = type;
-      bool found = false;
       bool searched = false;
       MappingData info = null;
       while (info == null) {
@@ -225,7 +219,7 @@ namespace Foxoft.Ci {
           type = type.BaseType;
           searched = true;
           if (type == null) {
-            throw new InvalidOperationException("No mapping data for " + obj);
+            throw new InvalidOperationException("No metadata for " + obj);
           }
         }
       }
@@ -328,6 +322,10 @@ namespace Foxoft.Ci {
     public abstract void EmitProgram(CiProgram prog);
 
     #region Ci Language Translation
+    protected GenericMetadata<CiSymbol> Symbols = new GenericMetadata<CiSymbol>();
+    protected GenericMetadata<ICiStatement> Statemets = new GenericMetadata<ICiStatement>();
+    protected GenericMetadata<CiExpr> Expressions = new GenericMetadata<CiExpr>();
+
     public virtual void InitCiLanguage() {
       SetSymbolTranslator(typeof(CiEnum));
       SetSymbolTranslator(typeof(CiConst));
@@ -367,13 +365,9 @@ namespace Foxoft.Ci {
       Expressions.Add(typeof(CiCondNotExpr), CiPriority.Prefix, Expressions.FindAppropriate("Expression_CiCondNotExpr", this) ?? IgnoreExpr);
       Expressions.Add(typeof(CiPostfixExpr), CiPriority.Prefix, Expressions.FindAppropriate("Expression_CiPostfixExpr", this) ?? IgnoreExpr);
       Expressions.Add(typeof(CiCondExpr), CiPriority.CondExpr, Expressions.FindAppropriate("Expression_CiCondExpr", this) ?? IgnoreExpr);
-      Expressions.Add(typeof(CiBinaryExpr), CiPriority.Highest, Expressions.FindAppropriate("Expression_CiBinaryExpr", this) ?? IgnoreExpr);
-      Expressions.Add(typeof(CiCoercion), CiPriority.Highest, Expressions.FindAppropriate("Expression_CiCoercion", this) ?? IgnoreExpr);
+      Expressions.Add(typeof(CiBinaryExpr), CiPriority.Lowest, Expressions.FindAppropriate("Expression_CiBinaryExpr", this) ?? IgnoreExpr);
+      Expressions.Add(typeof(CiCoercion), CiPriority.Lowest, Expressions.FindAppropriate("Expression_CiCoercion", this) ?? IgnoreExpr);
     }
-
-    protected GenericMetadata<CiSymbol> Symbols = new GenericMetadata<CiSymbol>();
-    protected GenericMetadata<ICiStatement> Statemets = new GenericMetadata<ICiStatement>();
-    protected GenericMetadata<CiExpr> Expressions = new GenericMetadata<CiExpr>();
 
     public void IgnoreSymbol(CiSymbol symbol) {
     }
@@ -419,6 +413,28 @@ namespace Foxoft.Ci {
 
     public virtual void InitOperators() {
       //TODO Use reflection to fill the structure
+    }
+
+    public void ConvertOperatorAssociative(CiBinaryExpr expr, BinaryOperatorInfo token) {
+      // Work-around to have correct left and right type
+      GetExprType(expr);
+      WriteChild(expr, expr.Left);
+      Write(token.Symbol);
+      WriteChild(expr, expr.Right);
+    }
+
+    public void ConvertOperatorNotAssociative(CiBinaryExpr expr, BinaryOperatorInfo token) {
+      // Work-around to have correct left and right type
+      GetExprType(expr);
+      WriteChild(expr, expr.Left);
+      Write(token.Symbol);
+      WriteChild(expr, expr.Right, true);
+    }
+
+    public void ConvertOperatorUnary(CiUnaryExpr expr, UnaryOperatorInfo token) {
+      Write(token.Prefix);
+      WriteChild(expr, expr.Inner);
+      Write(token.Suffix);
     }
     #endregion
 
@@ -715,7 +731,7 @@ namespace Foxoft.Ci {
       return refType;
     }
 
-    public string GetTypeName(CiType type) {
+    public string DecodeType(CiType type) {
       return GetTypeInfo(type).Name;
     }
 
@@ -797,7 +813,7 @@ namespace Foxoft.Ci {
     }
 
     public virtual string DecodeValue(CiType type, object value) {
-      return value.ToString();
+      return (value != null) ? value.ToString() : "";
     }
 
     public string DecodeSymbol(CiSymbol var) {
