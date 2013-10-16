@@ -876,6 +876,23 @@ namespace Foxoft.Ci {
         info.Null = "null";
         info.ItemType = elem.Name;
       }
+      if (type is CiClassStorageType) {
+        info.Name = info.Name + "()";
+      } 
+      if (type is CiArrayStorageType) {
+        if (info.Level > 0) {
+          for (int i=0; i<info.Level; i++) {
+            info.Name = info.Name + "[{" + i + "}]";
+          }
+        }
+      }
+      else {
+        if (info.Level > 0) {
+          for (int i=0; i<info.Level; i++) {
+            info.Name = info.Name + "[]";
+          }
+        }
+      }
       return info;
     }
 
@@ -914,7 +931,12 @@ namespace Foxoft.Ci {
     public override void EmitProgram(CiProgram prog) {
       CreateFile(this.OutputFile);
       foreach (CiSymbol symbol in prog.Globals) {
-        Translate(symbol);
+        if (!(symbol is CiClass)) {
+          Translate(symbol);
+        }
+      }
+      foreach (CiClass klass in GetOrderedClassList()) {
+        Translate(klass);
       }
       CloseFile();
     }
@@ -1066,7 +1088,7 @@ namespace Foxoft.Ci {
     public virtual void Symbol_CiField(CiSymbol symbol) {
       CiField field = (CiField)symbol;
       Write(field.Documentation);
-      WriteFormat("{0} {1} {2}", DecodeVisibility(field.Visibility), DecodeType(field.Type), DecodeSymbol(field));
+      WriteFormat("{1} {2}", DecodeVisibility(field.Visibility), DecodeType(field.Type), DecodeSymbol(field));
       WriteInit(field.Type);
       WriteLine(";");
     }
@@ -1121,12 +1143,24 @@ namespace Foxoft.Ci {
       Write(klass.Documentation);
       WriteFormat("{0} ", DecodeVisibility(klass.Visibility));
       OpenClass(klass.IsAbstract, klass, " : ");
+      bool hasFields = false;
+      foreach (CiSymbol member in klass.Members) {
+        if (!(member is CiMethod)) {
+          Translate(member);
+          hasFields = true;
+        }
+      }
+      if (hasFields) {
+        WriteLine();
+      }
       if (klass.Constructor != null) {
         WriteFormat("public {0}() ", DecodeSymbol(klass));
         WriteCode(klass.Constructor.Body);
       }
       foreach (CiSymbol member in klass.Members) {
-        Translate(member);
+        if (member is CiMethod) {
+          Translate(member);
+        }
       }
       foreach (CiConst konst in klass.ConstArrays) {
         WriteLine("static readonly {0} {1} = {2};", DecodeType(konst.Type), konst.GlobalName, DecodeValue(konst.Type, konst.Value));
@@ -1547,7 +1581,9 @@ namespace Foxoft.Ci {
     }
 
     public virtual bool WriteInit(CiType type) {
-      if (type is CiClassStorageType || type is CiArrayStorageType) {
+      if (type is CiClassStorageType) {
+      }
+      else if (type is CiArrayStorageType) {
         Write(" = ");
         WriteNew(type);
         return true;

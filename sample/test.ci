@@ -1,3 +1,112 @@
+public class SampleClass {
+}
+
+public class ComplexClass : SampleClass {
+}
+
+///Test base types - Integer
+public class Test_Type_int {
+
+	int Field;
+	int[] ArrPtr;
+	int[5] ArrStore;
+
+	Test_Type_int() {
+		int field = 0;
+		Field = field;
+	}
+
+	public int Get(int p) {
+		return p + Field;
+	}
+	
+	public const int SIZE = 5;
+	public int[] GetArr(int s) {
+		int[SIZE] store = 0;
+		int[] ptr = new int[s];
+		if (s>SIZE) s=SIZE;
+		for (int i=0; i<s; i++) {
+			ptr[i] = store[i];
+		}
+		store.Clear();
+		return ptr;
+	}
+
+	public int[] copy(int[] s) {
+		return s;
+	}
+
+}
+	
+///Test base types - Byte
+public class Test_Type_byte {
+
+	byte Field;
+	byte[] ArrPtr;
+	byte[5] ArrStore;
+
+	Test_Type_byte() {
+		byte field = 0;
+		Field = field;
+	}
+
+	public byte Get(byte p) {
+		return p + Field;
+	}
+	
+	public const byte SIZE = 5;
+	public byte[] GetArr(byte s) {
+		byte[SIZE] store = 0;
+		byte[] ptr = new byte[s];
+		if (s>SIZE) s=SIZE;
+		for (int i=0; i<s; i++) {
+			ptr[i] = store[i];
+		}
+		store.Clear();
+		return ptr;
+	}
+
+	public byte[] copy(byte[] s) {
+		return s;
+	}
+
+}
+	
+///Test base types - String
+public class Test_Type_string {
+
+	string Field;
+	string[] ArrPtr;
+	string[5] ArrStore;
+
+	Test_Type_string() {
+		string field =null;
+		Field = field;
+	}
+
+	public string Get(string p) {
+		return Field;
+	}
+	
+	public const int SIZE = 5;
+	public string[] GetArr(int s) {
+		string[SIZE] store;
+		string[] ptr = new string[s];
+		if (s>SIZE) s=SIZE;
+		for (int i=0; i<s; i++) {
+			ptr[i] = store[i];
+		}
+		return ptr;
+	}
+
+	public string[] copy(string[] s) {
+		return s;
+	}
+
+}
+
+
+
 public delegate void DelegateToProcedure(int i);
 public delegate int  DelegateToFunction();
 
@@ -7,51 +116,49 @@ public enum MyEnum {
 	c
 }
 
-public class SampleClass {
-}
-
-public class ComplexClass : SampleClass {
-}
 
 public class AA_TestType {
-	int Field01;
-	byte Field02;
-	string Field03;
-	byte[] Field04;
-	int[] Field05;
-	string[] Field06;
-	MyEnum Field07;
-	MyEnum[] Field08;
-	SampleClass Field09;
-	SampleClass[] Field10;
-	SampleClass() Field11;
+	
+	MyEnum Field1;
+	SampleClass Field2;
+	ComplexClass Field3;
 
+	MyEnum[] Field10;
+	SampleClass[] Field20;
+	ComplexClass[] Field30;
+
+	SampleClass() FieldA;
+	ComplexClass() FieldB;
+
+	public const int SIZE = 5;
 	public AA_TestType() {
-		Field01 = 10;
-		Field02 = Field01;
-		Field03 = "eIrOcA";
-		Field04 = new byte[100];
-		Field05 = new int[Field01];
-		Field06 = new string[1];
-		Field06[0] = Field03;
-		Field08 = new MyEnum[3];
-		Field07 = MyEnum.a;
-		Field09 = new SampleClass();
-		Field10 = new SampleClass[10];
-		for (int i=0; i<10; i++) Field10[i] = Field09;
+		Field1 = MyEnum.a;
+		Field2 = new SampleClass();
+		Field3 = new ComplexClass();
+
+		Field10 = new MyEnum[SIZE];
+		Field20 = new SampleClass[SIZE];
+		Field30 = new ComplexClass[SIZE];
+
+		for (int i=0; i<SIZE; i++) {
+			Field10[i] = Field1;
+			Field20[i] = Field2;
+			Field30[i] = Field3;
+		}
+
+		FieldA = FieldB;
+
+		delete Field10;
+		delete Field20;
+		delete Field30;
 	}
 
 	public void Clear() {
-		Field01 = 0;
-		Field02 = 0;
-		Field03 = null;
-		Field04 = null;
-		Field05 = null;
-		Field06 = null;
-		Field07 = MyEnum.b;
-		Field08 = null;
-		Field09 = null;
-		Field10 = null;
+		Field1 = MyEnum.b;
+		Field2 = null;
+		Field3 = null;
+		FieldA = null;
+		FieldB = null;
 	}
 
 	public void Locals() {
@@ -65,6 +172,10 @@ public class AA_TestType {
 		MyEnum[] aField08;
 		SampleClass aField09;
 		SampleClass[] aField10;
+		SampleClass() aField11;
+		ComplexClass aField12;
+		ComplexClass[] aField13;
+		ComplexClass() aField14;
 
 		aField01 = 10;
 		aField02 = aField01;
@@ -96,14 +207,7 @@ public class AA_TestType {
 		aField10 = null;
 	}
 	
-	public int TestAssign(int i) {
-		int a;
-		int b;
-		int c;
-		a = b = c = i;
-		b = (c == 1) ? (a == 2) ? 1 : 2 : 3;
-		return (a == 0) ? 1 : 2;
-	}
+
 }
 
 public class AB_TestClass {
@@ -131,6 +235,14 @@ public class AB_TestClass {
 		}
 	}
 
+	public int TestAssign(int i) {
+		int a;
+		int b;
+		int c;
+		a = b = c = i;
+		b = (c == 1) ? (a == 2) ? 1 : 2 : 3;
+		return (a == 0) ? 1 : 2;
+	}
 }
 
 public class AC_TestString {

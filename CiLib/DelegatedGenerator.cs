@@ -732,7 +732,14 @@ namespace Foxoft.Ci {
     }
 
     public string DecodeType(CiType type) {
-      return GetTypeInfo(type).Name;
+      string typeDec = GetTypeInfo(type).Name;
+      if (type is CiArrayStorageType) {
+        //TODO handle LengthExpr
+        return String.Format(typeDec, ((CiArrayStorageType)type).Length);
+      }
+      else {
+        return typeDec;
+      }
     }
 
     public TypeInfo GetTypeInfo(CiType type) {
@@ -780,6 +787,20 @@ namespace Foxoft.Ci {
     protected int ElemPerRow = 16;
     protected string ElemSeparator = ", ";
 
+    public Int32 ExprAsInteger(CiExpr e, Int32 def) {
+      int res = def;
+      if (e is CiConstExpr) {
+        object v = ((CiConstExpr)e).Value;
+        if (v is Int32) {
+          res = (Int32)v;
+        }
+        else if (v is byte) {
+          res = (byte)v;
+        }
+      }
+      return res;
+    }
+
     public int GetArraySize(CiType type) {
       if (type is CiArrayStorageType) {
         CiArrayStorageType arr = (CiArrayStorageType)type;
@@ -795,19 +816,22 @@ namespace Foxoft.Ci {
       if (array.Length >= ElemPerRow) {
         res.Append(NewLineStr);
         OpenBlock(false);
+        res.Append(GetIndentStr());
       }
       for (int i = 0; i < array.Length; i++) {
         res.Append(DecodeValue(type, array.GetValue(i)));
         if (i < (array.Length - 1)) {
           res.Append(ElemSeparator);
-          if (i % ElemPerRow == 0) {
+          if ((i + 1) % ElemPerRow == 0) {
             res.Append(NewLineStr);
+            res.Append(GetIndentStr());
           }
         }
       }
       if (array.Length >= ElemPerRow) {
         CloseBlock(false);
         res.Append(NewLineStr);
+        res.Append(GetIndentStr());
       }
       return res.ToString();
     }

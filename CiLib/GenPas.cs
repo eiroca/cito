@@ -467,7 +467,7 @@ namespace Foxoft.Ci {
       CiVarAccess expr = (CiVarAccess)expression;
       string name = expr.Var.Name;
       if (name.Equals("this")) {
-        Write("self");
+        Write("Self");
       }
       else {
         Write(DecodeSymbol(expr.Var));
@@ -569,9 +569,9 @@ namespace Foxoft.Ci {
     public void Expression_CiCoercion(CiExpr expression) {
       CiCoercion expr = (CiCoercion)expression;
       if (expr.ResultType == CiByteType.Value && expr.Inner.Type == CiIntType.Value) {
-        Write("byte(");
-        WriteChild(expr, (CiExpr)expr.Inner); // TODO: Assign
-        Write(")");
+        //      Write("byte(");
+        WriteChild(expr, (CiExpr)expr.Inner); 
+        //      Write(")");
       }
       else {
         WriteInline(expr.Inner);
@@ -654,22 +654,27 @@ namespace Foxoft.Ci {
 
     public void Statement_CiDelete(ICiStatement statement) {
       CiDelete stmt = (CiDelete)statement;
+      CiTypedSymbol vr = null;
       if (stmt.Expr is CiVarAccess) {
-        CiVar var = ((CiVarAccess)stmt.Expr).Var;
-        if (var.Type is CiClassStorageType) {
-          WriteFormat("FreeAndNil({0})", DecodeSymbol(var));
+        vr = ((CiVarAccess)stmt.Expr).Var;
+      }
+      else if (stmt.Expr is CiFieldAccess) {
+        vr = ((CiFieldAccess)stmt.Expr).Field;
+      }
+      if (vr != null) {
+        if (vr.Type is CiClassStorageType) {
+          WriteFormat("FreeAndNil({0})", DecodeSymbol(vr));
         }
-        if (var.Type is CiClassPtrType) {
-          WriteFormat("FreeAndNil({0})", DecodeSymbol(var));
+        else if (vr.Type is CiClassPtrType) {
+          WriteFormat("FreeAndNil({0})", DecodeSymbol(vr));
         }
-        else if (var.Type is CiArrayStorageType) {
-          TypeInfo info = GetTypeInfo(var.Type);
-          WriteFormat("{0}:= {1}", DecodeSymbol(var), info.Null);
+        else if (vr.Type is CiArrayStorageType) {
+          TypeInfo info = GetTypeInfo(vr.Type);
+          WriteFormat("{0}:= {1}", DecodeSymbol(vr), info.Null);
         }
-        else if (var.Type is CiArrayPtrType) {
-          TypeInfo info = GetTypeInfo(var.Type);
-          WriteFormat("{0}:= {1}", DecodeSymbol(var), info.Null);
-
+        else if (vr.Type is CiArrayPtrType) {
+          TypeInfo info = GetTypeInfo(vr.Type);
+          WriteFormat("{0}:= {1}", DecodeSymbol(vr), info.Null);
         }
       }
     }
@@ -1606,13 +1611,17 @@ namespace Foxoft.Ci {
     }
 
     void WriteInitNew(CiSymbol symbol, CiType Type) {
+      string prefix = "";
+      if (symbol is CiField) {
+        prefix = "Self.";
+      }
       if (Type is CiClassStorageType) {
         CiClassStorageType classType = (CiClassStorageType)Type;
-        WriteLine("{0}:= {1}.Create();", DecodeSymbol(symbol), DecodeSymbol(classType.Class));
+        WriteLine("{0}{1}:= {2}.Create();", prefix, DecodeSymbol(symbol), DecodeSymbol(classType.Class));
       }
       else if (Type is CiArrayStorageType) {
         CiArrayStorageType arrayType = (CiArrayStorageType)Type;
-        WriteFormat("SetLength({0}, ", DecodeSymbol(symbol));
+        WriteFormat("SetLength({0}{1}, ", prefix, DecodeSymbol(symbol));
         if (arrayType.LengthExpr != null) {
           Translate(arrayType.LengthExpr);
         }
@@ -1623,12 +1632,21 @@ namespace Foxoft.Ci {
       }
     }
 
+    void WriteFillArray(CiTypedSymbol vr, CiExpr val) {
+      if (ExprAsInteger(val, -1) == 0) {
+        WriteFormat("__CCLEAR({0})", DecodeSymbol(vr));
+      }
+      else {
+        WriteFormat("__CFILL({0}, ", DecodeSymbol(vr));
+        Translate(val);
+        Write(")");
+      }
+    }
+
     void WriteInitVal(CiVar vr) {
       if (vr.InitialValue != null) {
         if (vr.Type is CiArrayStorageType) {
-          WriteFormat("__CFILL({0}, ", DecodeSymbol(vr));
-          Translate(vr.InitialValue);
-          Write(")");
+          WriteFillArray(vr, vr.InitialValue);
         }
         else {
           WriteAssign(vr, vr.InitialValue);
@@ -1987,9 +2005,9 @@ namespace Foxoft.Ci {
 
     void WriteCondChild(CiCondExpr condExpr, CiExpr expr) {
       if (condExpr.ResultType == CiByteType.Value && expr is CiConstExpr) {
-        Write("byte(");
+//        Write("byte(");
         WriteChild(condExpr, expr);
-        Write(")");
+//        Write(")");
       }
       else {
         WriteChild(condExpr, expr);

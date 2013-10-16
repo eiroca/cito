@@ -17,6 +17,8 @@
 
 using System;
 using System.Text;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace Foxoft.Ci {
 
@@ -105,18 +107,39 @@ namespace Foxoft.Ci {
 
     public override void Statement_CiVar(ICiStatement statement) {
       CiVar stmt = (CiVar)statement;
-      bool sep = false;
-      if ((stmt.Type is CiClassStorageType) || (stmt.Type is CiArrayStorageType)) {
-        WriteFormat("${0}", DecodeSymbol(stmt));
-        sep = true;
-        WriteInit(stmt.Type);
-      }
-      if (stmt.InitialValue != null) {
-        if (sep == true) {
-          WriteLine(";");
+      if (stmt.Type is CiArrayStorageType) {
+        if (stmt.InitialValue != null) {
+          WriteFormat("${0} = array_fill(0, ", DecodeSymbol(stmt));
+          CiArrayStorageType storageType = (CiArrayStorageType)stmt.Type;
+          if (storageType.LengthExpr != null) {
+            Translate(storageType.LengthExpr);
+          }
+          else {
+            Write(storageType.Length);
+          }
+          Write(", ");
+          Translate(stmt.InitialValue);
+          Write(")");
         }
-        WriteFormat("${0} = ", DecodeSymbol(stmt));
-        Translate(stmt.InitialValue);
+        else {
+          WriteFormat("${0} = array()", DecodeSymbol(stmt));
+          WriteInit(stmt.Type);
+        }
+      }
+      else {
+        bool sep = false;
+        if (stmt.Type is CiClassStorageType) {
+          WriteFormat("${0}", DecodeSymbol(stmt));
+          sep = true;
+          WriteInit(stmt.Type);
+        }
+        if (stmt.InitialValue != null) {
+          if (sep == true) {
+            WriteLine(";");
+          }
+          WriteFormat("${0} = ", DecodeSymbol(stmt));
+          Translate(stmt.InitialValue);
+        }
       }
     }
 
@@ -133,7 +156,7 @@ namespace Foxoft.Ci {
       int i = 0;
       foreach (CiEnumValue value in enu.Values) {
         Write(value.Documentation);
-        WriteLine("define('{0}_{1}', {2});", enu.Name, value.Name, i);
+        WriteLine("define('{0}_{1}', {2});", DecodeSymbol(enu), DecodeSymbol(value), i);
         i++;
       }
     }
@@ -141,7 +164,7 @@ namespace Foxoft.Ci {
     public override void Symbol_CiField(CiSymbol symbol) {
       CiField field = (CiField)symbol;
       Write(field.Documentation);
-      WriteLine("var ${0};", field.Name);
+      WriteLine("var ${0};", DecodeSymbol(field));
     }
 
     public override void Symbol_CiClass(CiSymbol symbol) {
@@ -203,7 +226,7 @@ namespace Foxoft.Ci {
       Write(method.Documentation);
       foreach (CiParam param in method.Signature.Params) {
         if (param.Documentation != null) {
-          WriteFormat("/** <param name=\"{0}\">", param.Name);
+          WriteFormat("/** <param name=\"{0}\">", DecodeSymbol(param));
           Write(param.Documentation.Summary);
           WriteLine("</param> */");
         }
@@ -280,9 +303,15 @@ namespace Foxoft.Ci {
       Write(')');
     }
 
+    public void UseFunction(string name) {
+      if (!UsedFunc.Contains(name)) {
+        UsedFunc.Add(name);
+      }
+    }
+
     public override void Library_CopyTo(CiMethodCall expr) {
-      DefineCopyTo = true;
-      Write("Ci::Copy(");
+      UseFunction("CopyTo");
+      Write("Ci::CopyTo(");
       Translate(expr.Obj);
       Write(", ");
       Translate(expr.Arguments[0]);
@@ -296,8 +325,8 @@ namespace Foxoft.Ci {
     }
 
     public override void Library_ToString(CiMethodCall expr) {
-      DefineGetString = true;
-      Write("Ci::GetString(");
+      UseFunction("ToString");
+      Write("Ci::ToString(");
       Translate(expr.Obj);
       Write(", ");
       Translate(expr.Arguments[0]);
@@ -307,7 +336,7 @@ namespace Foxoft.Ci {
     }
 
     public override void Library_Clear(CiMethodCall expr) {
-      DefineClear = true;
+      UseFunction("Clear");
       Write("Ci::Clear(");
       Translate(expr.Obj);
       Write(", 0, ");
@@ -443,14 +472,11 @@ namespace Foxoft.Ci {
     public override  void WriteNew(CiType type) {
       CiClassStorageType classType = type as CiClassStorageType;
       if (classType != null) {
-        Write("new ");
-        Write(classType.Class.Name);
-        Write("()");
+        WriteFormat("new {0}()", DecodeSymbol(classType.Class));
       }
       else {
         // CiArrayStorageType arrayType = (CiArrayStorageType) type;
-        Write("array(");
-        Write(")");
+        Write("array()");
       }
     }
 
@@ -465,9 +491,7 @@ namespace Foxoft.Ci {
       WriteLine(":");
     }
 
-    bool DefineClear = false;
-    bool DefineGetString = false;
-    bool DefineCopyTo = false;
+    protected HashSet<string> UsedFunc = new HashSet<string>();
 
     public override void EmitProgram(CiProgram prog) {
       CreateFile(this.OutputFile);
@@ -475,19 +499,26 @@ namespace Foxoft.Ci {
         WriteLine("namespace {0};", this.Namespace);
       }
       foreach (CiSymbol symbol in prog.Globals) {
-        Translate(symbol);
+        if (symbol is CiEnum) {
+          Translate(symbol);
+        }
       }
-      if (DefineClear || DefineCopyTo || DefineGetString) {
+      foreach (CiSymbol symbol in prog.Globals) {
+        if (!(symbol is CiEnum)) {
+          Translate(symbol);
+        }
+      }
+      if (UsedFunc.Count > 0) {
         Write("class Ci ");
         OpenBlock();
-        if (DefineClear) {
+        if (UsedFunc.Contains("Clear")) {
           WriteLine("static function Clear(&$arr, $v, $len) {for($i=0;$i<$len;$i++) {$arr[$i]=$v;}}");
         }
-        if (DefineCopyTo) {
+        if (UsedFunc.Contains("CopyTo")) {
           WriteLine("static function CopyTo(&$src, $src_strt, &$dest, $dst_strt, $dst_len) {for($i=0;$i<$dst_len;$i++) {$dst[$dst_strt+$i]=$src[$src_strt+$i];}}");
         }
-        if (DefineGetString) {
-          WriteLine("static function GetString(&$src, $src_strt, $src_len) {$r=''; for($i=$src_strt;$i<$src_strt+$src_len;$i++) {$r .= chr($src[$i]);} return $r}");
+        if (UsedFunc.Contains("ToString")) {
+          WriteLine("static function ToString(&$src, $src_strt, $src_len) {$r=''; for($i=$src_strt;$i<$src_strt+$src_len;$i++) {$r .= chr($src[$i]);} return $r}");
         }
         CloseBlock();
       }
@@ -547,9 +578,7 @@ namespace Foxoft.Ci {
       StringBuilder res = new StringBuilder();
       if (value is CiEnumValue) {
         CiEnumValue ev = (CiEnumValue)value;
-        res.Append(ev.Type.Name);
-        res.Append('_');
-        res.Append(ev.Name);
+        res.AppendFormat("{0}_{1}", DecodeSymbol(ev.Type), DecodeSymbol(ev));
       }
       else if (value is Array) {
         res.Append("array( ");
