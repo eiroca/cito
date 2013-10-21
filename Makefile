@@ -31,6 +31,9 @@ PDF = $(addprefix $(srcdir)docs/,readme.pdf install.pdf ci.pdf)
 
 MANIFEST_FILE = $(addprefix $(srcdir),MANIFEST)
 
+DIST_BIN = ../cito-$(VERSION)-bin.zip 
+DIST_SRC = ../cito-$(VERSION)-src.tar.gz
+
 all: cito.exe cipad.exe
 
 cito.exe: $(CITO) $(CILIB) $(CIGEN)
@@ -111,27 +114,27 @@ $(DOCS)/ci.pdf: $(DOCS)/ci.txt
 	$(call MAKEPDF,)
 
 clean:
+	$(RM) $(DIST_BIN) $(DIST_SRC)
 	$(RM) cito.exe cipad.exe civiewer.exe
 	$(RM) $(SAMPLE_DIR)/hello.c $(SAMPLE_DIR)/hello.h $(SAMPLE_DIR)/hello99.c $(SAMPLE_DIR)/hello99.h $(SAMPLE_DIR)/HelloCi.java $(SAMPLE_DIR)/hello.cs $(SAMPLE_DIR)/hello.js $(SAMPLE_DIR)/HelloCi.as $(SAMPLE_DIR)/hello.d $(SAMPLE_DIR)/hello.pm $(SAMPLE_DIR)/hello5.10.pm $(SAMPLE_DIR)/hello.pas $(SAMPLE_DIR)/hello.php 
 	$(RM) $(CIICO) $(CIPNG)
 	$(RM) $(DOCS)/index.html $(DOCS)/install.html $(DOCS)/ci.html
 	$(RM) $(DOCS)/readme.pdf $(DOCS)/install.pdf  $(DOCS)/ci.pdf
 
-dist: ../cito-$(VERSION)-bin.zip srcdist
+dist: $(DIST_BIN) $(DIST_SRC)
 
-../cito-$(VERSION)-bin.zip: cito.exe cipad.exe $(srcdir)COPYING $(srcdir)README $(DOCS)/index.html $(DOCS)/ci.html $(SAMPLE_DIR)/hello.ci
+$(DIST_BIN): cito.exe cipad.exe $(srcdir)COPYING $(srcdir)README $(DOCS)/readme.pdf $(DOCS)/ci.pdf $(SAMPLE_DIR)/hello.ci
 	$(RM) $@ && $(SEVENZIP) -tzip $@ $(^:%=./%)
 # "./" makes 7z don't store paths in the archive
 
-srcdist: $(MANIFEST_FILE) $(WWW) $(CIICO) $(CIPNG)
-	$(RM) ../cito-$(VERSION).tar.gz && tar -c --numeric-owner  -T MANIFEST  | $(SEVENZIP) -tgzip -si ../cito-$(VERSION).tar.gz
+$(DIST_SRC): $(MANIFEST_FILE) $(WWW)
+	$(RM) $@ && tar -c --numeric-owner  -T MANIFEST  | $(SEVENZIP) -tgzip -si $@
 
 $(MANIFEST_FILE):
 	if test -e $(srcdir).git; then \
 		(git ls-tree -r --name-only --full-tree master | grep -vF .gitignore \
 			&& echo MANIFEST \
 			&& echo $(DOCS)/index.html && echo $(DOCS)/install.html && echo $(DOCS)/ci.html \
-			&& echo $(CIICO) && echo $(CIPNG) \
 			) | sort -u >$@; \
 	fi
 

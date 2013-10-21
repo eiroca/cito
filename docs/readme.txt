@@ -7,11 +7,12 @@ http://sourceforge.net/p/cito/code[Browse source code (Git)] |
 http://sourceforge.net/projects/cito/[SourceForge project page]
 endif::www[]
 
-`cito` automatically translates the link:ci.html[Ć programming language]
-to C, Java, C#, JavaScript, ActionScript, Perl and http://dlang.org/[D].
 Ć is a new language, aimed at crafting 'portable programming libraries', with syntax akin to C#.
 The translated code is lightweight (no virtual machine, emulation nor large runtime), human-readable
 and fits well the target language (including naming conventions and documentation comments).
+
+`cito` automatically translates the link:ci.html[Ć programming language]
+to C, Java, C#, JavaScript, ActionScript, Perl, Object Pascal, PHP and http://dlang.org/[D].
 
 Current version of Ć doesn't support standalone programs or even console output,
 so your "Hello world" could be the following 'library':
@@ -28,13 +29,15 @@ public class HelloCi
 See http://cito.sourceforge.net/hello.html[here] for a slightly bigger example and its translations.
 See http://asap.sourceforge.net/[ASAP] and http://fail.sourceforge.net/[FAIL] for real programs written in Ć.
 
+Ć is released under the GPL 3 licence (see COPYING for more information).
+
 How to install
 --------------
 
 `cito` is written in C#.
 
 On Windows you need .NET Framework 3.5.
-http://sourceforge.net/projects/cito/files/cito/0.4.0/cito-0.4.0-bin.zip/download[Download cito binaries]
+http://sourceforge.net/projects/cito/files/cito/0.5.0/cito-0.5.0-bin.zip/download[Download cito binaries]
 and extract `cito.exe` and `cipad.exe` to a directory in your `PATH` environment variable.
 
 On other platforms install http://www.mono-project.com[Mono]. Mono runs .NET executables:
@@ -73,6 +76,12 @@ Any comments are welcome!
 
 History
 -------
+
+cito 0.5.0 (2013-10-31)::
+
+- Object Pascal back-end.
+- PHP back-end.
+- CiViewer side-by-side cross translation tool
 
 cito 0.4.0 (2013-05-18)::
 
@@ -115,6 +124,10 @@ Created Ć and tools.
 
 Adrian Matoga::
 Created the D back-end.
+
+Enrico Croce::
+Created the Pascal & PHP back-end and the CiViewer.
+
 
 ifdef::www[]
 image::http://sflogo.sourceforge.net/sflogo.php?group_id=389251&amp;type=10["Get Ć Translator at SourceForge.net. Fast, secure and Free Open Source software downloads",width=80,height=15,link="http://sourceforge.net/projects/cito"]
