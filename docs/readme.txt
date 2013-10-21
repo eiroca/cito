@@ -49,7 +49,7 @@ exec /usr/bin/mono /usr/local/lib/cito/cito.exe "$@"
 -------------------
 so that you can type `cito` instead of `mono cito.exe`.
 
-If you want to compile `cito` from source code, see http://cito.sourceforge.net/INSTALL.html[compilation instructions].
+If you want to compile `cito` from source code, see link:install.html[compilation instructions].
 
 How to use
 ----------

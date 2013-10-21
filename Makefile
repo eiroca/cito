@@ -1,96 +1,138 @@
-prefix := /usr/local
-srcdir := $(dir $(lastword $(MAKEFILE_LIST)))
-CSC := $(if $(WINDIR),c:/Windows/Microsoft.NET/Framework/v3.5/csc.exe,gmcs)
-MONO := $(if $(WINDIR),,mono)
-ASCIIDOC = asciidoc -o - $(1) $< | xmllint -o $@ -
-SEVENZIP = 7z a -mx=9 -bd
-
-CILIB = $(addprefix $(srcdir)/CiLib/,CiDocLexer.cs CiDocParser.cs CiLexer.cs CiMacroProcessor.cs CiParser.cs CiResolver.cs CiTree.cs SymbolTable.cs) 
-CIGEN = $(addprefix $(srcdir)/CiLib/,ProjectHelper.cs BaseGenerator.cs DelegatedGenerator.cs SourceGenerator.cs GenAs.cs GenD.cs GenC.cs GenC89.cs GenCs.cs GenJava.cs GenJs.cs GenJsWithTypedArrays.cs GenPas.cs GenPerl5.cs GenPerl58.cs GenPerl510.cs GenPHP.cs)
-
 VERSION := 0.5.0
 MAKEFLAGS = -r
 
-all: cito.exe cipad.exe 
+prefix := /usr/local
+srcdir := $(dir $(lastword $(MAKEFILE_LIST)))
 
-cito.exe: $(addprefix $(srcdir)/CiTo/,CiTo.cs Properties/AssemblyInfo.cs) $(CILIB) $(CIGEN)
+CSC := $(if $(WINDIR),c:/Windows/Microsoft.NET/Framework/v3.5/csc.exe,gmcs)
+MONO := $(if $(WINDIR),,mono)
+ASCIIDOC = asciidoc -o - $(1) $< | xmllint -o $@ -
+MAKEPDF = a2x -f pdf $< 
+SEVENZIP = 7z a -mx=9 -bd
+
+GTK_DIR = /Library/Frameworks/Mono.framework/Versions/3.2.3/lib/mono/gtk-sharp-2.0/
+
+CISVG = $(addprefix $(srcdir)res/,  ci-logo.svg)
+CIICO = $(addprefix $(srcdir)res/,  ci-logo.ico)
+CIPNG = $(addprefix $(srcdir)res/,  ci-logo.png)
+
+CILIB = $(addprefix $(srcdir)CiLib/,CiDocLexer.cs CiDocParser.cs CiLexer.cs CiMacroProcessor.cs CiParser.cs CiResolver.cs CiTree.cs SymbolTable.cs) 
+CIGEN = $(addprefix $(srcdir)CiLib/,ProjectHelper.cs BaseGenerator.cs DelegatedGenerator.cs SourceGenerator.cs GenAs.cs GenD.cs GenC.cs GenC89.cs GenCs.cs GenJava.cs GenJs.cs GenJsWithTypedArrays.cs GenPas.cs GenPerl5.cs GenPerl58.cs GenPerl510.cs GenPHP.cs)
+
+CITO  = $(addprefix $(srcdir)CiTo/, Properties/AssemblyInfo.cs CiTo.cs )
+CIPAD = $(addprefix $(srcdir)CiPAD/,Properties/AssemblyInfo.cs CiPad.cs)
+CIVWR = $(addprefix $(srcdir)CiViewer/,Program.cs MainWindow.cs IgeMacMenuGlobal.cs gtk-gui/generated.cs gtk-gui/MainWindow.cs Properties/AssemblyInfo.cs)
+
+SAMPLE_DIR = $(srcdir)sample
+
+DOCS = $(srcdir)docs
+WWW = $(addprefix $(srcdir)docs/,index.html install.html ci.html)
+PDF = $(addprefix $(srcdir)docs/,readme.pdf install.pdf ci.pdf)
+
+MANIFEST_FILE = $(addprefix $(srcdir),MANIFEST)
+
+all: cito.exe cipad.exe
+
+cito.exe: $(CITO) $(CILIB) $(CIGEN)
 	$(CSC) -nologo -out:$@ -o+ $^
 
-cipad.exe: $(addprefix $(srcdir)/CiPAD/,Properties/AssemblyInfo.cs CiPad.cs) $(CILIB) $(CIGEN) $(addprefix $(srcdir)/logo/,ci-logo.ico)
+cipad.exe: $(CIPAD) $(CILIB) $(CIGEN) $(CIICO)
 	$(CSC) -nologo -out:$@ -o+ -t:winexe -win32icon:$(filter %.ico,$^) $(filter %.cs,$^) -r:System.Drawing.dll -r:System.Windows.Forms.dll
 
-#civiewer.exe: $(addprefix $(srcdir)/CiViewer/,Program.cs MainWindow.cs IgeMacMenuGlobal.cs gtk-gui/generated.cs gtk-gui/MainWindow.cs Properties/AssemblyInfo.cs ci-logo.ico) $(CILIB) $(CIGEN)
-#	$(CSC) -nologo -out:$@ -o+ -t:winexe -win32icon:$(filter %.ico,$^) $(filter %.cs,$^) -r:atk-sharp.dll -r:gdk/gdk-sharp.dll -r:glade-sharp.dll -r:glib-sharp.dll -r:gtk-sharp.dll -r:Mono.Posix.dll -r:pango-sharp.dll
+civiewer.exe: $(CIVWR)  $(CILIB) $(CIGEN) $(CIICO)
+	$(CSC) -nologo -out:$@ -o+ -t:winexe -win32icon:$(filter %.ico,$^) $(filter %.cs,$^) -r:$(GTK_DIR)atk-sharp.dll -r:$(GTK_DIR)/gdk-sharp.dll -r:$(GTK_DIR)/glade-sharp.dll -r:$(GTK_DIR)/glib-sharp.dll -r:$(GTK_DIR)gtk-sharp.dll -r:$(GTK_DIR)pango-sharp.dll -r:Mono.Posix.dll
 
-$(srcdir)logo/ci-logo.png: $(srcdir)logo/ci-logo.svg
-	convert -background none $< -gravity Center -resize "52x64!" -extent 64x64 -quality 95 $@
-
-$(srcdir)logo/ci-logo.ico: $(srcdir)logo/ci-logo.svg
-	convert -background none $< -gravity Center -resize "26x32!" -extent 32x32 $@
-
-check: $(srcdir)sample/hello.ci cito.exe
-	$(MONO) ./cito.exe          -o sample/hello.c $<
-	$(MONO) ./cito.exe -l c99   -o sample/hello99.c $<
-	$(MONO) ./cito.exe          -o sample/hello.java $<
-	$(MONO) ./cito.exe          -o sample/hello.cs $<
-	$(MONO) ./cito.exe          -o sample/hello.js $<
-	$(MONO) ./cito.exe          -o sample/hello.as $<
-	$(MONO) ./cito.exe          -o sample/hello.d $<
-	$(MONO) ./cito.exe          -o sample/hello.pm $<
-	$(MONO) ./cito.exe -l pm510 -o sample/hello5.10.pm $<
-	$(MONO) ./cito.exe          -o sample/hello.pas $<
-	$(MONO) ./cito.exe -l pm510 -o sample/hello.php $<
+check: $(SAMPLE_DIR)/hello.ci cito.exe
+	$(MONO) ./cito.exe          -o $(SAMPLE_DIR)/hello.c $<
+	$(MONO) ./cito.exe -l c99   -o $(SAMPLE_DIR)/hello99.c $<
+	$(MONO) ./cito.exe          -o $(SAMPLE_DIR)/hello.java $<
+	$(MONO) ./cito.exe          -o $(SAMPLE_DIR)/hello.cs $<
+	$(MONO) ./cito.exe          -o $(SAMPLE_DIR)/hello.js $<
+	$(MONO) ./cito.exe          -o $(SAMPLE_DIR)/hello.as $<
+	$(MONO) ./cito.exe          -o $(SAMPLE_DIR)/hello.d $<
+	$(MONO) ./cito.exe          -o $(SAMPLE_DIR)/hello.pm $<
+	$(MONO) ./cito.exe -l pm510 -o $(SAMPLE_DIR)/hello5.10.pm $<
+	$(MONO) ./cito.exe          -o $(SAMPLE_DIR)/hello.pas $<
+	$(MONO) ./cito.exe -l pm510 -o $(SAMPLE_DIR)/hello.php $<
 
 install: install-cito install-cipad
 
 install-cito: cito.exe
+	(echo '#!/bin/sh' && echo 'exec /usr/bin/mono $(DESTDIR)$(prefix)/lib/cito/cito.exe "$$@"') > cito.sh
 	mkdir -p $(DESTDIR)$(prefix)/lib/cito $(DESTDIR)$(prefix)/bin
 	cp $< $(DESTDIR)$(prefix)/lib/cito/cito.exe
-	(echo '#!/bin/sh' && echo 'exec /usr/bin/mono $(DESTDIR)$(prefix)/lib/cito/cito.exe "$$@"') >$(DESTDIR)$(prefix)/bin/cito
+	cp cito.sh $(DESTDIR)$(prefix)/bin/cito
 	chmod 755 $(DESTDIR)$(prefix)/bin/cito
+	rm cito.sh
 
 install-cipad: cipad.exe
+	(echo '#!/bin/sh' && echo 'exec /usr/bin/mono $(DESTDIR)$(prefix)/lib/cito/cipad.exe "$$@"') > cipad.sh
 	mkdir -p $(DESTDIR)$(prefix)/lib/cito $(DESTDIR)$(prefix)/bin
 	cp $< $(DESTDIR)$(prefix)/lib/cito/cipad.exe
-	(echo '#!/bin/sh' && echo 'exec /usr/bin/mono $(DESTDIR)$(prefix)/lib/cito/cipad.exe "$$@"') >$(DESTDIR)$(prefix)/bin/cipad
+	cp cipad.sh $(DESTDIR)$(prefix)/bin/cipad
 	chmod 755 $(DESTDIR)$(prefix)/bin/cipad
+	rm cipad.sh
 
 uninstall:
-	$(RM) $(DESTDIR)$(prefix)/bin/cito $(DESTDIR)$(prefix)/lib/cito/cito.exe $(DESTDIR)$(prefix)/bin/cipad $(DESTDIR)$(prefix)/lib/cito/cipad.exe
+	$(RM) $(DESTDIR)$(prefix)/bin/cito  $(DESTDIR)$(prefix)/lib/cito/cito.exe 
+	$(RM) $(DESTDIR)$(prefix)/bin/cipad $(DESTDIR)$(prefix)/lib/cito/cipad.exe
 	rmdir $(DESTDIR)$(prefix)/lib/cito
 
-$(srcdir)README.html: $(srcdir)docs/README
-	$(call ASCIIDOC,)
+res: $(CIPNG) $(CIICO)
 
-$(srcdir)INSTALL.html: $(srcdir)docs/INSTALL
-	$(call ASCIIDOC,)
+$(CIPNG): $(CISVG)
+	convert -background none $< -gravity Center -resize "52x64!" -extent 64x64 -quality 95 $@
 
-$(srcdir)ci.html: $(srcdir)docs/ci.txt
-	$(call ASCIIDOC,-a toc)
+$(CIICO): $(CISVG)
+	convert -background none $< -gravity Center -resize "26x32!" -extent 32x32 $@
 
-www: index.html $(srcdir)INSTALL.html $(srcdir)ci.html
+www: $(WWW)
 
-index.html: $(srcdir)docs/README
+pdf: $(PDF)
+
+docs: res www pdf
+
+$(DOCS)/index.html: $(DOCS)/readme.txt
 	$(call ASCIIDOC,-a www)
 
+$(DOCS)/install.html: $(DOCS)/install.txt
+	$(call ASCIIDOC,)
+
+$(DOCS)/ci.html: $(DOCS)/ci.txt
+	$(call ASCIIDOC,-a toc)
+
+$(DOCS)/readme.pdf: $(DOCS)/readme.txt
+	$(call MAKEPDF,)
+
+$(DOCS)/install.pdf: $(DOCS)/install.txt
+	$(call MAKEPDF,)
+
+$(DOCS)/ci.pdf: $(DOCS)/ci.txt
+	$(call MAKEPDF,)
+
 clean:
-	$(RM) cito.exe cipad.exe 
-	$(RM) sample/hello.c sample/hello.h sample/hello99.c sample/hello99.h sample/HelloCi.java sample/hello.cs sample/hello.js sample/HelloCi.as sample/hello.d sample/hello.pm sample/hello5.10.pm sample/hello.pas sample/hello.php 
-	$(RM) index.html ci.html INSTALL.html README.html
+	$(RM) cito.exe cipad.exe civiewer.exe
+	$(RM) $(SAMPLE_DIR)/hello.c $(SAMPLE_DIR)/hello.h $(SAMPLE_DIR)/hello99.c $(SAMPLE_DIR)/hello99.h $(SAMPLE_DIR)/HelloCi.java $(SAMPLE_DIR)/hello.cs $(SAMPLE_DIR)/hello.js $(SAMPLE_DIR)/HelloCi.as $(SAMPLE_DIR)/hello.d $(SAMPLE_DIR)/hello.pm $(SAMPLE_DIR)/hello5.10.pm $(SAMPLE_DIR)/hello.pas $(SAMPLE_DIR)/hello.php 
+	$(RM) $(CIICO) $(CIPNG)
+	$(RM) $(DOCS)/index.html $(DOCS)/install.html $(DOCS)/ci.html
+	$(RM) $(DOCS)/readme.pdf $(DOCS)/install.pdf  $(DOCS)/ci.pdf
 
 dist: ../cito-$(VERSION)-bin.zip srcdist
 
-../cito-$(VERSION)-bin.zip: cito.exe cipad.exe $(srcdir)COPYING $(srcdir)README.html $(srcdir)ci.html $(srcdir)sample/hello.ci
+../cito-$(VERSION)-bin.zip: cito.exe cipad.exe $(srcdir)COPYING $(srcdir)README $(DOCS)/index.html $(DOCS)/ci.html $(SAMPLE_DIR)/hello.ci
 	$(RM) $@ && $(SEVENZIP) -tzip $@ $(^:%=./%)
 # "./" makes 7z don't store paths in the archive
 
-srcdist: $(addprefix $(srcdir),MANIFEST README.html INSTALL.html ci.html logo/ci-logo.ico)
+srcdist: $(MANIFEST_FILE) $(WWW) $(CIICO) $(CIPNG)
 	$(RM) ../cito-$(VERSION).tar.gz && tar -c --numeric-owner  -T MANIFEST  | $(SEVENZIP) -tgzip -si ../cito-$(VERSION).tar.gz
 
-$(srcdir)MANIFEST:
+$(MANIFEST_FILE):
 	if test -e $(srcdir).git; then \
 		(git ls-tree -r --name-only --full-tree master | grep -vF .gitignore \
-			&& echo MANIFEST && echo README.html && echo INSTALL.html && echo ci.html && echo logo/ci-logo.ico) | sort -u >$@; \
+			&& echo MANIFEST \
+			&& echo $(DOCS)/index.html && echo $(DOCS)/install.html && echo $(DOCS)/ci.html \
+			&& echo $(CIICO) && echo $(CIPNG) \
+			) | sort -u >$@; \
 	fi
 
 version:
