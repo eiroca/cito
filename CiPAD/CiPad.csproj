@@ -6,7 +6,7 @@
     <AssemblyName>CiPad</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <ProjectGuid>{706860A9-7545-4F7C-9A67-CF4DA81DDE03}</ProjectGuid>
-    <ApplicationIcon>ci-logo.ico</ApplicationIcon>
+    <ApplicationIcon>..\res\ci-logo.ico</ApplicationIcon>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ReleaseVersion>0.5</ReleaseVersion>
     <ProductVersion>10.0.0</ProductVersion>

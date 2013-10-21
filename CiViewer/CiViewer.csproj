@@ -10,7 +10,7 @@
     <RootNamespace>CiViewer</RootNamespace>
     <AssemblyName>CiViewer</AssemblyName>
     <ReleaseVersion>0.5</ReleaseVersion>
-    <ApplicationIcon>ci-logo.ico</ApplicationIcon>
+    <ApplicationIcon>..\res\ci-logo.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>
