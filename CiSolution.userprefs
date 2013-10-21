@@ -1,18 +1,10 @@
 ﻿<Properties GitUserInfo="UsingGIT">
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="CiLib/GenPas.cs">
-    <Files>
-      <File FileName="CiLib/SourceGenerator.cs" Line="1" Column="1" />
-      <File FileName="CiLib/DelegatedGenerator.cs" Line="1" Column="1" />
-      <File FileName="CiLib/GenPas.cs" Line="1652" Column="44" />
-      <File FileName="CiLib/CiTree.cs" Line="1" Column="1" />
-    </Files>
+  <MonoDevelop.Ide.Workbench>
     <Pads>
       <Pad Id="ProjectPad">
         <State expanded="True">
-          <Node name="CiViewer" expanded="True">
-            <Node name="References" expanded="True" selected="True" />
-          </Node>
+          <Node name="CiViewer" selected="True" />
         </State>
       </Pad>
       <Pad Id="ClassPad">
