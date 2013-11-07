@@ -17,6 +17,8 @@ public partial class MainWindow
 	private global::Gtk.ToggleAction AutoTranslateAction;
 	private global::Gtk.Action SaveSourceSAction;
 	private global::Gtk.Action Action;
+	private global::Gtk.Action ActionsAction;
+	private global::Gtk.Action CopyTargetToClipboardAction;
 	private global::Gtk.VBox vbox1;
 	private global::Gtk.MenuBar mnMain;
 	private global::Gtk.HBox hbox2;
@@ -44,7 +46,7 @@ public partial class MainWindow
 		w1.Add (this.FileAction, null);
 		this.TargetAction = new global::Gtk.Action ("TargetAction", global::Mono.Unix.Catalog.GetString ("_Target"), null, null);
 		this.TargetAction.ShortLabel = global::Mono.Unix.Catalog.GetString ("_Target");
-		w1.Add (this.TargetAction, null);
+		w1.Add (this.TargetAction, "<Primary><Mod2>t");
 		this.ObjectPascalAction = new global::Gtk.RadioAction ("ObjectPascalAction", global::Mono.Unix.Catalog.GetString ("Object Pascal"), null, null, 0);
 		this.ObjectPascalAction.Group = new global::GLib.SList (global::System.IntPtr.Zero);
 		this.ObjectPascalAction.ShortLabel = global::Mono.Unix.Catalog.GetString ("Object Pascal");
@@ -81,6 +83,12 @@ public partial class MainWindow
 		this.Action = new global::Gtk.Action ("Action", global::Mono.Unix.Catalog.GetString ("---"), null, null);
 		this.Action.ShortLabel = global::Mono.Unix.Catalog.GetString ("---");
 		w1.Add (this.Action, null);
+		this.ActionsAction = new global::Gtk.Action ("ActionsAction", global::Mono.Unix.Catalog.GetString ("Actions"), null, null);
+		this.ActionsAction.ShortLabel = global::Mono.Unix.Catalog.GetString ("Actions");
+		w1.Add (this.ActionsAction, null);
+		this.CopyTargetToClipboardAction = new global::Gtk.Action ("CopyTargetToClipboardAction", global::Mono.Unix.Catalog.GetString ("Copy target To Clipboard"), null, null);
+		this.CopyTargetToClipboardAction.ShortLabel = global::Mono.Unix.Catalog.GetString ("Copy target To Clipboard");
+		w1.Add (this.CopyTargetToClipboardAction, null);
 		this.UIManager.InsertActionGroup (w1, 0);
 		this.AddAccelGroup (this.UIManager.AccelGroup);
 		this.Name = "MainWindow";
@@ -92,7 +100,7 @@ public partial class MainWindow
 		this.vbox1.Name = "vbox1";
 		this.vbox1.Spacing = 2;
 		// Container child vbox1.Gtk.Box+BoxChild
-		this.UIManager.AddUiFromString ("<ui><menubar name='mnMain'><menu name='FileAction' action='FileAction'><menuitem name='OpenFileSAction' action='OpenFileSAction'/><menuitem name='TranslateAction' action='TranslateAction'/><menuitem name='SaveSourceSAction' action='SaveSourceSAction'/><menuitem name='SaveTargetSAction' action='SaveTargetSAction'/><menuitem name='ExitAction' action='ExitAction'/></menu><menu name='SettingsAction' action='SettingsAction'><menuitem name='FontAction' action='FontAction'/><menuitem name='AutoTranslateAction' action='AutoTranslateAction'/></menu></menubar></ui>");
+		this.UIManager.AddUiFromString ("<ui><menubar name='mnMain'><menu name='FileAction' action='FileAction'><menuitem name='OpenFileSAction' action='OpenFileSAction'/><menuitem name='SaveSourceSAction' action='SaveSourceSAction'/><menuitem name='SaveTargetSAction' action='SaveTargetSAction'/><menuitem name='ExitAction' action='ExitAction'/></menu><menu name='ActionsAction' action='ActionsAction'><menuitem name='TranslateAction' action='TranslateAction'/><menuitem name='CopyTargetToClipboardAction' action='CopyTargetToClipboardAction'/></menu><menu name='SettingsAction' action='SettingsAction'><menuitem name='FontAction' action='FontAction'/><menuitem name='AutoTranslateAction' action='AutoTranslateAction'/></menu></menubar></ui>");
 		this.mnMain = ((global::Gtk.MenuBar)(this.UIManager.GetWidget ("/mnMain")));
 		this.mnMain.Name = "mnMain";
 		this.vbox1.Add (this.mnMain);
@@ -213,6 +221,7 @@ public partial class MainWindow
 		this.TranslateAction.Activated += new global::System.EventHandler (this.OnTranslate);
 		this.AutoTranslateAction.Toggled += new global::System.EventHandler (this.OnSourceChange);
 		this.SaveSourceSAction.Activated += new global::System.EventHandler (this.OnSaveSource);
+		this.CopyTargetToClipboardAction.Activated += new global::System.EventHandler (this.OnCopyTargetToClipboardActionActivated);
 		this.cbLanguage.Changed += new global::System.EventHandler (this.OnLanguageChange);
 		this.cbSource.Changed += new global::System.EventHandler (this.cbSourceChanged);
 		this.cbTarget.Changed += new global::System.EventHandler (this.cbTargetChanged);

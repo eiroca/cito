@@ -16,6 +16,7 @@
       </action>
       <action id="TargetAction">
         <property name="Type">Action</property>
+        <property name="Accelerator">&lt;Primary&gt;&lt;Mod2&gt;t</property>
         <property name="Label" translatable="yes">_Target</property>
         <property name="ShortLabel" translatable="yes">_Target</property>
       </action>
@@ -91,6 +92,17 @@
         <property name="Label" translatable="yes">---</property>
         <property name="ShortLabel" translatable="yes">---</property>
       </action>
+      <action id="ActionsAction">
+        <property name="Type">Action</property>
+        <property name="Label" translatable="yes">Actions</property>
+        <property name="ShortLabel" translatable="yes">Actions</property>
+      </action>
+      <action id="CopyTargetToClipboardAction">
+        <property name="Type">Action</property>
+        <property name="Label" translatable="yes">Copy target To Clipboard</property>
+        <property name="ShortLabel" translatable="yes">Copy target To Clipboard</property>
+        <signal name="Activated" handler="OnCopyTargetToClipboardActionActivated" />
+      </action>
     </action-group>
     <property name="MemberName" />
     <property name="Title" translatable="yes">MainWindow</property>
@@ -107,10 +119,13 @@
             <node name="mnMain" type="Menubar">
               <node type="Menu" action="FileAction">
                 <node type="Menuitem" action="OpenFileSAction" />
-                <node type="Menuitem" action="TranslateAction" />
                 <node type="Menuitem" action="SaveSourceSAction" />
                 <node type="Menuitem" action="SaveTargetSAction" />
                 <node type="Menuitem" action="ExitAction" />
+              </node>
+              <node type="Menu" action="ActionsAction">
+                <node type="Menuitem" action="TranslateAction" />
+                <node type="Menuitem" action="CopyTargetToClipboardAction" />
               </node>
               <node type="Menu" action="SettingsAction">
                 <node type="Menuitem" action="FontAction" />

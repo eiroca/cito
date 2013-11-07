@@ -142,6 +142,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <None Include="ci-logo.ico" />
+    <None Include="..\res\ci-logo.ico">
+      <Link>ci-logo.ico</Link>
+    </None>
   </ItemGroup>
 </Project>

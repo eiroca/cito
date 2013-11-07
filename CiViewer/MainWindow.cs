@@ -30,6 +30,9 @@ using Foxoft.Ci;
 
 public partial class MainWindow: Gtk.Window {
   protected ProjectFiles Project = new ProjectFiles();
+  //
+  private static Gdk.Atom _atom = Gdk.Atom.Intern("CLIPBOARD", false);
+  private Gtk.Clipboard _clipBoard = Gtk.Clipboard.Get(_atom);
 
   public MainWindow(): base (Gtk.WindowType.Toplevel) {
     Build();
@@ -40,6 +43,8 @@ public partial class MainWindow: Gtk.Window {
     PopulateCombo(cbSource, Project.GetSources());
     PopulateCombo(cbLanguage, GeneratorHelper.GetLanguages());
     FixMac();
+    tvSource.ModifyFont(Pango.FontDescription.FromString("monospace 12"));
+    tvTarget.ModifyFont(Pango.FontDescription.FromString("monospace 12"));
   }
 
   private void PopulateCombo(ComboBox cb, string[] items) {
@@ -197,6 +202,15 @@ public partial class MainWindow: Gtk.Window {
       IgeMacMenu.GlobalKeyHandlerEnabled = true;
       IgeMacMenu.MenuBar = mnMain;
       mnMain.Hide();
+    }
+  }
+
+  protected void OnCopyTargetToClipboardActionActivated(object sender, EventArgs e) {
+    if (String.IsNullOrEmpty(lbMsg.Text)) {
+      _clipBoard.Text = tvTarget.Buffer.Text;
+    }
+    else {
+      _clipBoard.Text = lbMsg.Text;
     }
   }
 }
