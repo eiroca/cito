@@ -303,12 +303,6 @@ namespace Foxoft.Ci {
       Write(')');
     }
 
-    public void UseFunction(string name) {
-      if (!UsedFunc.Contains(name)) {
-        UsedFunc.Add(name);
-      }
-    }
-
     public override void Library_CopyTo(CiMethodCall expr) {
       UseFunction("CopyTo");
       Write("Ci::CopyTo(");
@@ -345,28 +339,7 @@ namespace Foxoft.Ci {
     }
     #endregion
 
-    void WriteDoc(string text) {
-      foreach (char c in text) {
-        switch (c) {
-          case '&':
-            Write("&amp;");
-            break;
-          case '<':
-            Write("&lt;");
-            break;
-          case '>':
-            Write("&gt;");
-            break;
-          case '\n':
-            break;
-          default:
-            Write(c);
-            break;
-        }
-      }
-    }
-
-    void Write(CiDocPara para) {
+    protected override void Write(CiDocPara para) {
       foreach (CiDocInline inline in para.Children) {
         CiDocText text = inline as CiDocText;
         if (text != null) {
@@ -397,7 +370,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    void Write(CiDocBlock block) {
+    protected override  void Write(CiDocBlock block) {
       CiDocList list = block as CiDocList;
       if (list != null) {
         WriteLine();
@@ -469,7 +442,7 @@ namespace Foxoft.Ci {
       WriteChild(condExpr, expr);
     }
 
-    public override  void WriteNew(CiType type) {
+    public override void WriteNew(CiType type) {
       CiClassStorageType classType = type as CiClassStorageType;
       if (classType != null) {
         WriteFormat("new {0}()", DecodeSymbol(classType.Class));
@@ -491,9 +464,8 @@ namespace Foxoft.Ci {
       WriteLine(":");
     }
 
-    protected HashSet<string> UsedFunc = new HashSet<string>();
-
     public override void EmitProgram(CiProgram prog) {
+      ClearUsedFunction();
       CreateFile(this.OutputFile);
       if (this.Namespace != null) {
         WriteLine("namespace {0};", this.Namespace);
@@ -508,16 +480,16 @@ namespace Foxoft.Ci {
           Translate(symbol);
         }
       }
-      if (UsedFunc.Count > 0) {
+      if (HasUsedFunction()) {
         Write("class Ci ");
         OpenBlock();
-        if (UsedFunc.Contains("Clear")) {
+        if (IsUsedFunction("Clear")) {
           WriteLine("static function Clear(&$arr, $v, $len) {for($i=0;$i<$len;$i++) {$arr[$i]=$v;}}");
         }
-        if (UsedFunc.Contains("CopyTo")) {
+        if (IsUsedFunction("CopyTo")) {
           WriteLine("static function CopyTo(&$src, $src_strt, &$dest, $dst_strt, $dst_len) {for($i=0;$i<$dst_len;$i++) {$dst[$dst_strt+$i]=$src[$src_strt+$i];}}");
         }
-        if (UsedFunc.Contains("ToString")) {
+        if (IsUsedFunction("ToString")) {
           WriteLine("static function ToString(&$src, $src_strt, $src_len) {$r=''; for($i=$src_strt;$i<$src_strt+$src_len;$i++) {$r .= chr($src[$i]);} return $r}");
         }
         CloseBlock();

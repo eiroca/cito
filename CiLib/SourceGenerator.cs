@@ -901,31 +901,31 @@ namespace Foxoft.Ci {
     }
 
     public override void InitOperators() {
-      BinaryOperators.Add(CiToken.Plus, CiPriority.Additive, ConvertOperatorAssociative, " + ");
-      BinaryOperators.Add(CiToken.Minus, CiPriority.Additive, ConvertOperatorNotAssociative, " - ");
-      BinaryOperators.Add(CiToken.Asterisk, CiPriority.Multiplicative, ConvertOperatorAssociative, " * ");
-      BinaryOperators.Add(CiToken.Slash, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " / ");
-      BinaryOperators.Add(CiToken.Mod, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " % ");
-      BinaryOperators.Add(CiToken.ShiftLeft, CiPriority.Shift, ConvertOperatorNotAssociative, " << ");
-      BinaryOperators.Add(CiToken.ShiftRight, CiPriority.Shift, ConvertOperatorNotAssociative, " >> ");
+      BinaryOperators.Declare(CiToken.Plus, CiPriority.Additive, ConvertOperatorAssociative, " + ");
+      BinaryOperators.Declare(CiToken.Minus, CiPriority.Additive, ConvertOperatorNotAssociative, " - ");
+      BinaryOperators.Declare(CiToken.Asterisk, CiPriority.Multiplicative, ConvertOperatorAssociative, " * ");
+      BinaryOperators.Declare(CiToken.Slash, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " / ");
+      BinaryOperators.Declare(CiToken.Mod, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " % ");
+      BinaryOperators.Declare(CiToken.ShiftLeft, CiPriority.Shift, ConvertOperatorNotAssociative, " << ");
+      BinaryOperators.Declare(CiToken.ShiftRight, CiPriority.Shift, ConvertOperatorNotAssociative, " >> ");
       //
-      BinaryOperators.Add(CiToken.Equal, CiPriority.Equality, ConvertOperatorAssociative, " == ");
-      BinaryOperators.Add(CiToken.NotEqual, CiPriority.Equality, ConvertOperatorAssociative, " != ");
-      BinaryOperators.Add(CiToken.Less, CiPriority.Ordering, ConvertOperatorAssociative, " < ");
-      BinaryOperators.Add(CiToken.LessOrEqual, CiPriority.Ordering, ConvertOperatorAssociative, " <= ");
-      BinaryOperators.Add(CiToken.Greater, CiPriority.Ordering, ConvertOperatorNotAssociative, " > ");
-      BinaryOperators.Add(CiToken.GreaterOrEqual, CiPriority.Ordering, ConvertOperatorAssociative, " >= ");
-      BinaryOperators.Add(CiToken.CondAnd, CiPriority.CondAnd, ConvertOperatorAssociative, " && ");
-      BinaryOperators.Add(CiToken.CondOr, CiPriority.CondOr, ConvertOperatorAssociative, " || ");
+      BinaryOperators.Declare(CiToken.Equal, CiPriority.Equality, ConvertOperatorAssociative, " == ");
+      BinaryOperators.Declare(CiToken.NotEqual, CiPriority.Equality, ConvertOperatorAssociative, " != ");
+      BinaryOperators.Declare(CiToken.Less, CiPriority.Ordering, ConvertOperatorAssociative, " < ");
+      BinaryOperators.Declare(CiToken.LessOrEqual, CiPriority.Ordering, ConvertOperatorAssociative, " <= ");
+      BinaryOperators.Declare(CiToken.Greater, CiPriority.Ordering, ConvertOperatorNotAssociative, " > ");
+      BinaryOperators.Declare(CiToken.GreaterOrEqual, CiPriority.Ordering, ConvertOperatorAssociative, " >= ");
+      BinaryOperators.Declare(CiToken.CondAnd, CiPriority.CondAnd, ConvertOperatorAssociative, " && ");
+      BinaryOperators.Declare(CiToken.CondOr, CiPriority.CondOr, ConvertOperatorAssociative, " || ");
       //
-      BinaryOperators.Add(CiToken.And, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " & ");
-      BinaryOperators.Add(CiToken.Or, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " | ");
-      BinaryOperators.Add(CiToken.Xor, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " ^ ");
+      BinaryOperators.Declare(CiToken.And, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " & ");
+      BinaryOperators.Declare(CiToken.Or, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " | ");
+      BinaryOperators.Declare(CiToken.Xor, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " ^ ");
       //
-      UnaryOperators.Add(CiToken.Increment, CiPriority.Prefix, ConvertOperatorUnary, "++", "");
-      UnaryOperators.Add(CiToken.Decrement, CiPriority.Prefix, ConvertOperatorUnary, "--", "");
-      UnaryOperators.Add(CiToken.Minus, CiPriority.Prefix, ConvertOperatorUnary, "-", "");
-      UnaryOperators.Add(CiToken.Not, CiPriority.Prefix, ConvertOperatorUnary, "~", "");
+      UnaryOperators.Declare(CiToken.Increment, CiPriority.Prefix, ConvertOperatorUnary, "++", "");
+      UnaryOperators.Declare(CiToken.Decrement, CiPriority.Prefix, ConvertOperatorUnary, "--", "");
+      UnaryOperators.Declare(CiToken.Minus, CiPriority.Prefix, ConvertOperatorUnary, "-", "");
+      UnaryOperators.Declare(CiToken.Not, CiPriority.Prefix, ConvertOperatorUnary, "~", "");
     }
 
     public override void EmitProgram(CiProgram prog) {
@@ -1438,7 +1438,13 @@ namespace Foxoft.Ci {
     #endregion
 
     #region JavaDoc
-    void WriteDoc(string text) {
+    protected string CommentContinueStr = "/// ";
+    protected string CommentBeginStr = "";
+    protected string CommentEndStr = "";
+    protected string CommentCodeBegin = "`";
+    protected string CommentCodeEnd = "`";
+
+    protected virtual void WriteDoc(string text) {
       foreach (char c in text) {
         switch (c) {
           case '&':
@@ -1452,7 +1458,7 @@ namespace Foxoft.Ci {
             break;
           case '\n':
             WriteLine();
-            Write("/// ");
+            Write(CommentContinueStr);
             break;
           default:
             Write(c);
@@ -1461,7 +1467,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    void Write(CiDocPara para) {
+    protected virtual void Write(CiDocPara para) {
       foreach (CiDocInline inline in para.Children) {
         CiDocText text = inline as CiDocText;
         if (text != null) {
@@ -1470,33 +1476,34 @@ namespace Foxoft.Ci {
         }
         CiDocCode code = inline as CiDocCode;
         if (code != null) {
-          Write("`");
+          Write(CommentCodeBegin);
           WriteDoc(code.Text);
-          Write("`");
+          Write(CommentCodeEnd);
           continue;
         }
         throw new ArgumentException(inline.GetType().Name);
       }
     }
 
-    void Write(CiDocBlock block) {
+    protected virtual void Write(CiDocBlock block) {
       CiDocList list = block as CiDocList;
       if (list != null) {
         WriteLine();
         foreach (CiDocPara item in list.Items) {
-          Write("/// * ");
+          Write(CommentContinueStr + "* ");
           Write(item);
           WriteLine("");
         }
-        Write("///");
+        Write(CommentContinueStr);
         return;
       }
-      Write("/// ");
+      Write(CommentContinueStr);
       Write((CiDocPara)block);
     }
 
-    void WriteDontClose(CiCodeDoc doc) {
-      Write("/// ");
+    protected virtual void WriteDontClose(CiCodeDoc doc) {
+      WriteLine(CommentBeginStr);
+      Write(CommentContinueStr);
       Write(doc.Summary);
       if (doc.Details.Length > 0) {
         WriteLine();
@@ -1510,22 +1517,23 @@ namespace Foxoft.Ci {
     protected virtual void Write(CiCodeDoc doc) {
       if (doc != null) {
         WriteDontClose(doc);
+        WriteLine(CommentEndStr);
       }
     }
 
-    protected void WriteDoc(CiMethod method) {
+    protected virtual void WriteDoc(CiMethod method) {
       if (method.Documentation != null) {
         WriteDontClose(method.Documentation);
         foreach (CiParam param in method.Signature.Params) {
           if (param.Documentation != null) {
-            Write("/// @param ");
+            Write(CommentContinueStr + "@param ");
             Write(param.Name);
             Write(' ');
             Write(param.Documentation.Summary);
             WriteLine();
           }
         }
-        WriteLine("");
+        WriteLine(CommentEndStr);
       }
     }
     #endregion JavaDoc

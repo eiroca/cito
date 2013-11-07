@@ -91,7 +91,7 @@ namespace Foxoft.Ci {
     public UnaryOperatorMetadata() {
     }
 
-    public void Add(CiToken token, CiPriority priority, WriteUnaryOperatorDelegate writeDelegate, string prefix, string suffix) {
+    public void Declare(CiToken token, CiPriority priority, WriteUnaryOperatorDelegate writeDelegate, string prefix, string suffix) {
       UnaryOperatorInfo info = new UnaryOperatorInfo(token, priority, writeDelegate, prefix, suffix);
       if (!Metadata.ContainsKey(token)) {
         Metadata.Add(token, info);
@@ -117,7 +117,7 @@ namespace Foxoft.Ci {
     public BinaryOperatorMetadata() {
     }
 
-    public void Add(CiToken token, CiPriority priority, WriteBinaryOperatorDelegate writeDelegate, string symbol) {
+    public void Declare(CiToken token, CiPriority priority, WriteBinaryOperatorDelegate writeDelegate, string symbol) {
       BinaryOperatorInfo info = new BinaryOperatorInfo(token, priority, writeDelegate, symbol);
       if (!Metadata.ContainsKey(token)) {
         Metadata.Add(token, info);
@@ -150,7 +150,7 @@ namespace Foxoft.Ci {
     public MappingMetadata() {
     }
 
-    public void Add(TYPE typ, Delegator delegat) {
+    public void Declare(TYPE typ, Delegator delegat) {
       if (!Metadata.ContainsKey(typ)) { 
         MappingData map = new MappingData();
         map.MethodDelegate = delegat;
@@ -161,7 +161,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    public void Add(TYPE typ, INFO info, Delegator delegat) {
+    public void Declare(TYPE typ, INFO info, Delegator delegat) {
       if (!Metadata.ContainsKey(typ)) { 
         MappingData map = new MappingData();
         map.Info = info;
@@ -248,6 +248,16 @@ namespace Foxoft.Ci {
     public List<SymbolMapping> childs = new List<SymbolMapping>();
 
     public SymbolMapping() {
+    }
+
+    public SymbolMapping(SymbolMapping aParent, CiSymbol aSymbol, string aNewName, DelegateGenerator Generator) {
+      this.Generator = Generator;
+      this.Symbol = aSymbol;
+      this.Parent = aParent;
+      if (aParent != null) {
+        aParent.childs.Add(this);
+      }
+      this.NewName = aNewName;
     }
 
     public SymbolMapping(SymbolMapping aParent, CiSymbol aSymbol, bool inParentCheck, DelegateGenerator Generator) {
@@ -352,21 +362,21 @@ namespace Foxoft.Ci {
       SetStatementTranslator(typeof(CiThrow));
       SetStatementTranslator(typeof(CiWhile));
       //TODO Use reflection to define the expression priority
-      Expressions.Add(typeof(CiConstExpr), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiConstExpr", this) ?? IgnoreExpr);
-      Expressions.Add(typeof(CiConstAccess), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiConstAccess", this) ?? IgnoreExpr);
-      Expressions.Add(typeof(CiVarAccess), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiVarAccess", this) ?? IgnoreExpr);
-      Expressions.Add(typeof(CiFieldAccess), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiFieldAccess", this) ?? IgnoreExpr);
-      Expressions.Add(typeof(CiPropertyAccess), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiPropertyAccess", this) ?? IgnoreExpr);
-      Expressions.Add(typeof(CiArrayAccess), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiArrayAccess", this) ?? IgnoreExpr);
-      Expressions.Add(typeof(CiMethodCall), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiMethodCall", this) ?? IgnoreExpr);
-      Expressions.Add(typeof(CiBinaryResourceExpr), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiBinaryResourceExpr", this) ?? IgnoreExpr);
-      Expressions.Add(typeof(CiNewExpr), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiNewExpr", this) ?? IgnoreExpr);
-      Expressions.Add(typeof(CiUnaryExpr), CiPriority.Prefix, Expressions.FindAppropriate("Expression_CiUnaryExpr", this) ?? IgnoreExpr);
-      Expressions.Add(typeof(CiCondNotExpr), CiPriority.Prefix, Expressions.FindAppropriate("Expression_CiCondNotExpr", this) ?? IgnoreExpr);
-      Expressions.Add(typeof(CiPostfixExpr), CiPriority.Prefix, Expressions.FindAppropriate("Expression_CiPostfixExpr", this) ?? IgnoreExpr);
-      Expressions.Add(typeof(CiCondExpr), CiPriority.CondExpr, Expressions.FindAppropriate("Expression_CiCondExpr", this) ?? IgnoreExpr);
-      Expressions.Add(typeof(CiBinaryExpr), CiPriority.Lowest, Expressions.FindAppropriate("Expression_CiBinaryExpr", this) ?? IgnoreExpr);
-      Expressions.Add(typeof(CiCoercion), CiPriority.Lowest, Expressions.FindAppropriate("Expression_CiCoercion", this) ?? IgnoreExpr);
+      Expressions.Declare(typeof(CiConstExpr), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiConstExpr", this) ?? IgnoreExpr);
+      Expressions.Declare(typeof(CiConstAccess), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiConstAccess", this) ?? IgnoreExpr);
+      Expressions.Declare(typeof(CiVarAccess), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiVarAccess", this) ?? IgnoreExpr);
+      Expressions.Declare(typeof(CiFieldAccess), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiFieldAccess", this) ?? IgnoreExpr);
+      Expressions.Declare(typeof(CiPropertyAccess), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiPropertyAccess", this) ?? IgnoreExpr);
+      Expressions.Declare(typeof(CiArrayAccess), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiArrayAccess", this) ?? IgnoreExpr);
+      Expressions.Declare(typeof(CiMethodCall), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiMethodCall", this) ?? IgnoreExpr);
+      Expressions.Declare(typeof(CiBinaryResourceExpr), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiBinaryResourceExpr", this) ?? IgnoreExpr);
+      Expressions.Declare(typeof(CiNewExpr), CiPriority.Postfix, Expressions.FindAppropriate("Expression_CiNewExpr", this) ?? IgnoreExpr);
+      Expressions.Declare(typeof(CiUnaryExpr), CiPriority.Prefix, Expressions.FindAppropriate("Expression_CiUnaryExpr", this) ?? IgnoreExpr);
+      Expressions.Declare(typeof(CiCondNotExpr), CiPriority.Prefix, Expressions.FindAppropriate("Expression_CiCondNotExpr", this) ?? IgnoreExpr);
+      Expressions.Declare(typeof(CiPostfixExpr), CiPriority.Prefix, Expressions.FindAppropriate("Expression_CiPostfixExpr", this) ?? IgnoreExpr);
+      Expressions.Declare(typeof(CiCondExpr), CiPriority.CondExpr, Expressions.FindAppropriate("Expression_CiCondExpr", this) ?? IgnoreExpr);
+      Expressions.Declare(typeof(CiBinaryExpr), CiPriority.Lowest, Expressions.FindAppropriate("Expression_CiBinaryExpr", this) ?? IgnoreExpr);
+      Expressions.Declare(typeof(CiCoercion), CiPriority.Lowest, Expressions.FindAppropriate("Expression_CiCoercion", this) ?? IgnoreExpr);
     }
 
     public void IgnoreSymbol(CiSymbol symbol) {
@@ -378,7 +388,7 @@ namespace Foxoft.Ci {
     }
 
     public void SetSymbolTranslator(Type symbol, GenericMetadata<CiSymbol>.Delegator delegat) {
-      Symbols.Add(symbol, delegat);
+      Symbols.Declare(symbol, delegat);
     }
 
     public void Translate(CiSymbol expr) {
@@ -394,7 +404,7 @@ namespace Foxoft.Ci {
     }
 
     public void SetStatementTranslator(Type statemenent, GenericMetadata<ICiStatement>.Delegator delegat) {
-      Statemets.Add(statemenent, delegat);
+      Statemets.Declare(statemenent, delegat);
     }
 
     public void Translate(ICiStatement expr) {
@@ -465,7 +475,7 @@ namespace Foxoft.Ci {
       if (del == null) {
         throw new ArgumentNullException();
       }
-      Properties.Add(prop, del);
+      Properties.Declare(prop, del);
     }
 
     public void SetMethodTranslator(CiMethod met) {
@@ -477,7 +487,7 @@ namespace Foxoft.Ci {
       if (del == null) {
         throw new ArgumentNullException();
       }
-      Methods.Add(met, del);
+      Methods.Declare(met, del);
     }
 
     public bool Translate(CiPropertyAccess prop) {
@@ -563,13 +573,13 @@ namespace Foxoft.Ci {
       ResetExprType();
       SymbolMapping root = new SymbolMapping();
       foreach (CiSymbol symbol in program.Globals) {
-        if (symbol is CiEnum) {
-          AddSymbol(root, symbol);
-        }
-      }
-      foreach (CiSymbol symbol in program.Globals) {
-        if (symbol is CiDelegate) {
-          AddSymbol(root, symbol);
+        if (!(symbol is CiClass)) {
+          SymbolMapping parent = AddSymbol(root, symbol);
+          if (symbol is CiEnum) {
+            foreach (CiEnumValue val in ((CiEnum)symbol).Values) {
+              AddSymbol(parent, val);
+            }
+          }
         }
       }
       foreach (CiSymbol symbol in program.Globals) {
@@ -589,14 +599,15 @@ namespace Foxoft.Ci {
     public virtual void PreProcess(CiProgram program, CiClass klass) {
       SymbolMapping parent = FindSymbol(klass);
       foreach (CiSymbol member in klass.Members) {
-        if (member is CiField) {
+        if (!(member is CiMethod)) {
           AddSymbol(parent, member);
+        }
+        if (member is CiField) {
           AddType(((CiField)member).Type);
         }
-      }
-      foreach (CiConst konst in klass.ConstArrays) {
-        AddSymbol(parent, konst);
-        AddType(konst.Type);
+        else if (member is CiConst) {
+          AddType(((CiConst)member).Type);
+        }
       }
       foreach (CiBinaryResource resource in klass.BinaryResources) {
         AddSymbol(parent, resource);
@@ -609,6 +620,7 @@ namespace Foxoft.Ci {
         if (member is CiMethod) {
           SymbolMapping methodContext = AddSymbol(parent, member, false);
           CiMethod method = (CiMethod)member;
+          AddSymbol(parent, method.Signature, methodContext.NewName);
           if (method.Signature.Params.Length > 0) {
             SymbolMapping methodCall = AddSymbol(methodContext, null);
             foreach (CiParam p in method.Signature.Params) {
@@ -634,6 +646,12 @@ namespace Foxoft.Ci {
     }
 
     public virtual bool PreProcess(CiMethod method, ICiStatement stmt) {
+      if (stmt is CiVar) {
+        CiVar v = (CiVar)stmt;
+        SymbolMapping parent = FindSymbol(method);
+        AddSymbol(parent, v);
+        AddType(v.Type);
+      }
       return false;
     }
     #endregion
@@ -672,6 +690,20 @@ namespace Foxoft.Ci {
 
     public SymbolMapping AddSymbol(SymbolMapping aParent, CiSymbol aSymbol, bool inParentCheck) {
       SymbolMapping item = new SymbolMapping(aParent, aSymbol, inParentCheck, this);
+      if (aSymbol != null) {
+        try {
+          varMap.Add(aSymbol, item);
+        }
+        catch (ArgumentException) {
+          throw new ArgumentException("Symbol " + aSymbol.Name + " already added");
+        }
+      }
+      return item;
+    }
+
+    public SymbolMapping AddSymbol(SymbolMapping aParent, CiSymbol aSymbol, string aNewName) {
+      SymbolMapping item = new SymbolMapping(aParent, aSymbol, false, this);
+      item.NewName = aNewName;
       if (aSymbol != null) {
         varMap.Add(aSymbol, item);
       }
@@ -842,7 +874,7 @@ namespace Foxoft.Ci {
 
     public string DecodeSymbol(CiSymbol var) {
       SymbolMapping symbol = FindSymbol(var);
-      return (symbol != null) ? symbol.NewName : var.Name;
+      return (symbol != null) ? symbol.NewName : TranslateSymbolName(var);
     }
 
     public virtual void WriteChild(CiExpr parent, CiExpr child) {
@@ -877,6 +909,26 @@ namespace Foxoft.Ci {
         return BinaryOperators.GetBinaryOperator(((CiBinaryExpr)expr).Op).Priority;
       }
       return Expressions.GetPriority(expr);
+    }
+
+    private HashSet<string> UsedFunc = new HashSet<string>();
+
+    public void ClearUsedFunction() {
+      UsedFunc.Clear();
+    }
+
+    public void UseFunction(string name) {
+      if (!UsedFunc.Contains(name)) {
+        UsedFunc.Add(name);
+      }
+    }
+
+    public bool IsUsedFunction(string name) {
+      return UsedFunc.Contains(name);
+    }
+
+    public bool HasUsedFunction() {
+      return UsedFunc.Count > 0;
     }
     #endregion
 

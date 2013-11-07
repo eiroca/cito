@@ -1,6 +1,7 @@
 // GenAs.cs - ActionScript code generator
 //
 // Copyright (C) 2011-2013  Piotr Fusik
+// Copyright (C) 2013  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -19,502 +20,560 @@
 
 using System;
 using System.IO;
+using System.Text;
 
 namespace Foxoft.Ci {
 
-public class GenAs : SourceGenerator, ICiSymbolVisitor
-{
-	bool UsesSubstringMethod;
-	bool UsesCopyArrayMethod;
-	bool UsesBytesToStringMethod;
-	bool UsesClearBytesMethod;
-	bool UsesClearMethod;
-
-    public GenAs(string aNamespace) : base(aNamespace) {
+  public class GenAs : CiGenerator {
+    public GenAs(string aNamespace) : this() {
+      SetNamespace(aNamespace);
     }
 
     public GenAs() : base() {
+      Namespace = "as";
+      TranslateType = AS_TypeTranslator;
+      TranslateSymbolName = AS_SymbolNameTranslator;
+      CommentContinueStr = " * ";
+      CommentBeginStr = "/**";
+      CommentEndStr = "*/";
+      CommentCodeBegin = "<code>";
+      CommentCodeEnd = "</code>";
     }
 
-	void WriteVisibility(CiSymbol symbol)
-	{
-		switch (symbol.Visibility) {
-		case CiVisibility.Dead:
-		case CiVisibility.Private:
-			Write("private ");
-			break;
-		case CiVisibility.Internal:
-			if (symbol.Documentation == null)
-				WriteLine("/** @private */");
-			Write("internal ");
-			break;
-		case CiVisibility.Public:
-			Write("public ");
-			break;
-		}
-	}
+    public TypeInfo AS_TypeTranslator(CiType type) {
+      TypeInfo info = new TypeInfo();
+      info.Type = type;
+      info.IsNative = true;
+      info.Level = 0;
+      CiType elem = type;
+      if (type.ArrayLevel > 0) {
+        info.IsNative = false;
+        info.Level = type.ArrayLevel;
+        elem = type.BaseType;
+      }
+      if (elem is CiStringType) {
+        info.Name = "String";
+        info.Definition = "String";
+        info.ItemDefault = "\"\"";
+        info.ItemType = "String";
+        info.Null = "null";
+      }
+      else if (elem == CiBoolType.Value) {
+        info.Name = "Boolean";
+        info.Definition = "Boolean";
+        info.ItemDefault = "false";
+        info.ItemType = "Boolean";
+        info.Null = "false";
+      }
+      else if (elem == CiByteType.Value) {
+        info.Name = "int";
+        info.Definition = "int";
+        info.ItemDefault = "0";
+        info.ItemType = "int";
+        info.Null = "0";
+      }
+      else if (elem == CiIntType.Value) {
+        info.Name = "int";
+        info.Definition = "int";
+        info.ItemDefault = "0";
+        info.ItemType = "int";
+        info.Null = "0";
+      }
+      else if (elem is CiEnum) {
+        info.IsNative = true;
+        info.Name = "int";
+        info.Definition = "int";
+        info.ItemDefault = "0";
+        info.ItemType = "int";
+        info.Null = "0";
+      }
+      else {
+        info.Name = elem.Name;
+        info.Definition = elem.Name;
+        info.ItemDefault = "null";
+        info.Null = "null";
+        info.ItemType = elem.Name;
+      }
+      if (type is CiArrayType) {
+        if (elem is CiByteType) {
+          info.Name = "ByteArray";
+          info.Definition = "ByteArray";
+          info.ItemDefault = "null";
+          info.ItemType = "ByteArray";
+          info.Null = "null";
+        }
+        else {
+          info.Name = "Array";
+          info.Definition = "Array";
+          info.ItemDefault = "null";
+          info.ItemType = "Array";
+          info.Null = "null";
+        }
+      }
+      return info;
+    }
 
-	void CreateAsFile(CiSymbol symbol)
-	{
-		string dir = Path.GetDirectoryName(this.OutputFile);
-		CreateFile(Path.Combine(dir, symbol.Name + ".as"));
-		if (this.Namespace != null) {
-			Write("package ");
-			WriteLine(this.Namespace);
-		}
-		else
-			WriteLine("package");
-		OpenBlock();
-		WriteLine("import flash.utils.ByteArray;");
-		WriteLine();
-		Write(symbol.Documentation);
-		WriteVisibility(symbol);
-	}
+    public string AS_SymbolNameTranslator(CiSymbol aSymbol) {
+      String name = aSymbol.Name;
+      if (aSymbol is CiConst) {
+        name = ToUppercaseWithUnderscores(name);
+      }
+      if (aSymbol is CiEnumValue) {
+        name = ToUppercaseWithUnderscores(name);
+      }
+      else if (aSymbol is CiMethod) {
+        name = ToCamelCase(name);
+      }
+      else if (aSymbol is CiField) {
+        name = ToCamelCase(name);
+      }
+      if (IsReservedWord(name)) {
+        name = "_" + name;
+      }
+      return name;
+    }
 
-	void CloseAsFile()
-	{
-		CloseBlock(); // class
-		CloseBlock(); // package
-		CloseFile();
-	}
+    void CreateAsFile(CiSymbol symbol) {
+      string dir = Path.GetDirectoryName(this.OutputFile);
+      CreateFile(Path.Combine(dir, DecodeSymbol(symbol) + ".as"));
+      if (this.Namespace != null) {
+        WriteLine("package {0}", this.Namespace);
+      }
+      else {
+        WriteLine("package");
+      }
+      OpenBlock();
+      WriteLine("import flash.utils.ByteArray;");
+      WriteLine();
+      Write(symbol.Documentation);
+      WriteVisibility(symbol);
+    }
 
-	void ICiSymbolVisitor.Visit(CiEnum enu)
-	{
-		CreateAsFile(enu);
-		Write("class ");
-		WriteLine(enu.Name);
-		OpenBlock();
-		for (int i = 0; i < enu.Values.Length; i++) {
-			CiEnumValue value = enu.Values[i];
-			Write(value.Documentation);
-			Write("public static const ");
-			WriteUppercaseWithUnderscores(value.Name);
-			Write(" : int = ");
-			Write(i);
-			WriteLine(";");
-		}
-		CloseAsFile();
-	}
+    void CloseAsFile() {
+      CloseBlock(); // class
+      CloseBlock(); // package
+      CloseFile();
+    }
 
-	void Write(CiType type)
-	{
-		Write(" : ");
-		if (type is CiStringType)
-			Write("String");
-		else if (type == CiBoolType.Value)
-			Write("Boolean");
-		else if (type == CiByteType.Value || type is CiEnum)
-			Write("int");
-		else if (type is CiArrayType)
-			Write(((CiArrayType) type).ElementType == CiByteType.Value ? "ByteArray" : "Array");
-		else if (type is CiDelegate)
-			Write("Function");
-		else
-			Write(type.Name);
-	}
+    void WriteVisibility(CiSymbol symbol) {
+      switch (symbol.Visibility) {
+        case CiVisibility.Dead:
+          case CiVisibility.Private:
+          Write("private ");
+          break;
+          case CiVisibility.Internal:
+          if (symbol.Documentation == null) {
+            WriteLine("/** @private */");
+          }
+          Write("internal ");
+          break;
+          case CiVisibility.Public:
+          Write("public ");
+          break;
+      }
+    }
 
-	bool WriteInit(CiType type)
-	{
-		if (type is CiClassStorageType || type is CiArrayStorageType) {
-			Write(" = ");
-			WriteNew(type);
-			return true;
-		}
-		return false;
-	}
+   public override bool WriteInit(CiType type) {
+      if (type is CiClassStorageType || type is CiArrayStorageType) {
+        Write(" = ");
+        WriteNew(type);
+        return true;
+      }
+      return false;
+    }
 
-	void ICiSymbolVisitor.Visit(CiField field)
-	{
-		Write(field.Documentation);
-		WriteVisibility(field);
-		if (field.Type is CiClassStorageType || field.Type is CiArrayStorageType)
-			Write("const ");
-		else
-			Write("var ");
-		WriteCamelCase(field.Name);
-		Write(field.Type);
-		WriteInit(field.Type);
-		WriteLine(";");
-	}
+    public override string DecodeValue(CiType type, object value) {
+      StringBuilder res = new StringBuilder();
+      if (value is CiEnumValue) {
+        CiEnumValue ev = (CiEnumValue)value;
+        res.AppendFormat("{0}.{1}", DecodeSymbol(ev.Type), DecodeSymbol(ev));
+      }
+      else if (value is Array) {
+        res.Append("[ ");
+        res.Append(DecodeArray(type, (Array)value));
+        res.Append(" ]");
+      }
+      else {
+        res.Append(base.DecodeValue(type, value));
+      }
+      return res.ToString();
+    }
 
-	void ICiSymbolVisitor.Visit(CiConst konst)
-	{
-		if (konst.Visibility != CiVisibility.Public)
-			return;
-		Write(konst.Documentation);
-		Write("public static const ");
-		WriteUppercaseWithUnderscores(konst.Name);
-		Write(konst.Type);
-		Write(" = ");
-		WriteConst(konst.Value);
-		WriteLine(";");
-	}
+    public override CiPriority GetPriority(CiExpr expr) {
+      if (expr is CiPropertyAccess) {
+        CiProperty prop = ((CiPropertyAccess)expr).Property;
+        if (prop == CiLibrary.SByteProperty) {
+          return CiPriority.Additive;
+        }
+        if (prop == CiLibrary.LowByteProperty) {
+          return CiPriority.And;
+        }
+      }
+      else if (expr is CiBinaryExpr) {
+        if (((CiBinaryExpr)expr).Op == CiToken.Slash) {
+          return CiPriority.Postfix;
+        }
+      }
+      return base.GetPriority(expr);
+    }
 
-	protected override void WriteConst(object value)
-	{
-		if (value is CiEnumValue) {
-			CiEnumValue ev = (CiEnumValue) value;
-			Write(ev.Type.Name);
-			Write('.');
-			WriteUppercaseWithUnderscores(ev.Name);
-		}
-		else if (value is Array) {
-			Write("[ ");
-			WriteContent((Array) value);
-			Write(" ]");
-		}
-		else
-			base.WriteConst(value);
-	}
+    void WriteClearArray(CiExpr expr) {
+      CiArrayStorageType array = (CiArrayStorageType)expr.Type;
+      if (array.ElementType == CiBoolType.Value) {
+        Write("clearArray(");
+        Translate(expr);
+        Write(", false)");
+        UseFunction("Clear");
+      }
+      else if (array.ElementType == CiByteType.Value) {
+        Write("clearByteArray(");
+        Translate(expr);
+        Write(", ");
+        Write(array.Length);
+        Write(')');
+        UseFunction("ClearBytes");
+      }
+      else if (array.ElementType == CiIntType.Value) {
+        Write("clearArray(");
+        Translate(expr);
+        Write(", 0)");
+        UseFunction("Clear");
+      }
+      else {
+        throw new ArgumentException(array.ElementType.Name);
+      }
+    }
 
-	protected override void WriteName(CiConst konst)
-	{
-		WriteUppercaseWithUnderscores(konst.GlobalName ?? konst.Name);
-	}
+    public override void WriteNew(CiType type) {
+      CiClassStorageType classType = type as CiClassStorageType;
+      if (classType != null) {
+        WriteFormat("new {0}()", DecodeSymbol(classType.Class));
+      }
+      else {
+        CiArrayStorageType arrayType = (CiArrayStorageType)type;
+        if (arrayType.ElementType == CiByteType.Value) {
+          Write("new ByteArray()");
+        }
+        else {
+          Write("new Array(");
+          if (arrayType.LengthExpr != null) {
+            Translate(arrayType.LengthExpr);
+          }
+          else {
+            Write(arrayType.Length);
+          }
+          Write(')');
+        }
+      }
+    }
 
-	protected override CiPriority GetPriority(CiExpr expr)
-	{
-		if (expr is CiPropertyAccess) {
-			CiProperty prop = ((CiPropertyAccess) expr).Property;
-			if (prop == CiLibrary.SByteProperty)
-				return CiPriority.Additive;
-			if (prop == CiLibrary.LowByteProperty)
-				return CiPriority.And;
-		}
-		else if (expr is CiBinaryExpr) {
-			if (((CiBinaryExpr) expr).Op == CiToken.Slash)
-				return CiPriority.Postfix;
-		}
-		return base.GetPriority(expr);
-	}
+    void WriteBuiltins() {
+      if (IsUsedFunction("Substring")) {
+        WriteLine("private static function substring(s : String, offset : int, length : int) : String");
+        OpenBlock();
+        WriteLine("return s.substring(offset, offset + length);");
+        CloseBlock();
+      }
+      if (IsUsedFunction("CopyArray")) {
+        WriteLine("private static function copyArray(sa : ByteArray, soffset : int, da : ByteArray, doffset : int, length : int) : void");
+        OpenBlock();
+        WriteLine("for (var i : int = 0; i < length; i++)");
+        WriteLine("\tda[doffset + i] = sa[soffset + i];");
+        CloseBlock();
+      }
+      if (IsUsedFunction("BytesToString")) {
+        WriteLine("private static function bytesToString(a : ByteArray, offset : int, length : int) : String");
+        OpenBlock();
+        WriteLine("var s : String = \"\";");
+        WriteLine("for (var i : int = 0; i < length; i++)");
+        WriteLine("\ts += String.fromCharCode(a[offset + i]);");
+        WriteLine("return s;");
+        CloseBlock();
+      }
+      if (IsUsedFunction("ClearBytes")) {
+        WriteLine("private static function clearByteArray(a : ByteArray, length : int) : void");
+        OpenBlock();
+        WriteLine("for (var i : int = 0; i < length; i++)");
+        WriteLine("\ta[i] = 0;");
+        CloseBlock();
+      }
+      if (IsUsedFunction("Clear")) {
+        WriteLine("private static function clearArray(a : Array, value : *) : void");
+        OpenBlock();
+        WriteLine("for (var i : int = 0; i < a.length; i++)");
+        WriteLine("\ta[i] = value;");
+        CloseBlock();
+      }
+    }
 
-	protected override void Write(CiFieldAccess expr)
-	{
-		WriteChild(expr, expr.Obj);
-		Write('.');
-		WriteCamelCase(expr.Field.Name);
-	}
+    #region Converter specialization
+    public override void EmitProgram(CiProgram prog) {
+      foreach (CiSymbol symbol in prog.Globals) {
+        Translate(symbol);
+      }
+    }
 
-	protected override void Write(CiPropertyAccess expr)
-	{
-		if (expr.Property == CiLibrary.SByteProperty) {
-			Write('(');
-			WriteChild(CiPriority.Xor, expr.Obj);
-			Write(" ^ 128) - 128");
-		}
-		else if (expr.Property == CiLibrary.LowByteProperty) {
-			WriteChild(expr, expr.Obj);
-			Write(" & 0xff");
-		}
-		else if (expr.Property == CiLibrary.StringLengthProperty) {
-			WriteChild(expr, expr.Obj);
-			Write(".length");
-		}
-		else
-			throw new ArgumentException(expr.Property.Name);
-	}
+    public override void InitOperators() {
+      base.InitOperators();
+      BinaryOperators.Declare(CiToken.Slash, CiPriority.Multiplicative, ConvertOperatorSlash, null);
+    }
 
-	void WriteClearArray(CiExpr expr)
-	{
-		CiArrayStorageType array = (CiArrayStorageType) expr.Type;
-		if (array.ElementType == CiBoolType.Value) {
-			Write("clearArray(");
-			Write(expr);
-			Write(", false)");
-			this.UsesClearMethod = true;
-		}
-		else if (array.ElementType == CiByteType.Value) {
-			Write("clearByteArray(");
-			Write(expr);
-			Write(", ");
-			Write(array.Length);
-			Write(')');
-			this.UsesClearBytesMethod = true;
-		}
-		else if (array.ElementType == CiIntType.Value) {
-			Write("clearArray(");
-			Write(expr);
-			Write(", 0)");
-			this.UsesClearMethod = true;
-		}
-		else
-			throw new ArgumentException(array.ElementType.Name);
-	}
+    public void ConvertOperatorSlash(CiBinaryExpr expr, BinaryOperatorInfo token) {
+      Write("int(");
+      WriteChild(CiPriority.Multiplicative, expr.Left);
+      Write(" / ");
+      WriteChild(CiPriority.Multiplicative, expr.Right, true);
+      Write(')');
+    }
+    #endregion
 
-	protected override void WriteName(CiMethod method)
-	{
-		WriteCamelCase(method.Name);
-	}
+    #region Converter Statements
+    public override void Statement_CiVar(ICiStatement statement) {
+      CiVar stmt = (CiVar)statement;
+      WriteFormat("var {0} : {1}", DecodeSymbol(stmt), DecodeType(stmt.Type));
+      WriteInit(stmt.Type);
+      if (stmt.InitialValue != null) {
+        if (stmt.Type is CiArrayStorageType) {
+          WriteLine(";");
+          WriteClearArray(new CiVarAccess { Var = stmt });
+        }
+        else {
+          Write(" = ");
+          Translate(stmt.InitialValue);
+        }
+      }
+    }
 
-	protected override void Write(CiMethodCall expr)
-	{
-		if (expr.Method == CiLibrary.MulDivMethod) {
-			Write("int(");
-			WriteMulDiv(CiPriority.Multiplicative, expr);
-		}
-		else if (expr.Method == CiLibrary.CharAtMethod) {
-			Write(expr.Obj);
-			Write(".charCodeAt(");
-			Write(expr.Arguments[0]);
-			Write(')');
-		}
-		else if (expr.Method == CiLibrary.SubstringMethod) {
-			if (expr.Arguments[0].HasSideEffect) {
-				Write("substring(");
-				Write(expr.Obj);
-				Write(", ");
-				Write(expr.Arguments[0]);
-				Write(", ");
-				Write(expr.Arguments[1]);
-				Write(')');
-				this.UsesSubstringMethod = true;
-			}
-			else {
-				Write(expr.Obj);
-				Write(".substring(");
-				Write(expr.Arguments[0]);
-				Write(", ");
-				Write(new CiBinaryExpr { Left = expr.Arguments[0], Op = CiToken.Plus, Right = expr.Arguments[1] });
-				Write(')');
-			}
-		}
-		else if (expr.Method == CiLibrary.ArrayCopyToMethod) {
-			Write("copyArray(");
-			Write(expr.Obj);
-			Write(", ");
-			Write(expr.Arguments[0]);
-			Write(", ");
-			Write(expr.Arguments[1]);
-			Write(", ");
-			Write(expr.Arguments[2]);
-			Write(", ");
-			Write(expr.Arguments[3]);
-			Write(')');
-			this.UsesCopyArrayMethod = true;
-		}
-		else if (expr.Method == CiLibrary.ArrayToStringMethod) {
-			Write("bytesToString(");
-			Write(expr.Obj);
-			Write(", ");
-			Write(expr.Arguments[0]);
-			Write(", ");
-			Write(expr.Arguments[1]);
-			Write(')');
-			this.UsesBytesToStringMethod = true;
-		}
-		else if (expr.Method == CiLibrary.ArrayStorageClearMethod)
-			WriteClearArray(expr.Obj);
-		else
-			base.Write(expr);
-	}
+    public override void Statement_CiThrow(ICiStatement statement) {
+      CiThrow stmt = (CiThrow)statement;
+      Write("throw ");
+      Translate(stmt.Message);
+      WriteLine(";");
+    }
 
-	protected override void Write(CiBinaryExpr expr)
-	{
-		if (expr.Op == CiToken.Slash) {
-			Write("int(");
-			WriteChild(CiPriority.Multiplicative, expr.Left);
-			Write(" / ");
-			WriteNonAssocChild(CiPriority.Multiplicative, expr.Right);
-			Write(')');
-		}
-		else
-			base.Write(expr);
-	}
+    public override void Statement_CiDelete(ICiStatement statement) {
+    }
+    #endregion
 
-	protected override void Write(CiBinaryResourceExpr expr)
-	{
-		Write("new ");
-		WriteName(expr.Resource);
-	}
+    #region Converter Symbols
+    public override void Symbol_CiMethod(CiSymbol symbol) {
+      CiMethod method = (CiMethod)symbol;
+      WriteLine();
+      WriteDoc(method);
+      WriteVisibility(method);
+      string qual = "";
+      switch (method.CallType) {
+        case CiCallType.Static:
+          qual = "static";
+          break;
+        case CiCallType.Normal:
+          if (method.Visibility != CiVisibility.Private)
+            qual = "final";
+          break;
+        case CiCallType.Override:
+          qual = "override";
+          break;
+        default:
+          break;
+      }
+      WriteFormat("{0} function {1}(", qual, DecodeSymbol(method));
+      bool first = true;
+      foreach (CiParam param in method.Signature.Params) {
+        if (first) {
+          first = false;
+        }
+        else {
+          Write(", ");
+        }
+        WriteFormat("{0} : {1}", DecodeSymbol(param), DecodeType(param.Type));
+      }
+      WriteLine(") : {0}", DecodeType(method.Signature.ReturnType));
+      OpenBlock();
+      if (method.CallType == CiCallType.Abstract) {
+        WriteLine("throw \"Abstract method called\";");
+      }
+      else {
+        ICiStatement[] statements = method.Body.Statements;
+        WriteCode(statements);
+        if (method.Signature.ReturnType != CiType.Void && statements.Length > 0) {
+          CiFor lastLoop = statements[statements.Length - 1] as CiFor;
+          if (lastLoop != null && lastLoop.Cond == null) {
+            WriteLine("throw \"Unreachable\";");
+          }
+        }
+      }
+      CloseBlock();
+    }
 
-	protected override void WriteNew(CiType type)
-	{
-		CiClassStorageType classType = type as CiClassStorageType;
-		if (classType != null) {
-			Write("new ");
-			Write(classType.Class.Name);
-			Write("()");
-		}
-		else {
-			CiArrayStorageType arrayType = (CiArrayStorageType) type;
-			if (arrayType.ElementType == CiByteType.Value)
-				Write("new ByteArray()");
-			else {
-				Write("new Array(");
-				if (arrayType.LengthExpr != null)
-					Write(arrayType.LengthExpr);
-				else
-					Write(arrayType.Length);
-				Write(')');
-			}
-		}
-	}
+    public override void Symbol_CiEnum(CiSymbol symbol) {
+      CiEnum enu = (CiEnum)symbol;
+      CreateAsFile(enu);
+      WriteLine("class {0}", DecodeSymbol(enu));
+      OpenBlock();
+      for (int i = 0; i < enu.Values.Length; i++) {
+        CiEnumValue value = enu.Values[i];
+        Write(value.Documentation);
+        WriteLine("public static const {0} : int = {1};", DecodeSymbol(value), i);
+      }
+      CloseAsFile();
+    }
 
-	public override void Visit(CiVar stmt)
-	{
-		Write("var ");
-		Write(stmt.Name);
-		Write(stmt.Type);
-		WriteInit(stmt.Type);
-		if (stmt.InitialValue != null) {
-			if (stmt.Type is CiArrayStorageType) {
-				WriteLine(";");
-				WriteClearArray(new CiVarAccess { Var = stmt });
-			}
-			else {
-				Write(" = ");
-				Write(stmt.InitialValue);
-			}
-		}
-	}
+    public override void Symbol_CiField(CiSymbol symbol) {
+      CiField field = (CiField)symbol;
+      Write(field.Documentation);
+      WriteVisibility(field);
+      string qual = (field.Type is CiClassStorageType || field.Type is CiArrayStorageType) ? "const" : "var";
+      WriteFormat("{0} {1} : {2}", qual, DecodeSymbol(field), DecodeType(field.Type));
+      WriteInit(field.Type);
+      WriteLine(";");
+    }
 
-	public override void Visit(CiThrow stmt)
-	{
-		Write("throw ");
-		Write(stmt.Message);
-		WriteLine(";");
-	}
+    public override void Symbol_CiConst(CiSymbol symbol) {
+      CiConst konst = (CiConst)symbol;
+      if (konst.Visibility != CiVisibility.Public) {
+        return;
+      }
+      Write(konst.Documentation);
+      WriteLine("public static const {0} : {1} = {2};", DecodeSymbol(konst), DecodeType(konst.Type), DecodeValue(konst.Type, konst.Value));
+    }
 
-	void ICiSymbolVisitor.Visit(CiMethod method)
-	{
-		WriteLine();
-		WriteDoc(method);
-		WriteVisibility(method);
-		switch (method.CallType) {
-		case CiCallType.Static: Write("static "); break;
-		case CiCallType.Normal: if (method.Visibility != CiVisibility.Private) Write("final "); break;
-		case CiCallType.Override: Write("override "); break;
-		default: break;
-		}
-		Write("function ");
-		WriteCamelCase(method.Name);
-		Write('(');
-		bool first = true;
-		foreach (CiParam param in method.Signature.Params) {
-			if (first)
-				first = false;
-			else
-				Write(", ");
-			Write(param.Name);
-			Write(param.Type);
-		}
-		Write(")");
-		Write(method.Signature.ReturnType);
-		WriteLine();
-		OpenBlock();
-		if (method.CallType == CiCallType.Abstract)
-			WriteLine("throw \"Abstract method called\";");
-		else {
-			ICiStatement[] statements = method.Body.Statements;
-			Write(statements);
-			if (method.Signature.ReturnType != CiType.Void && statements.Length > 0) {
-				CiFor lastLoop = statements[statements.Length - 1] as CiFor;
-				if (lastLoop != null && lastLoop.Cond == null)
-					WriteLine("throw \"Unreachable\";");
-			}
-		}
-		CloseBlock();
-	}
+    public override void Symbol_CiClass(CiSymbol symbol) {
+      CiClass klass = (CiClass)symbol;
+      CreateAsFile(klass);
+      OpenClass(false, klass, " extends ");
+      ClearUsedFunction();
+      if (klass.Constructor != null) {
+        WriteLine("public function {0}()", DecodeSymbol(klass));
+        Translate(klass.Constructor.Body);
+      }
+      foreach (CiSymbol member in klass.Members) {
+        Translate(member);
+      }
+      foreach (CiConst konst in klass.ConstArrays) {
+        WriteFormat("private static const {0}", DecodeSymbol(konst));
+        byte[] bytes = konst.Value as byte[];
+        if (bytes != null) {
+          WriteLine(" : ByteArray = new ByteArray();");
+          OpenBlock();
+          foreach (byte b in bytes) {
+            WriteLine("{0}.writeByte({1});", DecodeSymbol(konst), b);
+          }
+          CloseBlock();
+        }
+        else {
+          WriteLine(" : Array = {0};", DecodeValue(konst.Type, konst.Value));
+        }
+      }
+      foreach (CiBinaryResource resource in klass.BinaryResources) {
+        WriteLine("[Embed(source=\"/{0}\", mimeType=\"application/octet-stream\")]", DecodeSymbol(resource));
+        WriteLine("private static const {0}: Class;", DecodeSymbol(resource));
+      }
+      WriteBuiltins();
+      CloseAsFile();
+    }
 
-	void WriteBuiltins()
-	{
-		if (this.UsesSubstringMethod) {
-			WriteLine("private static function substring(s : String, offset : int, length : int) : String");
-			OpenBlock();
-			WriteLine("return s.substring(offset, offset + length);");
-			CloseBlock();
-		}
-		if (this.UsesCopyArrayMethod) {
-			WriteLine("private static function copyArray(sa : ByteArray, soffset : int, da : ByteArray, doffset : int, length : int) : void");
-			OpenBlock();
-			WriteLine("for (var i : int = 0; i < length; i++)");
-			WriteLine("\tda[doffset + i] = sa[soffset + i];");
-			CloseBlock();
-		}
-		if (this.UsesBytesToStringMethod) {
-			WriteLine("private static function bytesToString(a : ByteArray, offset : int, length : int) : String");
-			OpenBlock();
-			WriteLine("var s : String = \"\";");
-			WriteLine("for (var i : int = 0; i < length; i++)");
-			WriteLine("\ts += String.fromCharCode(a[offset + i]);");
-			WriteLine("return s;");
-			CloseBlock();
-		}
-		if (this.UsesClearBytesMethod) {
-			WriteLine("private static function clearByteArray(a : ByteArray, length : int) : void");
-			OpenBlock();
-			WriteLine("for (var i : int = 0; i < length; i++)");
-			WriteLine("\ta[i] = 0;");
-			CloseBlock();
-		}
-		if (this.UsesClearMethod) {
-			WriteLine("private static function clearArray(a : Array, value : *) : void");
-			OpenBlock();
-			WriteLine("for (var i : int = 0; i < a.length; i++)");
-			WriteLine("\ta[i] = value;");
-			CloseBlock();
-		}
-	}
+    public override void Symbol_CiDelegate(CiSymbol symbol) {
+    }
+    #endregion
 
-	void ICiSymbolVisitor.Visit(CiClass klass)
-	{
-		CreateAsFile(klass);
-		OpenClass(false, klass, " extends ");
-		this.UsesSubstringMethod = false;
-		this.UsesCopyArrayMethod = false;
-		this.UsesBytesToStringMethod = false;
-		this.UsesClearBytesMethod = false;
-		this.UsesClearMethod = false;
-		if (klass.Constructor != null) {
-			Write("public function ");
-			Write(klass.Name);
-			WriteLine("()");
-			Write(klass.Constructor.Body);
-		}
-		foreach (CiSymbol member in klass.Members)
-			member.Accept(this);
-		foreach (CiConst konst in klass.ConstArrays) {
-			Write("private static const ");
-			WriteUppercaseWithUnderscores(konst.GlobalName);
-			byte[] bytes = konst.Value as byte[];
-			if (bytes != null) {
-				WriteLine(" : ByteArray = new ByteArray();");
-				OpenBlock();
-				foreach (byte b in bytes) {
-					WriteUppercaseWithUnderscores(konst.GlobalName);
-					Write(".writeByte(");
-					Write(b);
-					WriteLine(");");
-				}
-				CloseBlock();
-			}
-			else {
-				Write(" : Array = ");
-				WriteConst(konst.Value);
-				WriteLine(";");
-			}
-		}
-		foreach (CiBinaryResource resource in klass.BinaryResources) {
-			Write("[Embed(source=\"/");
-			Write(resource.Name);
-			WriteLine("\", mimeType=\"application/octet-stream\")]");
-			Write("private static const ");
-			WriteName(resource);
-			WriteLine(": Class;");
-		}
-		WriteBuiltins();
-		CloseAsFile();
-	}
+    #region Converter Expression
+    public override void Expression_CiFieldAccess(CiExpr expression) {
+      CiFieldAccess expr = (CiFieldAccess)expression;
+      WriteChild(expr, expr.Obj);
+      WriteFormat(".{0}", DecodeSymbol(expr.Field));
+    }
 
-	void ICiSymbolVisitor.Visit(CiDelegate del)
-	{
-	}
+    public override void Expression_CiBinaryResourceExpr(CiExpr expression) {
+      CiBinaryResourceExpr expr = (CiBinaryResourceExpr)expression;
+      WriteFormat("new {0}", DecodeSymbol(expr.Resource));
+    }
+    #endregion
 
-	public override void Write(CiProgram prog)
-	{
-		foreach (CiSymbol symbol in prog.Globals)
-			symbol.Accept(this);
-	}
-}
+    #region CiTo Library handlers
+    public override void Library_SByte(CiPropertyAccess expr) {
+      Write('(');
+      WriteChild(CiPriority.Xor, expr.Obj);
+      Write(" ^ 128) - 128");
+    }
 
+    public override void Library_LowByte(CiPropertyAccess expr) {
+      WriteChild(expr, expr.Obj);
+      Write(" & 0xff");
+    }
+
+    public override void Library_Length(CiPropertyAccess expr) {
+      WriteChild(expr, expr.Obj);
+      Write(".length");
+    }
+
+    public override void Library_MulDiv(CiMethodCall expr) {
+      Write("int(");
+      WriteChild(CiPriority.Prefix, expr.Obj);
+      Write(" * ");
+      WriteChild(CiPriority.Multiplicative, expr.Arguments[0]);
+      Write(" / ");
+      WriteChild(CiPriority.Multiplicative, expr.Arguments[1], true);
+      Write(")");
+    }
+
+    public override void Library_CharAt(CiMethodCall expr) {
+      Translate(expr.Obj);
+      Write(".charCodeAt(");
+      Translate(expr.Arguments[0]);
+      Write(')');
+    }
+
+    public override void Library_Substring(CiMethodCall expr) {
+      if (expr.Arguments[0].HasSideEffect) {
+        Write("substring(");
+        Translate(expr.Obj);
+        Write(", ");
+        Translate(expr.Arguments[0]);
+        Write(", ");
+        Translate(expr.Arguments[1]);
+        Write(')');
+        UseFunction("Substring");
+      }
+      else {
+        Translate(expr.Obj);
+        Write(".substring(");
+        Translate(expr.Arguments[0]);
+        Write(", ");
+        Translate(new CiBinaryExpr { Left = expr.Arguments[0], Op = CiToken.Plus, Right = expr.Arguments[1] });
+        Write(')');
+      }
+    }
+
+    public override void Library_CopyTo(CiMethodCall expr) {
+      Write("copyArray(");
+      Translate(expr.Obj);
+      Write(", ");
+      Translate(expr.Arguments[0]);
+      Write(", ");
+      Translate(expr.Arguments[1]);
+      Write(", ");
+      Translate(expr.Arguments[2]);
+      Write(", ");
+      Translate(expr.Arguments[3]);
+      Write(')');
+      UseFunction("CopyArray");
+    }
+
+    public override void Library_ToString(CiMethodCall expr) {
+      Write("bytesToString(");
+      Translate(expr.Obj);
+      Write(", ");
+      Translate(expr.Arguments[0]);
+      Write(", ");
+      Translate(expr.Arguments[1]);
+      Write(')');
+      UseFunction("BytesToString");
+    }
+
+    public override void Library_Clear(CiMethodCall expr) {
+      WriteClearArray(expr.Obj);
+    }
+    #endregion
+
+  }
 }

@@ -415,31 +415,31 @@ namespace Foxoft.Ci {
     }
 
     public override void InitOperators() {
-      BinaryOperators.Add(CiToken.Plus, CiPriority.Additive, ConvertOperatorAssociative, " + ");
-      BinaryOperators.Add(CiToken.Minus, CiPriority.Additive, ConvertOperatorNotAssociative, " - ");
-      BinaryOperators.Add(CiToken.Asterisk, CiPriority.Multiplicative, ConvertOperatorAssociative, " * ");
-      BinaryOperators.Add(CiToken.Slash, CiPriority.Multiplicative, ConvertOperatorSlash, null);
-      BinaryOperators.Add(CiToken.Mod, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " mod ");
-      BinaryOperators.Add(CiToken.ShiftLeft, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " shl ");
-      BinaryOperators.Add(CiToken.ShiftRight, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " shr ");
+      BinaryOperators.Declare(CiToken.Plus, CiPriority.Additive, ConvertOperatorAssociative, " + ");
+      BinaryOperators.Declare(CiToken.Minus, CiPriority.Additive, ConvertOperatorNotAssociative, " - ");
+      BinaryOperators.Declare(CiToken.Asterisk, CiPriority.Multiplicative, ConvertOperatorAssociative, " * ");
+      BinaryOperators.Declare(CiToken.Slash, CiPriority.Multiplicative, ConvertOperatorSlash, null);
+      BinaryOperators.Declare(CiToken.Mod, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " mod ");
+      BinaryOperators.Declare(CiToken.ShiftLeft, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " shl ");
+      BinaryOperators.Declare(CiToken.ShiftRight, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " shr ");
       //
-      BinaryOperators.Add(CiToken.Equal, CiPriority.Equality, ConvertOperatorNotAssociative, " = ");
-      BinaryOperators.Add(CiToken.NotEqual, CiPriority.Equality, ConvertOperatorNotAssociative, " <> ");
-      BinaryOperators.Add(CiToken.Less, CiPriority.Equality, ConvertOperatorNotAssociative, " < ");
-      BinaryOperators.Add(CiToken.LessOrEqual, CiPriority.Equality, ConvertOperatorNotAssociative, " <= ");
-      BinaryOperators.Add(CiToken.Greater, CiPriority.Equality, ConvertOperatorNotAssociative, " > ");
-      BinaryOperators.Add(CiToken.GreaterOrEqual, CiPriority.Equality, ConvertOperatorNotAssociative, " >= ");
-      BinaryOperators.Add(CiToken.CondAnd, CiPriority.Equality, ConvertOperatorNotAssociative, " and ");
-      BinaryOperators.Add(CiToken.CondOr, CiPriority.Equality, ConvertOperatorNotAssociative, " or ");
+      BinaryOperators.Declare(CiToken.Equal, CiPriority.Equality, ConvertOperatorNotAssociative, " = ");
+      BinaryOperators.Declare(CiToken.NotEqual, CiPriority.Equality, ConvertOperatorNotAssociative, " <> ");
+      BinaryOperators.Declare(CiToken.Less, CiPriority.Equality, ConvertOperatorNotAssociative, " < ");
+      BinaryOperators.Declare(CiToken.LessOrEqual, CiPriority.Equality, ConvertOperatorNotAssociative, " <= ");
+      BinaryOperators.Declare(CiToken.Greater, CiPriority.Equality, ConvertOperatorNotAssociative, " > ");
+      BinaryOperators.Declare(CiToken.GreaterOrEqual, CiPriority.Equality, ConvertOperatorNotAssociative, " >= ");
+      BinaryOperators.Declare(CiToken.CondAnd, CiPriority.Equality, ConvertOperatorNotAssociative, " and ");
+      BinaryOperators.Declare(CiToken.CondOr, CiPriority.Equality, ConvertOperatorNotAssociative, " or ");
       //
-      BinaryOperators.Add(CiToken.And, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " and ");
-      BinaryOperators.Add(CiToken.Or, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " or ");
-      BinaryOperators.Add(CiToken.Xor, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " xor ");
+      BinaryOperators.Declare(CiToken.And, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " and ");
+      BinaryOperators.Declare(CiToken.Or, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " or ");
+      BinaryOperators.Declare(CiToken.Xor, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " xor ");
 //
-      UnaryOperators.Add(CiToken.Increment, CiPriority.Prefix, ConvertOperatorUnary, "__CINC_Pre(", ")");
-      UnaryOperators.Add(CiToken.Decrement, CiPriority.Prefix, ConvertOperatorUnary, "__CDEC_Pre(", ")");
-      UnaryOperators.Add(CiToken.Minus, CiPriority.Prefix, ConvertOperatorUnary, "-(", ")");
-      UnaryOperators.Add(CiToken.Not, CiPriority.Prefix, ConvertOperatorUnary, "not (", ")");
+      UnaryOperators.Declare(CiToken.Increment, CiPriority.Prefix, ConvertOperatorUnary, "__CINC_Pre(", ")");
+      UnaryOperators.Declare(CiToken.Decrement, CiPriority.Prefix, ConvertOperatorUnary, "__CDEC_Pre(", ")");
+      UnaryOperators.Declare(CiToken.Minus, CiPriority.Prefix, ConvertOperatorUnary, "-(", ")");
+      UnaryOperators.Declare(CiToken.Not, CiPriority.Prefix, ConvertOperatorUnary, "not (", ")");
     }
 
     public void ConvertOperatorSlash(CiBinaryExpr expr, BinaryOperatorInfo token) {

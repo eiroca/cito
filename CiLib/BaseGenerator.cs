@@ -52,6 +52,48 @@ namespace Foxoft.Ci {
       return char.ToLowerInvariant(s[0]) + s.Substring(1);
     }
 
+    protected static string ToLowercase(string s) {
+      StringBuilder res = new StringBuilder(s.Length);
+      foreach (char c in s) {
+        res.Append(char.ToLowerInvariant(c));
+      }
+      return res.ToString();
+    }
+
+    protected static string ToUppercaseWithUnderscores(string s) {
+      StringBuilder res = new StringBuilder(s.Length);
+      bool first = true;
+      foreach (char c in s) {
+        if (char.IsUpper(c) && !first) {
+          res.Append('_');
+          res.Append(c);
+        }
+        else {
+          res.Append(char.ToUpperInvariant(c));
+        }
+        first = false;
+      }
+      return res.ToString();
+    }
+
+    protected static string ToLowercaseWithUnderscores(string s) {
+      StringBuilder res = new StringBuilder(s.Length);
+      bool first = true;
+      foreach (char c in s) {
+        if (char.IsUpper(c)) {
+          if (!first) {
+            res.Append('_');
+          }
+          res.Append(char.ToLowerInvariant(c));
+        }
+        else {
+          res.Append(c);
+        }
+        first = false;
+      }
+      return res.ToString();
+    }
+
     public string OutputFile { get; set; }
 
     public string Namespace { get; set; }
@@ -206,17 +248,20 @@ namespace Foxoft.Ci {
       }
     }
 
+    [Obsolete]
     protected virtual void WriteLowercase(string s) {
       foreach (char c in s) {
         curLine.Append(char.ToLowerInvariant(c));
       }
     }
 
+    [Obsolete]
     protected virtual void WriteCamelCase(string s) {
       curLine.Append(char.ToLowerInvariant(s[0]));
       curLine.Append(s.Substring(1));
     }
 
+    [Obsolete]
     protected virtual void WriteUppercaseWithUnderscores(string s) {
       bool first = true;
       foreach (char c in s) {
@@ -231,6 +276,7 @@ namespace Foxoft.Ci {
       }
     }
 
+    [Obsolete]
     protected virtual void WriteLowercaseWithUnderscores(string s) {
       bool first = true;
       foreach (char c in s) {
