@@ -763,7 +763,7 @@ namespace Foxoft.Ci {
       return refType;
     }
 
-    public string DecodeType(CiType type) {
+    public virtual string DecodeType(CiType type) {
       string typeDec = GetTypeInfo(type).Name;
       if (type is CiArrayStorageType) {
         //TODO handle LengthExpr
@@ -872,9 +872,9 @@ namespace Foxoft.Ci {
       return (value != null) ? value.ToString() : "";
     }
 
-    public string DecodeSymbol(CiSymbol var) {
-      SymbolMapping symbol = FindSymbol(var);
-      return (symbol != null) ? symbol.NewName : TranslateSymbolName(var);
+    public virtual string DecodeSymbol(CiSymbol symbol) {
+      SymbolMapping mappedSymbol = FindSymbol(symbol);
+      return (mappedSymbol != null) ? mappedSymbol.NewName : TranslateSymbolName(symbol);
     }
 
     public virtual void WriteChild(CiExpr parent, CiExpr child) {
@@ -892,9 +892,17 @@ namespace Foxoft.Ci {
     public virtual void WriteChild(CiPriority parentPriority, CiExpr child, bool nonAssoc) {
       GenericMetadata<CiExpr>.MappingData exprInfo = Expressions.GetMetadata(child);
       if ((exprInfo.Info < parentPriority) || (nonAssoc && (exprInfo.Info == parentPriority))) {
-        Write('(');
+        bool par = false;
+        if ((child is CiBinaryExpr) || (child is CiUnaryExpr)) {
+          par = true;
+        }
+        if (par) {
+          Write('(');
+        }
         exprInfo.MethodDelegate(child);
-        Write(')');
+        if (par) {
+          Write(')');
+        }
       }
       else {
         exprInfo.MethodDelegate(child);

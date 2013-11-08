@@ -212,8 +212,10 @@ namespace Foxoft.Ci {
 
     protected virtual void WriteLine() {
       string newTxt = curLine.ToString().Trim();
-      fullCode.Append(GetIndentStr());
-      fullCode.Append(newTxt);
+      if (newTxt.Length > 0) {
+        fullCode.Append(GetIndentStr());
+        fullCode.Append(newTxt);
+      }
       fullCode.Append(NewLineStr);
       curLine = new StringBuilder();
     }

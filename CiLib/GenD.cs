@@ -1,6 +1,7 @@
 // GenD.cs - D code generator
 //
 // Copyright (C) 2011-2013  Adrian Matoga
+// Copyright (C) 2013  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -22,44 +23,142 @@ using System.Text;
 
 namespace Foxoft.Ci {
 
-  public class GenD : SourceGenerator, ICiSymbolVisitor {
+  public class GenD : CiGenerator {
     protected CiClass CurrentClass;
 
-    protected override void Write(CiVarAccess expr) {
-      WriteVarName(expr.Var.Name);
+    public GenD(string aNamespace) : this() {
+      SetNamespace(aNamespace);
     }
 
-    protected void WriteVarName(string s) {
-      // FIXME: what is the best way to throw an error 
-      // when an identifier is a reserved keyword in a given language?
-      if (s == "module") {
-        s = "mod_ule";
+    public GenD() : base() {
+      Namespace = "D";
+      TranslateType = D_TypeTranslator;
+      CommentContinueStr = "///";
+      CommentBeginStr = "";
+      CommentEndStr = "";
+      CommentCodeBegin = "<code>";
+      CommentCodeEnd = "</code>";
+    }
+
+    public override string[] GetReservedWords() {
+      String[] result = new String[] {
+        "delete",
+        "break",
+        "continue",
+        "do",
+        "while",
+        "for",
+        "if",
+        "native",
+        "return",
+        "switch",
+        "case",
+        "default",
+        "throw",
+        "module"
+      };
+      return result;
+    }
+
+    public TypeInfo D_TypeTranslator(CiType type) {
+      TypeInfo info = new TypeInfo();
+      info.Type = type;
+      info.IsNative = true;
+      info.Level = 0;
+      CiType elem = type;
+      if (elem is CiStringType) {
+        info.Name = "string";
+        info.Definition = "string";
+        info.ItemDefault = "\"\"";
+        info.ItemType = "string";
+        info.Null = "null";
       }
-      Write(s);
+      else if (elem == CiByteType.Value) {
+        info.Name = "ubyte";
+        info.Definition = "ubyte";
+        info.ItemDefault = "0";
+        info.ItemType = "ubyte";
+        info.Null = "0";
+      }
+      else {
+        info = TypeTranslator(type);
+        if (type is CiClassStorageType) {
+          info.Name = info.Name.Substring(0, info.Name.Length - 2);
+        } 
+
+      }
+      return info;
     }
 
-    protected override void WriteConst(object value) {
+    protected override void WriteBanner() {
+      base.WriteBanner();
+      WriteLine("import std.utf;");
+      WriteLine();
+    }
+
+    public override string DecodeValue(CiType type, object value) {
+      StringBuilder res = new StringBuilder();
       if (value is Array) {
-        Write("[ ");
-        WriteContent((Array)value);
-        Write(" ]");
+        res.Append("[ ");
+        res.Append(DecodeArray(type, (Array)value));
+        res.Append(" ]");
       }
       else {
-        base.WriteConst(value);
+        res.Append(base.DecodeValue(type, value));
+      }
+      return res.ToString();
+    }
+
+    public override void Expression_CiConstAccess(CiExpr expression) {
+      CiConstAccess expr = (CiConstAccess)expression;
+      CiConst konst = (CiConst)expr.Const;
+      if ((konst.Class != null) && (konst.Class != CurrentClass)) {
+        WriteFormat("{0}.{1}", DecodeSymbol(konst.Class), DecodeSymbol(konst));
+      }
+      else {
+        Write(DecodeSymbol(konst));
       }
     }
 
-    protected override void WriteName(CiConst konst) {
-      if (konst.Class != null) {
-        if (konst.Class != CurrentClass) {
-          Write(konst.Class.Name);
-          Write('.');
+    public override string DecodeVisibility(CiVisibility visibility) {
+      string res = "";
+      switch (visibility) {
+        case CiVisibility.Dead:
+          // TODO: if it isn't called anywhere in known sources, maybe
+          // it should be marked as "export"?
+        case CiVisibility.Private:
+          res = "private";
+          break;
+        case CiVisibility.Internal:
+          // TODO: maybe we should use "package"
+          break;
+        case CiVisibility.Public:
+          break;
+      }
+      return res;
+    }
+
+    public override string DecodeType(CiType type) {
+      StringBuilder sb = new StringBuilder();
+      bool haveConst = false;
+      int strt = 0;
+      while (type is CiArrayType) {
+        sb.Insert(0, "[]");
+        if (!haveConst) {
+          CiArrayPtrType ptr = type as CiArrayPtrType;
+          if (ptr != null && ptr.Writability != PtrWritability.ReadWrite) {
+            sb.Insert(0, ")");
+            haveConst = true;
+          }
         }
-        Write(konst.Name);
+        type = ((CiArrayType)type).ElementType;
       }
-      else {
-        Write(konst.GlobalName ?? konst.Name);
+      if (haveConst) {
+        sb.Insert(0, "const(");
+        strt = 6;
       }
+      sb.Insert(strt, base.DecodeType(type.BaseType));
+      return sb.ToString();
     }
 
     void WriteDoc(string text, bool inMacro) {
@@ -102,7 +201,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    void Write(CiDocPara para) {
+    protected override void Write(CiDocPara para) {
       foreach (CiDocInline inline in para.Children) {
         CiDocText text = inline as CiDocText;
         if (text != null) {
@@ -120,7 +219,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    void Write(CiDocBlock block) {
+    protected override void Write(CiDocBlock block) {
       CiDocList list = block as CiDocList;
       if (list != null) {
         WriteLine();
@@ -155,78 +254,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    void Write(CiVisibility visibility) {
-      switch (visibility) {
-        case CiVisibility.Dead:
-			// TODO: if it isn't called anywhere in known sources, maybe
-			// it should be marked as "export"?
-        case CiVisibility.Private:
-          Write("private ");
-          break;
-        case CiVisibility.Internal:
-			// TODO: maybe we should use "package"
-          break;
-        case CiVisibility.Public:
-          break;
-      }
-    }
-
-    void ICiSymbolVisitor.Visit(CiEnum enu) {
-      WriteLine();
-      Write(enu.Documentation);
-      Write(enu.Visibility);
-      Write("enum ");
-      WriteLine(enu.Name);
-      OpenBlock();
-      bool first = true;
-      foreach (CiEnumValue value in enu.Values) {
-        if (first) {
-          first = false;
-        }
-        else {
-          WriteLine(",");
-        }
-        Write(value.Documentation);
-        Write(value.Name);
-      }
-      WriteLine();
-      CloseBlock();
-    }
-
-    void WriteBaseType(CiType type) {
-      if (type is CiStringType) {
-        Write("string");
-      }
-      else if (type is CiByteType) {
-        Write("ubyte");
-      }
-      else {
-        Write(type.Name);
-      }
-    }
-
-    void Write(CiType type) {
-      StringBuilder sb = new StringBuilder();
-      bool haveConst = false;
-      while (type is CiArrayType) {
-        sb.Insert(0, "[]");
-        if (!haveConst) {
-          CiArrayPtrType ptr = type as CiArrayPtrType;
-          if (ptr != null && ptr.Writability != PtrWritability.ReadWrite) {
-            sb.Insert(0, ")");
-            haveConst = true;
-          }
-        }
-        type = ((CiArrayType)type).ElementType;
-      }
-      if (haveConst) {
-        Write("const(");
-      }
-      WriteBaseType(type.BaseType);
-      Write(sb.ToString());
-    }
-
-    bool WriteInit(CiType type) {
+    public override bool WriteInit(CiType type) {
       if (type is CiClassStorageType || type is CiArrayStorageType) {
         Write(" = ");
         WriteNew(type);
@@ -235,30 +263,7 @@ namespace Foxoft.Ci {
       return false;
     }
 
-    void ICiSymbolVisitor.Visit(CiField field) {
-      Write(field.Documentation);
-      Write(field.Visibility);
-      Write(field.Type);
-      Write(' ');
-      WriteVarName(field.Name);
-      WriteLine(";");
-    }
-
-    void ICiSymbolVisitor.Visit(CiConst konst) {
-      if (konst.Visibility != CiVisibility.Public) {
-        return;
-      }
-      Write(konst.Documentation);
-      Write("public static immutable(");
-      Write(konst.Type);
-      Write(") ");
-      WriteVarName(konst.Name);
-      Write(" = ");
-      WriteConst(konst.Value);
-      WriteLine(";");
-    }
-
-    protected override CiPriority GetPriority(CiExpr expr) {
+    public override CiPriority GetPriority(CiExpr expr) {
       // TODO: check if this compatible with D priorities
       if (expr is CiPropertyAccess) {
         CiProperty prop = ((CiPropertyAccess)expr).Property;
@@ -275,121 +280,11 @@ namespace Foxoft.Ci {
       return base.GetPriority(expr);
     }
 
-    protected override void Write(CiPropertyAccess expr) {
-      if (expr.Property == CiLibrary.SByteProperty) {
-        Write("cast(byte) ");
-        WriteChild(expr, expr.Obj);
-      }
-      else if (expr.Property == CiLibrary.LowByteProperty) {
-        Write("cast(ubyte) ");
-        WriteChild(expr, expr.Obj);
-      }
-      else if (expr.Property == CiLibrary.StringLengthProperty) {
-        Write("cast(int) ");
-        WriteChild(expr, expr.Obj);
-        Write(".length");
-      }
-      else {
-        throw new ArgumentException(expr.Property.Name);
-      }
-    }
-
-    protected override void Write(CiMethodCall expr) {
-      if (expr.Method == CiLibrary.MulDivMethod) {
-        Write("cast(int) (cast(long) ");
-        WriteMulDiv(CiPriority.Prefix, expr);
-      }
-      else if (expr.Method == CiLibrary.CharAtMethod) {
-        Write(expr.Obj);
-        Write('[');
-        Write(expr.Arguments[0]);
-        Write(']');
-      }
-      else if (expr.Method == CiLibrary.SubstringMethod) {
-        Write(expr.Obj);
-        Write('[');
-        Write(expr.Arguments[0]);
-        Write(" .. (");
-        Write(expr.Arguments[0]);
-        Write(") + ");
-        Write(expr.Arguments[1]);
-        Write(']');
-      }
-      else if (expr.Method == CiLibrary.ArrayCopyToMethod) {
-        Write(expr.Arguments[1]);
-        Write('[');
-        Write(expr.Arguments[2]);
-        Write(" .. (");
-        Write(expr.Arguments[2]);
-        Write(") + ");
-        Write(expr.Arguments[3]);
-        Write("] = ");
-        Write(expr.Obj);
-        Write('[');
-        Write(expr.Arguments[0]);
-        Write(" .. (");
-        Write(expr.Arguments[0]);
-        Write(") + ");
-        Write(expr.Arguments[3]);
-        Write(']');
-      }
-      else if (expr.Method == CiLibrary.ArrayToStringMethod) {
-        Write("toUTF8(cast(char[]) ");
-        Write(expr.Obj);
-        Write('[');
-        Write(expr.Arguments[0]);
-        Write(" .. (");
-        Write(expr.Arguments[0]);
-        Write(") + ");
-        Write(expr.Arguments[1]);
-        Write("])");
-      }
-      else if (expr.Method == CiLibrary.ArrayStorageClearMethod) {
-        Write(expr.Obj);
-        Write("[] = 0");
-      }
-      else {
-        base.Write(expr);
-      }
-    }
-
-    protected override void WriteNew(CiType type) {
-      Write("new ");
-      WriteBaseType(type.BaseType);
+    public override void WriteNew(CiType type) {
+      WriteFormat("new {0}", base.DecodeType(type.BaseType));
       CiArrayStorageType arrayType = type as CiArrayStorageType;
       if (arrayType != null) {
         WriteInitializer(arrayType);
-      }
-    }
-
-    protected override void Write(CiCoercion expr) {
-      if (expr.ResultType == CiByteType.Value && expr.Inner.Type == CiIntType.Value) {
-        Write("cast(ubyte) ");
-        WriteChild(expr, (CiExpr)expr.Inner); // TODO: Assign
-      }
-      else {
-        base.Write(expr);
-      }
-    }
-
-    public override void Visit(CiVar stmt) {
-      Write(stmt.Type);
-      Write(' ');
-      WriteVarName(stmt.Name);
-      if (!WriteInit(stmt.Type) && stmt.InitialValue != null) {
-        Write(" = ");
-        Write(stmt.InitialValue);
-      }
-    }
-
-    public override void Visit(CiAssign assign) {
-      if (assign.Op == CiToken.AddAssign && assign.Target.Type is CiStringStorageType) {
-        Write(assign.Target);
-        Write(" ~= ");
-        WriteInline(assign.Source);
-      }
-      else {
-        base.Visit(assign);
       }
     }
 
@@ -397,7 +292,7 @@ namespace Foxoft.Ci {
       Write("goto ");
       if (expr != null) {
         Write("case ");
-        Write(expr);
+        Translate(expr);
       }
       else {
         Write("default");
@@ -414,17 +309,8 @@ namespace Foxoft.Ci {
       }
     }
 
-    public override void Visit(CiThrow stmt) {
-      Write("throw new Exception(");
-      Write(stmt.Message);
-      WriteLine(");");
-    }
-
     void WriteSignature(CiDelegate del, string name) {
-      Write(del.ReturnType);
-      Write(' ');
-      WriteVarName(name);
-      Write('(');
+      WriteFormat("{0} {1}(", DecodeType(del.ReturnType), name);
       bool first = true;
       foreach (CiParam param in del.Params) {
         if (first) {
@@ -433,14 +319,75 @@ namespace Foxoft.Ci {
         else {
           Write(", ");
         }
-        Write(param.Type);
-        Write(' ');
-        WriteVarName(param.Name);
+        WriteFormat("{0} {1}", DecodeType(param.Type), DecodeSymbol(param));
       }
       Write(')');
     }
 
-    void ICiSymbolVisitor.Visit(CiMethod method) {
+    #region Converter Expression
+    public override void Expression_CiCoercion(CiExpr expression) {
+      CiCoercion expr = (CiCoercion)expression;
+      if (expr.ResultType == CiByteType.Value && expr.Inner.Type == CiIntType.Value) {
+        Write("cast(ubyte) ");
+        WriteChild(expr, (CiExpr)expr.Inner); // TODO: Assign
+      }
+      else {
+        base.Expression_CiCoercion(expression);
+      }
+    }
+    #endregion
+
+    #region Converter Statements
+    public override void Statement_CiVar(ICiStatement statement) {
+      CiVar stmt = (CiVar)statement;
+      WriteFormat("{0} {1}", DecodeType(stmt.Type), DecodeSymbol(stmt));
+      if (!WriteInit(stmt.Type) && stmt.InitialValue != null) {
+        Write(" = ");
+        Translate(stmt.InitialValue);
+      }
+    }
+
+    public override void Statement_CiAssign(ICiStatement statement) {
+      CiAssign assign = (CiAssign)statement;
+      if (assign.Op == CiToken.AddAssign && assign.Target.Type is CiStringStorageType) {
+        Translate(assign.Target);
+        Write(" ~= ");
+        WriteInline(assign.Source);
+      }
+      else {
+        base.Statement_CiAssign(statement);
+      }
+    }
+
+    public override void Statement_CiThrow(ICiStatement statement) {
+      CiThrow stmt = (CiThrow)statement;
+      Write("throw new Exception(");
+      Translate(stmt.Message);
+      WriteLine(");");
+    }
+
+    public override void Statement_CiDelete(ICiStatement statement) {
+    }
+    #endregion
+
+    #region Converter Symbols
+    public override void Symbol_CiField(CiSymbol symbol) {
+      CiField field = (CiField)symbol;
+      Write(field.Documentation);
+      WriteLine("{0} {1} {2};", DecodeVisibility(field.Visibility), DecodeType(field.Type), DecodeSymbol(field));
+    }
+
+    public override void Symbol_CiConst(CiSymbol symbol) {
+      CiConst konst = (CiConst)symbol;
+      if (konst.Visibility != CiVisibility.Public) {
+        return;
+      }
+      Write(konst.Documentation);
+      WriteLine("public static immutable({0}) {1} = {2};", DecodeType(konst.Type), DecodeSymbol(konst), DecodeValue(konst.Type, konst.Value));
+    }
+
+    public override void Symbol_CiMethod(CiSymbol symbol) {
+      CiMethod method = (CiMethod)symbol;
       WriteLine();
       Write(method.Documentation);
       bool paramsStarted = false;
@@ -450,15 +397,12 @@ namespace Foxoft.Ci {
             WriteLine("/// Params:");
             paramsStarted = true;
           }
-          Write("/// ");
-          WriteVarName(param.Name);
-          Write(" = ");
+          WriteFormat("/// {0} = ", DecodeSymbol(param));
           Write(param.Documentation.Summary);
           WriteLine();
         }
       }
-
-      Write(method.Visibility);
+      Write(DecodeVisibility(method.Visibility));
       switch (method.CallType) {
         case CiCallType.Static:
           Write("static ");
@@ -476,20 +420,21 @@ namespace Foxoft.Ci {
           Write("override ");
           break;
       }
-      WriteSignature(method.Signature, method.Name);
+      WriteSignature(method.Signature, DecodeSymbol(method));
       if (method.CallType == CiCallType.Abstract) {
         WriteLine(";");
       }
       else {
         WriteLine();
-        Write(method.Body);
+        Translate(method.Body);
       }
     }
 
-    void ICiSymbolVisitor.Visit(CiClass klass) {
+    public override void Symbol_CiClass(CiSymbol symbol) {
+      CiClass klass = (CiClass)symbol;
       WriteLine();
       Write(klass.Documentation);
-      Write(klass.Visibility);
+      Write(DecodeVisibility(klass.Visibility));
       OpenClass(klass.IsAbstract, klass, " : ");
       CurrentClass = klass;
       bool hasConstructor = klass.Constructor != null;
@@ -500,27 +445,18 @@ namespace Foxoft.Ci {
             hasConstructor = true;
           }
         }
-        member.Accept(this);
+        Translate(member);
       }
       foreach (CiConst konst in klass.ConstArrays) {
         if (konst.Visibility != CiVisibility.Public) {
-          Write("static immutable(");
-          Write(konst.Type);
-          Write(") ");
-          Write(konst.Class == CurrentClass ? konst.Name : konst.GlobalName);
-          Write(" = ");
-          WriteConst(konst.Value);
-          WriteLine(";");
+          string name = konst.Class == CurrentClass ? konst.Name : konst.GlobalName;
+          WriteLine("static immutable({0}) {1} = {2};", DecodeType(konst.Type), name, DecodeValue(konst.Type, konst.Value));
         }
       }
       foreach (CiBinaryResource resource in klass.BinaryResources) {
         // FIXME: it's better to import(resources) from binary files,
         // rather than pasting tons of magic numbers in the source.
-        Write("static immutable(ubyte[]) ");
-        WriteName(resource);
-        Write(" = ");
-        WriteConst(resource.Content);
-        WriteLine(";");
+        WriteLine("static immutable(ubyte[]) {0} = {1};", DecodeSymbol(resource), DecodeValue(resource.Type, resource.Content));
       }
       if (hasConstructor) {
         WriteLine("this()");
@@ -528,13 +464,13 @@ namespace Foxoft.Ci {
         foreach (CiSymbol member in klass.Members) {
           CiField field = member as CiField;
           if (field != null && (field.Type is CiClassStorageType || field.Type is CiArrayStorageType)) {
-            WriteVarName(field.Name);
+            Write(DecodeSymbol(field));
             WriteInit(field.Type);
             WriteLine(";");
           }
         } 
         if (klass.Constructor != null) {
-          Write(klass.Constructor.Body.Statements);
+          WriteCode(klass.Constructor.Body.Statements);
         }
         CloseBlock();
       }
@@ -542,23 +478,118 @@ namespace Foxoft.Ci {
       CurrentClass = null;
     }
 
-    void ICiSymbolVisitor.Visit(CiDelegate del) {
+    public override void Symbol_CiDelegate(CiSymbol symbol) {
+      CiDelegate del = (CiDelegate)symbol;
       // TODO: test this
       Write(del.Documentation);
-      Write(del.Visibility);
+      Write(DecodeVisibility(del.Visibility));
       WriteSignature(del, "delegate");
-      Write(' ');
-      Write(del.Name);
-      WriteLine(";");
+      WriteLine(" {0};", DecodeSymbol(del));
     }
 
-    public override void Write(CiProgram prog) {
-      CreateFile(this.OutputFile);
-      WriteLine("import std.utf;");
-      foreach (CiSymbol symbol in prog.Globals) {
-        symbol.Accept(this);
+    public override void Symbol_CiEnum(CiSymbol symbol) {
+      CiEnum enu = (CiEnum)symbol;
+      WriteLine();
+      Write(enu.Documentation);
+      WriteLine("{0} enum {1}", DecodeVisibility(enu.Visibility), DecodeSymbol(enu));
+      OpenBlock();
+      bool first = true;
+      foreach (CiEnumValue value in enu.Values) {
+        if (first) {
+          first = false;
+        }
+        else {
+          WriteLine(",");
+        }
+        Write(value.Documentation);
+        Write(DecodeSymbol(value));
       }
-      CloseFile();
+      WriteLine();
+      CloseBlock();
     }
+    #endregion
+
+    #region CiTo Library handlers
+    public override void Library_SByte(CiPropertyAccess expr) {
+      Write("cast(byte) ");
+      WriteChild(expr, expr.Obj);
+    }
+
+    public override void Library_LowByte(CiPropertyAccess expr) {
+      Write("cast(ubyte) ");
+      WriteChild(expr, expr.Obj);
+    }
+
+    public override void Library_Length(CiPropertyAccess expr) {
+      Write("cast(int) ");
+      WriteChild(expr, expr.Obj);
+      Write(".length");
+    }
+
+    public override void Library_MulDiv(CiMethodCall expr) {
+      Write("cast(int) (cast(long) ");
+      WriteChild(CiPriority.Prefix, expr.Obj);
+      Write(" * ");
+      WriteChild(CiPriority.Multiplicative, expr.Arguments[0]);
+      Write(" / ");
+      WriteChild(CiPriority.Multiplicative, expr.Arguments[1], true);
+      Write(")");
+    }
+
+    public override void Library_CharAt(CiMethodCall expr) {
+      Translate(expr.Obj);
+      Write('[');
+      Translate(expr.Arguments[0]);
+      Write(']');
+    }
+
+    public override void Library_Substring(CiMethodCall expr) {
+      Translate(expr.Obj);
+      Write('[');
+      Translate(expr.Arguments[0]);
+      Write(" .. (");
+      Translate(expr.Arguments[0]);
+      Write(") + ");
+      Translate(expr.Arguments[1]);
+      Write(']');
+    }
+
+    public override void Library_CopyTo(CiMethodCall expr) {
+      Translate(expr.Arguments[1]);
+      Write('[');
+      Translate(expr.Arguments[2]);
+      Write(" .. (");
+      Translate(expr.Arguments[2]);
+      Write(") + ");
+      Translate(expr.Arguments[3]);
+      Write("] = ");
+      Translate(expr.Obj);
+      Write('[');
+      Translate(expr.Arguments[0]);
+      Write(" .. (");
+      Translate(expr.Arguments[0]);
+      Write(") + ");
+      Translate(expr.Arguments[3]);
+      Write(']');
+    }
+
+    public override void Library_ToString(CiMethodCall expr) {
+      Write("toUTF8(cast(char[]) ");
+      Translate(expr.Obj);
+      Write('[');
+      Translate(expr.Arguments[0]);
+      Write(" .. (");
+      Translate(expr.Arguments[0]);
+      Write(") + ");
+      Translate(expr.Arguments[1]);
+      Write("])");
+    }
+
+    public override void Library_Clear(CiMethodCall expr) {
+      Translate(expr.Obj);
+      Write("[] = 0");
+    }
+    #endregion
+
   }
 }
