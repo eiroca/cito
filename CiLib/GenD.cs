@@ -83,9 +83,8 @@ namespace Foxoft.Ci {
       else {
         info = TypeTranslator(type);
         if (type is CiClassStorageType) {
-          info.Name = info.Name.Substring(0, info.Name.Length - 2);
+          info.Name = info.Definition;
         } 
-
       }
       return info;
     }

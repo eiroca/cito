@@ -73,15 +73,25 @@ namespace Foxoft.Ci {
   }
 
   public class TypeInfo {
+    /// Ci Associated Type
     public CiType Type;
+    // Target language type name
     public string Name;
-    public string Definition;
+    // Type must be declared?
     public bool IsNative;
+    // Code to define the type (if Is Native is false)
+    public string Definition;
+    // Null value
     public string Null;
+    // Null initialization
     public string NullInit;
+    // Initialization code
     public string Init;
+    // Array depth
     public int Level;
+    // Array item type
     public string ItemType;
+    // Array item default value
     public string ItemDefault;
   }
 
@@ -500,6 +510,9 @@ namespace Foxoft.Ci {
     #endregion
 
     #region Pre Processor
+    // If true local method variable are processed in order to obtain unique name in the context
+    protected bool ExpandVar = false;
+
     public virtual bool Execute(ICiStatement[] stmt, StatementActionDelegate action) {
       if (stmt != null) {
         foreach (ICiStatement s in stmt) {
@@ -646,11 +659,13 @@ namespace Foxoft.Ci {
     }
 
     public virtual bool PreProcess(CiMethod method, ICiStatement stmt) {
-      if (stmt is CiVar) {
-        CiVar v = (CiVar)stmt;
-        SymbolMapping parent = FindSymbol(method);
-        AddSymbol(parent, v);
-        AddType(v.Type);
+      if (ExpandVar) {
+        if (stmt is CiVar) {
+          CiVar v = (CiVar)stmt;
+          SymbolMapping parent = FindSymbol(method);
+          AddSymbol(parent, v);
+          AddType(v.Type);
+        }
       }
       return false;
     }
@@ -718,10 +733,15 @@ namespace Foxoft.Ci {
 
     public string SymbolNameTranslator(CiSymbol aSymbol) {
       String name = aSymbol.Name;
-      if (IsReservedWord(name)) {
-        name = "_" + name;
+      StringBuilder tmpName = new StringBuilder(name.Length);
+      foreach (char c in name) {
+        tmpName.Append(CiLexer.IsLetter(c) ? c : '_');
       }
-      return name;
+      string baseName = tmpName.ToString();
+      if (IsReservedWord(baseName)) {
+        baseName = ((baseName.StartsWith("a") ? "an" : "a")) + char.ToUpperInvariant(baseName[0]) + baseName.Substring(1);
+      }
+      return baseName;
     }
     #endregion
 
@@ -910,13 +930,17 @@ namespace Foxoft.Ci {
     }
 
     public virtual CiPriority GetPriority(CiExpr expr) {
+      CiPriority result;
       if (expr is CiCoercion) {
-        return GetPriority((CiExpr)((CiCoercion)expr).Inner);
+        result = GetPriority((CiExpr)((CiCoercion)expr).Inner);
       }
-      if (expr is CiBinaryExpr) {
-        return BinaryOperators.GetBinaryOperator(((CiBinaryExpr)expr).Op).Priority;
+      else if (expr is CiBinaryExpr) {
+        result = BinaryOperators.GetBinaryOperator(((CiBinaryExpr)expr).Op).Priority;
       }
-      return Expressions.GetPriority(expr);
+      else {
+        result = Expressions.GetPriority(expr);
+      }
+      return result;
     }
 
     private HashSet<string> UsedFunc = new HashSet<string>();
@@ -1001,8 +1025,9 @@ namespace Foxoft.Ci {
     }
 
     public CiType AnalyzeExpr(CiExpr expr) {
-      if (expr == null)
+      if (expr == null) {
         return CiType.Null;
+      }
       else if (expr is CiUnaryExpr) {
         var e = (CiUnaryExpr)expr;
         CiType t = GetExprType(e.Inner);
