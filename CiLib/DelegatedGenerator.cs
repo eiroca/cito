@@ -911,7 +911,8 @@ namespace Foxoft.Ci {
 
     public virtual void WriteChild(CiPriority parentPriority, CiExpr child, bool nonAssoc) {
       GenericMetadata<CiExpr>.MappingData exprInfo = Expressions.GetMetadata(child);
-      if ((exprInfo.Info < parentPriority) || (nonAssoc && (exprInfo.Info == parentPriority))) {
+      CiPriority priority = GetPriority(child);
+      if ((priority < parentPriority) || (nonAssoc && (priority == parentPriority))) {
         bool par = false;
         if ((child is CiBinaryExpr) || (child is CiUnaryExpr)) {
           par = true;
