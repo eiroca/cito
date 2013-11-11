@@ -390,7 +390,7 @@ namespace Foxoft.Ci {
     protected override void Write(CiCodeDoc doc) {
       if (doc == null)
         return;
-      Write("/**");
+      WriteLine("/**");
       Write("<summary>");
       Write(doc.Summary);
       Write("</summary>");
@@ -416,23 +416,6 @@ namespace Foxoft.Ci {
           Write("public ");
           break;
       }
-    }
-
-    void WriteBaseType(CiType type) {
-      if (type is CiStringType) {
-        Write("string");
-      }
-      else {
-        Write(type.Name);
-      }
-    }
-
-    void Write(CiType type) {
-      WriteBaseType(type.BaseType);
-      for (int i = 0; i < type.ArrayLevel; i++) {
-        Write("[]");
-      }
-      Write(' ');
     }
 
     void WriteCondChild(CiCondExpr condExpr, CiExpr expr) {
