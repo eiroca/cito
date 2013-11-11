@@ -43,7 +43,6 @@ namespace Foxoft.Ci {
       BlockOpenStr = "begin";
       BlockCloseCR = false;
       TranslateType = TypeTranslator;
-      TranslateSymbolName = PascalSymbolNameTranslator;
     }
 
     #region Base Generator specialization
@@ -285,19 +284,6 @@ namespace Foxoft.Ci {
         }
       }
       return false;
-    }
-
-    public string PascalSymbolNameTranslator(CiSymbol aSymbol) {
-      String name = aSymbol.Name;
-      StringBuilder tmpName = new StringBuilder(name.Length);
-      foreach (char c in name) {
-        tmpName.Append(CiLexer.IsLetter(c) ? c : '_');
-      }
-      string baseName = tmpName.ToString();
-      if (IsReservedWord(baseName)) {
-        baseName = ((baseName.StartsWith("a") ? "an" : "a")) + char.ToUpperInvariant(baseName[0]) + baseName.Substring(1);
-      }
-      return baseName;
     }
 
     public TypeInfo TypeTranslator(CiType type) {
