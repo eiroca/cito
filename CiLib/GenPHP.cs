@@ -60,15 +60,6 @@ namespace Foxoft.Ci {
       }
     }
 
-    public override void Expression_CiCondExpr(CiExpr expression) {
-      CiCondExpr expr = (CiCondExpr)expression;
-      WriteChild(expr, expr.Cond, true);
-      Write(" ? ");
-      WriteCondChild(expr, expr.OnTrue);
-      Write(" : ");
-      WriteCondChild(expr, expr.OnFalse);
-    }
-
     public override void Expression_CiNewExpr(CiExpr expression) {
       CiNewExpr expr = (CiNewExpr)expression;
       WriteNew(expr.NewType);
@@ -416,13 +407,6 @@ namespace Foxoft.Ci {
           Write("public ");
           break;
       }
-    }
-
-    void WriteCondChild(CiCondExpr condExpr, CiExpr expr) {
-      if (condExpr.ResultType == CiByteType.Value && expr is CiConstExpr) {
-        Write("");
-      }
-      WriteChild(condExpr, expr);
     }
 
     public override void WriteNew(CiType type) {

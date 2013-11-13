@@ -41,17 +41,17 @@ public class Test_Type_int {
 ///Test base types - Byte
 public class Test_Type_byte {
 
-	byte Field;
-	byte[] ArrPtr;
-	byte[5] ArrStore;
+	byte Field01;
+	byte[] Field02;
+	byte[5] Field03;
 
 	Test_Type_byte() {
 		byte field = 0;
-		Field = field;
+		Field01 = field;
 	}
 
 	public byte Get(byte p) {
-		return p + Field;
+		return p + Field01;
 	}
 	
 	public const byte SIZE = 5;
@@ -75,17 +75,17 @@ public class Test_Type_byte {
 ///Test base types - String
 public class Test_Type_string {
 
-	string Field;
-	string[] ArrPtr;
-	string[5] ArrStore;
+	string Field01;
+	string[] Field02;
+	string[5] Field03;
 
 	Test_Type_string() {
 		string field =null;
-		Field = field;
+		Field01 = field;
 	}
 
 	public string Get(string p) {
-		return Field;
+		return Field01;
 	}
 	
 	public const int SIZE = 5;

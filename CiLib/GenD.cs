@@ -32,7 +32,6 @@ namespace Foxoft.Ci {
 
     public GenD() : base() {
       Namespace = "D";
-      TranslateType = D_TypeTranslator;
       CommentContinueStr = "///";
       CommentBeginStr = "";
       CommentEndStr = "";
@@ -58,35 +57,6 @@ namespace Foxoft.Ci {
         "module"
       };
       return result;
-    }
-
-    public TypeInfo D_TypeTranslator(CiType type) {
-      TypeInfo info = new TypeInfo();
-      info.Type = type;
-      info.IsNative = true;
-      info.Level = 0;
-      CiType elem = type;
-      if (elem is CiStringType) {
-        info.Name = "string";
-        info.Definition = "string";
-        info.ItemDefault = "\"\"";
-        info.ItemType = "string";
-        info.Null = "null";
-      }
-      else if (elem == CiByteType.Value) {
-        info.Name = "ubyte";
-        info.Definition = "ubyte";
-        info.ItemDefault = "0";
-        info.ItemType = "ubyte";
-        info.Null = "0";
-      }
-      else {
-        info = TypeTranslator(type);
-        if (type is CiClassStorageType) {
-          info.Name = info.Definition;
-        } 
-      }
-      return info;
     }
 
     protected override void WriteBanner() {
@@ -322,6 +292,17 @@ namespace Foxoft.Ci {
       }
       Write(')');
     }
+
+    #region Converter Types
+    public override TypeInfo Type_CiByteType(CiType type) {
+      return new TypeInfo(type, "ubyte", "0");
+    }
+
+    public override TypeInfo Type_CiClassStorageType(CiType type) {
+      TypeInfo result = new TypeInfo(type, type.Name, "null");
+      return result;
+    }
+    #endregion
 
     #region Converter Expression
     public override void Expression_CiCoercion(CiExpr expression) {

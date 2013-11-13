@@ -29,42 +29,11 @@ namespace Foxoft.Ci {
 
     public GenCs() : base() {
       Namespace = "cs";
-      TranslateType = CS_TypeTranslator;
       CommentContinueStr = "///";
       CommentBeginStr = "";
       CommentEndStr = "";
       CommentCodeBegin = "<c>";
       CommentCodeEnd = "</c>";
-    }
-
-    public TypeInfo CS_TypeTranslator(CiType type) {
-      TypeInfo info = new TypeInfo();
-      info.Type = type;
-      info.IsNative = true;
-      info.Level = 0;
-      CiType elem = type;
-      if (elem is CiStringType) {
-        info.Name = "string";
-        info.Definition = "string";
-        info.ItemDefault = "\"\"";
-        info.ItemType = "string";
-        info.Null = "null";
-      }
-      else {
-        info = TypeTranslator(type);
-        if (type is CiClassStorageType) {
-          info.Name = info.Name.Substring(0, info.Name.Length - 2);
-        }
-        else if (type is CiArrayStorageType) {
-          info.Name = info.Definition;
-          if (info.Level > 0) {
-            for (int i=0; i<info.Level; i++) {
-              info.Name = info.Name + "[]";
-            }
-          }
-        }
-      }
-      return info;
     }
 
     protected override void Write(CiDocPara para) {
@@ -147,6 +116,26 @@ namespace Foxoft.Ci {
       }
       return res;
     }
+
+    #region Converter Types
+    public override TypeInfo Type_CiClassStorageType(CiType type) {
+      TypeInfo result = new TypeInfo(type, type.Name, "null");
+      return result;
+    }
+
+    public override TypeInfo Type_CiArrayStorageType(CiType type) {
+      TypeInfo baseType = GetTypeInfo(type.BaseType);
+      TypeInfo result = new TypeInfo(type);
+      result.Null = "null";
+      result.NewType = baseType.NewType;
+      result.ItemType = baseType.NewType;
+      int level = type.ArrayLevel;
+      for (int i=0; i<level; i++) {
+        result.NewType = result.NewType + "[]";
+      }
+      return result;
+    }
+    #endregion
 
     #region Converter Statements
     public override void Statement_CiVar(ICiStatement statement) {

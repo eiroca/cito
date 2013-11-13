@@ -42,7 +42,6 @@ namespace Foxoft.Ci {
       BlockCloseStr = "end";
       BlockOpenStr = "begin";
       BlockCloseCR = false;
-      TranslateType = TypeTranslator;
     }
 
     #region Base Generator specialization
@@ -286,119 +285,121 @@ namespace Foxoft.Ci {
       return false;
     }
 
-    public TypeInfo TypeTranslator(CiType type) {
+    #region Converter Types
+    public TypeInfo Type_CiBoolType(CiType type) {
+      if (type.ArrayLevel > 0) {
+        throw new ArgumentException("Invalid level in type :" + type);
+      }
+      return new TypeInfo(type, "boolean", "false");
+    }
+
+    public TypeInfo Type_CiByteType(CiType type) {
+      if (type.ArrayLevel > 0) {
+        throw new ArgumentException("Invalid level in type :" + type);
+      }
+      return new TypeInfo(type, "byte", "0");
+    }
+
+    public TypeInfo Type_CiIntType(CiType type) {
+      if (type.ArrayLevel > 0) {
+        throw new ArgumentException("Invalid level in type :" + type);
+      }
+      return new TypeInfo(type, "integer", "0");
+    }
+
+    public TypeInfo Type_CiStringPtrType(CiType type) {
+      if (type.ArrayLevel > 0) {
+        throw new ArgumentException("Invalid level in type :" + type);
+      }
+      return new TypeInfo(type, "string", "''");
+    }
+
+    public TypeInfo Type_CiStringStorageType(CiType type) {
+      if (type.ArrayLevel > 0) {
+        throw new ArgumentException("Invalid level in type :" + type);
+      }
+      return new TypeInfo(type, "string", "''");
+    }
+
+    public TypeInfo Type_CiClassPtrType(CiType type) {
+      if (type.ArrayLevel > 0) {
+        throw new ArgumentException("Invalid level in type :" + type);
+      }
+      return new TypeInfo(type, type.Name, "nil");
+    }
+
+    public TypeInfo Type_CiClassStorageType(CiType type) {
+      if (type.ArrayLevel > 0) {
+        throw new ArgumentException("Invalid level in type :" + type);
+      }
+      return new TypeInfo(type, type.Name, "nil");
+    }
+
+    public TypeInfo Type_CiEnum(CiType type) {
+      if (type.ArrayLevel > 0) {
+        throw new ArgumentException("Invalid level in type :" + type);
+      }
+      var ev = ((CiEnum)type).Values[0];
       TypeInfo info = new TypeInfo();
       info.Type = type;
       info.IsNative = true;
-      info.Level = 0;
-      StringBuilder name = new StringBuilder();
+      info.NewType = type.Name;
+      info.Definition = type.Name;
+      info.Null = type.Name + "." + ev.Name;
+      info.ItemType = info.NewType;
+      info.ItemDefault = info.Null;
+      return info;
+    }
+
+    public TypeInfo Type_CiArrayPtrType(CiType type) {
+      if (type.ArrayLevel <= 0) {
+        throw new ArgumentException("Invalid level in type :" + type);
+      }
+      return Type_CiArrayStorageType(type);
+    }
+
+    public TypeInfo Type_CiArrayStorageType(CiType type) {
+      if (type.ArrayLevel <= 0) {
+        throw new ArgumentException("Invalid level in type :" + type);
+      }
+      TypeInfo info = new TypeInfo();
+      info.Type = type;
+      info.IsNative = true;
+      StringBuilder newType = new StringBuilder();
       StringBuilder def = new StringBuilder();
       StringBuilder nul = new StringBuilder();
       StringBuilder nulInit = new StringBuilder();
       StringBuilder init = new StringBuilder();
-      CiType elem = type;
-      if (type.ArrayLevel > 0) {
-        nul.Append("EMPTY_");
-        nulInit.Append("SetLength({3}");
-        init.Append("SetLength([0]");
-        for (int i = 0; i < type.ArrayLevel; i++) {
-          def.Append("array of ");
-          name.Append("ArrayOf_");
-          nul.Append("ArrayOf_");
-          nulInit.Append(", 0");
-          init.Append(", [" + (i + 1) + "]");
-        }
-        info.IsNative = false;
-        nulInit.Append(")");
-        init.Append(")");
-        info.Level = type.ArrayLevel;
-        elem = type.BaseType;
+      TypeInfo baseType = GetTypeInfo(type.BaseType);
+      nul.Append("EMPTY_");
+      nulInit.Append("SetLength({3}");
+      init.Append("SetLength([0]");
+      for (int i = 0; i < type.ArrayLevel; i++) {
+        def.Append("array of ");
+        newType.Append("ArrayOf_");
+        nul.Append("ArrayOf_");
+        nulInit.Append(", 0");
+        init.Append(", [" + (i + 1) + "]");
       }
-      if (elem is CiStringType) {
-        name.Append("string");
-        def.Append("string");
-        info.ItemDefault = "''";
-        info.ItemType = "string";
-        if (info.IsNative) {
-          nul.Append("''");
-        }
-        else {
-          nul.Append("string");
-        }
-      }
-      else if (elem == CiBoolType.Value) {
-        name.Append("boolean");
-        def.Append("boolean");
-        info.ItemDefault = "false";
-        info.ItemType = "boolean";
-        if (info.IsNative) {
-          nul.Append("''");
-        }
-        else {
-          nul.Append("boolean");
-        }
-      }
-      else if (elem == CiByteType.Value) {
-        name.Append("byte");
-        def.Append("byte");
-        info.ItemDefault = "0";
-        info.ItemType = "byte";
-        if (info.IsNative) {
-          nul.Append("0");
-        }
-        else {
-          nul.Append("byte");
-        }
-      }
-      else if (elem == CiIntType.Value) {
-        name.Append("integer");
-        def.Append("integer");
-        info.ItemDefault = "0";
-        info.ItemType = "integer";
-        if (info.IsNative) {
-          nul.Append("0");
-        }
-        else {
-          nul.Append("integer");
-        }
-      }
-      else if (elem is CiEnum) {
-        name.Append(elem.Name);
-        def.Append(elem.Name);
-        var ev = ((CiEnum)elem).Values[0];
-        info.ItemDefault = ev.Type.Name + "." + ev.Name;
-        if (info.IsNative) {
-          nul.Append(info.ItemDefault);
-        }
-        else {
-          nul.Append(elem.Name);
-        }
-        info.ItemType = elem.Name;
-      }
-      else {
-        name.Append(elem.Name);
-        def.Append(elem.Name);
-        info.ItemDefault = "nil";
-        if (info.IsNative) {
-          nul.Append("nil");
-        }
-        else {
-          nul.Append(elem.Name);
-        }
-        info.ItemType = elem.Name;
-      }
-      info.Name = name.ToString();
+      info.IsNative = false;
+      nulInit.Append(")");
+      init.Append(")");
+      newType.Append(baseType.NewType);
+      def.Append(baseType.NewType);
+      nul.Append(baseType.NewType);
+      info.ItemType = baseType.NewType;
+      info.ItemDefault = baseType.Null;
+      info.NewType = newType.ToString();
       info.Definition = def.ToString();
       info.Null = nul.ToString();
-      info.NullInit = (nulInit.Length > 0 ? String.Format(nulInit.ToString(), info.Name, info.Definition, info.ItemType, info.Null).Replace('[', '{').Replace(']', '}') : null);
-      info.Init = (nulInit.Length > 0 ? String.Format(init.ToString(), info.Name, info.Definition, info.ItemType, info.Null) : null);
-      if ((!info.IsNative) && (info.Null != null)) {
-        if (!IsReservedWord(info.Null)) {
-          ReservedWords.Add(info.Null);
-        }
+      info.NullInit = (nulInit.Length > 0 ? String.Format(nulInit.ToString(), info.NewType, info.Definition, info.ItemType, info.Null).Replace('[', '{').Replace(']', '}') : null);
+      info.Init = (nulInit.Length > 0 ? String.Format(init.ToString(), info.NewType, info.Definition, info.ItemType, info.Null) : null);
+      if (!IsReservedWord(info.Null)) {
+        ReservedWords.Add(info.Null);
       }
       return info;
     }
+    #endregion
 
     public override void InitOperators() {
       BinaryOperators.Declare(CiToken.Plus, CiPriority.Additive, ConvertOperatorAssociative, " + ");
@@ -1038,9 +1039,9 @@ namespace Foxoft.Ci {
             sep = false;
             WriteLine();
           }
-          if (!types.Contains(info.Name)) {
-            types.Add(info.Name);
-            WriteLine("{0} = {1};", info.Name, info.Definition);
+          if (!types.Contains(info.NewType)) {
+            types.Add(info.NewType);
+            WriteLine("{0} = {1};", info.NewType, info.Definition);
           }
         }
       }
@@ -1095,12 +1096,12 @@ namespace Foxoft.Ci {
           if (first) {
             first = false;
           }
-          if (!types.Contains(info.Name)) {
-            types.Add(info.Name);
-            WriteLine("var {0}: {1};", info.Null, info.Name);
-            WriteLine("procedure __CCLEAR(var x: {0}); overload; var i: integer; begin for i:= low(x) to high(x) do x[i]:= {1}; end;", info.Name, info.ItemDefault);
-            WriteLine("procedure __CFILL (var x: {0}; v: {1}); overload; var i: integer; begin for i:= low(x) to high(x) do x[i]:= v; end;", info.Name, info.ItemType);
-            WriteLine("procedure __CCOPY (const source: {0}; sourceStart: integer; var dest: {0}; destStart: integer; len: integer); overload; var i: integer; begin for i:= 0 to len do dest[i+destStart]:= source[i+sourceStart]; end;", info.Name);
+          if (!types.Contains(info.NewType)) {
+            types.Add(info.NewType);
+            WriteLine("var {0}: {1};", info.Null, info.NewType);
+            WriteLine("procedure __CCLEAR(var x: {0}); overload; var i: integer; begin for i:= low(x) to high(x) do x[i]:= {1}; end;", info.NewType, info.ItemDefault);
+            WriteLine("procedure __CFILL (var x: {0}; v: {1}); overload; var i: integer; begin for i:= low(x) to high(x) do x[i]:= v; end;", info.NewType, info.ItemType);
+            WriteLine("procedure __CCOPY (const source: {0}; sourceStart: integer; var dest: {0}; destStart: integer; len: integer); overload; var i: integer; begin for i:= 0 to len do dest[i+destStart]:= source[i+sourceStart]; end;", info.NewType);
             if ((info.ItemType != null) && (info.ItemType.Equals("byte"))) {
               getResProc = true;
             }
@@ -1189,8 +1190,8 @@ namespace Foxoft.Ci {
       foreach (CiType t in GetTypeList()) {
         TypeInfo info = GetTypeInfo(t);
         if (info.NullInit != null) {
-          if (!types.Contains(info.Name)) {
-            types.Add(info.Name);
+          if (!types.Contains(info.NewType)) {
+            types.Add(info.NewType);
             Write(info.NullInit);
             WriteLine(";");
           }

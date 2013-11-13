@@ -39,7 +39,6 @@ namespace Foxoft.Ci {
       BlockOpenStr = "{";
       BlockCloseCR = true;
       BlockOpenCR = true;
-      TranslateType = TypeTranslator;
       TranslateSymbolName = base.SymbolNameTranslator;
       OrderClass = false;
     }
@@ -61,78 +60,6 @@ namespace Foxoft.Ci {
         "throw"
       };
       return result;
-    }
-
-    public TypeInfo TypeTranslator(CiType type) {
-      TypeInfo info = new TypeInfo();
-      info.Type = type;
-      info.IsNative = true;
-      info.Level = 0;
-      CiType elem = type;
-      if (type.ArrayLevel > 0) {
-        info.IsNative = false;
-        info.Level = type.ArrayLevel;
-        elem = type.BaseType;
-      }
-      if (elem is CiStringType) {
-        info.Name = "string";
-        info.Null = "null";
-        info.ItemType = info.Name;
-        info.ItemDefault = "''";
-      }
-      else if (elem == CiBoolType.Value) {
-        info.Name = "bool";
-        info.Null = "false";
-        info.ItemType = info.Name;
-        info.ItemDefault = info.Null;
-      }
-      else if (elem == CiIntType.Value) {
-        info.Name = "int";
-        info.Null = "0";
-        info.ItemType = info.Name;
-        info.ItemDefault = info.Null;
-      }
-      else if (elem == CiByteType.Value) {
-        info.Name = "byte";
-        info.Null = "0";
-        info.ItemType = info.Name;
-        info.ItemDefault = info.Null;
-      }
-      else if (elem is CiEnum) {
-        var ev = ((CiEnum)elem).Values[0];
-        info.IsNative = false;
-        info.Name = elem.Name;
-        info.Null = info.ItemDefault;
-        info.ItemType = info.Name;
-        info.ItemDefault = ev.Type.Name + "." + ev.Name;
-      }
-      else {
-        info.Name = elem.Name;
-        info.Null = "null";
-        info.ItemType = elem.Name;
-        info.ItemDefault = info.Null;
-      }
-      if (type is CiClassStorageType) {
-        info.Definition = info.Name;
-        info.Name = info.Name + "()";
-      } 
-      if (type is CiArrayStorageType) {
-        info.Definition = info.Name;
-        if (info.Level > 0) {
-          for (int i=0; i<info.Level; i++) {
-            info.Name = info.Name + "[{" + i + "}]";
-          }
-        }
-      }
-      else {
-        if (info.Level > 0) {
-          info.Definition = info.Name;
-          for (int i=0; i<info.Level; i++) {
-            info.Name = info.Name + "[]";
-          }
-        }
-      }
-      return info;
     }
 
     protected override void WriteBanner() {
@@ -186,6 +113,74 @@ namespace Foxoft.Ci {
       }
       CloseFile();
     }
+
+    #region Converter Types
+    public virtual TypeInfo Type_CiBoolType(CiType type) {
+      return new TypeInfo(type, "bool", "false");
+    }
+
+    public virtual TypeInfo Type_CiByteType(CiType type) {
+      return new TypeInfo(type, "byte", "0");
+    }
+
+    public virtual TypeInfo Type_CiIntType(CiType type) {
+      return new TypeInfo(type, "int", "0");
+    }
+
+    public virtual TypeInfo Type_CiStringPtrType(CiType type) {
+      TypeInfo result = new TypeInfo(type, "string", "null");
+      result.ItemDefault = "\"\"";
+      return result;
+    }
+
+    public virtual TypeInfo Type_CiStringStorageType(CiType type) {
+      TypeInfo result = new TypeInfo(type, "string", "null");
+      result.ItemDefault = "\"\"";
+      return result;
+    }
+
+    public virtual TypeInfo Type_CiClassPtrType(CiType type) {
+      TypeInfo result = new TypeInfo(type, type.Name, "null");
+      return result;
+    }
+
+    public virtual TypeInfo Type_CiClassStorageType(CiType type) {
+      TypeInfo result = new TypeInfo(type, type.Name + "()", "null");
+      return result;
+    }
+
+    public virtual TypeInfo Type_CiArrayPtrType(CiType type) {
+      TypeInfo baseType = GetTypeInfo(type.BaseType);
+      TypeInfo result = new TypeInfo(type);
+      result.Null = "null";
+      result.NewType = baseType.NewType;
+      result.ItemType = baseType.NewType;
+      int level = type.ArrayLevel;
+      for (int i=0; i<level; i++) {
+        result.NewType = result.NewType + "[]";
+      }
+      return result;
+    }
+
+    public virtual TypeInfo Type_CiArrayStorageType(CiType type) {
+      TypeInfo baseType = GetTypeInfo(type.BaseType);
+      TypeInfo result = new TypeInfo(type);
+      result.Null = "null";
+      result.NewType = baseType.NewType;
+      result.ItemType = baseType.NewType;
+      int level = type.ArrayLevel;
+      for (int i=0; i<level; i++) {
+        result.NewType = result.NewType + "[{" + i + "}]";
+      }
+      return result;
+    }
+
+    public virtual TypeInfo Type_CiEnum(CiType type) {
+      var ev = ((CiEnum)type).Values[0];
+      TypeInfo result = new TypeInfo(type, type.Name, type.Name + "." + ev.Name);
+      return result;
+    }
+    #endregion
 
     #region Converter Expression
     public virtual void Expression_CiConstExpr(CiExpr expression) {

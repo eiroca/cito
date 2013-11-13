@@ -31,8 +31,6 @@ namespace Foxoft.Ci {
 
     public GenAs() : base() {
       Namespace = "as";
-      TranslateType = AS_TypeTranslator;
-      TranslateSymbolName = AS_SymbolNameTranslator;
       CommentContinueStr = " * ";
       CommentBeginStr = "/**";
       CommentEndStr = "*/";
@@ -40,78 +38,67 @@ namespace Foxoft.Ci {
       CommentCodeEnd = "</code>";
     }
 
-    public TypeInfo AS_TypeTranslator(CiType type) {
-      TypeInfo info = new TypeInfo();
-      info.Type = type;
-      info.IsNative = true;
-      info.Level = 0;
-      CiType elem = type;
-      if (type.ArrayLevel > 0) {
-        info.IsNative = false;
-        info.Level = type.ArrayLevel;
-        elem = type.BaseType;
-      }
-      if (elem is CiStringType) {
-        info.Name = "String";
-        info.Definition = "String";
-        info.ItemDefault = "\"\"";
-        info.ItemType = "String";
-        info.Null = "null";
-      }
-      else if (elem == CiBoolType.Value) {
-        info.Name = "Boolean";
-        info.Definition = "Boolean";
-        info.ItemDefault = "false";
-        info.ItemType = "Boolean";
-        info.Null = "false";
-      }
-      else if (elem == CiByteType.Value) {
-        info.Name = "int";
-        info.Definition = "int";
-        info.ItemDefault = "0";
-        info.ItemType = "int";
-        info.Null = "0";
-      }
-      else if (elem == CiIntType.Value) {
-        info.Name = "int";
-        info.Definition = "int";
-        info.ItemDefault = "0";
-        info.ItemType = "int";
-        info.Null = "0";
-      }
-      else if (elem is CiEnum) {
-        info.IsNative = true;
-        info.Name = "int";
-        info.Definition = "int";
-        info.ItemDefault = "0";
-        info.ItemType = "int";
-        info.Null = "0";
+    #region Converter Types
+    public virtual TypeInfo Type_CiBoolType(CiType type) {
+      return new TypeInfo(type, "Boolean", "false");
+    }
+
+    public virtual TypeInfo Type_CiByteType(CiType type) {
+      return new TypeInfo(type, "int", "0");
+    }
+
+    public virtual TypeInfo Type_CiIntType(CiType type) {
+      return new TypeInfo(type, "int", "0");
+    }
+
+    public override TypeInfo Type_CiStringPtrType(CiType type) {
+      TypeInfo result = new TypeInfo(type, "String", "null");
+      result.ItemDefault = "\"\"";
+      return result;
+    }
+
+    public override TypeInfo Type_CiStringStorageType(CiType type) {
+      TypeInfo result = new TypeInfo(type, "String", "null");
+      result.ItemDefault = "\"\"";
+      return result;
+    }
+
+    public virtual TypeInfo Type_CiEnum(CiType type) {
+      return new TypeInfo(type, "int", "0");
+    }
+
+    public override TypeInfo Type_CiClassStorageType(CiType type) {
+      TypeInfo result = new TypeInfo(type, type.Name, "null");
+      return result;
+    }
+
+    public override TypeInfo Type_CiClassPtrType(CiType type) {
+      TypeInfo result = new TypeInfo(type, type.Name, "null");
+      return result;
+    }
+
+    public override TypeInfo Type_CiArrayStorageType(CiType type) {
+      TypeInfo result;
+      if (type.BaseType is CiByteType) {
+        result = new TypeInfo(type, "ByteArray", "null");
       }
       else {
-        info.Name = elem.Name;
-        info.Definition = elem.Name;
-        info.ItemDefault = "null";
-        info.Null = "null";
-        info.ItemType = elem.Name;
+        result = new TypeInfo(type, "Array", "null");
       }
-      if (type is CiArrayType) {
-        if (elem is CiByteType) {
-          info.Name = "ByteArray";
-          info.Definition = "ByteArray";
-          info.ItemDefault = "null";
-          info.ItemType = "ByteArray";
-          info.Null = "null";
-        }
-        else {
-          info.Name = "Array";
-          info.Definition = "Array";
-          info.ItemDefault = "null";
-          info.ItemType = "Array";
-          info.Null = "null";
-        }
-      }
-      return info;
+      return result;
     }
+
+    public override TypeInfo Type_CiArrayPtrType(CiType type) {
+      TypeInfo result;
+      if (type.BaseType is CiByteType) {
+        result = new TypeInfo(type, "ByteArray", "null");
+      }
+      else {
+        result = new TypeInfo(type, "Array", "null");
+      }
+      return result;
+    }
+    #endregion
 
     public string AS_SymbolNameTranslator(CiSymbol aSymbol) {
       String name = aSymbol.Name;
@@ -158,22 +145,22 @@ namespace Foxoft.Ci {
     void WriteVisibility(CiSymbol symbol) {
       switch (symbol.Visibility) {
         case CiVisibility.Dead:
-          case CiVisibility.Private:
+        case CiVisibility.Private:
           Write("private ");
           break;
-          case CiVisibility.Internal:
+        case CiVisibility.Internal:
           if (symbol.Documentation == null) {
             WriteLine("/** @private */");
           }
           Write("internal ");
           break;
-          case CiVisibility.Public:
+        case CiVisibility.Public:
           Write("public ");
           break;
       }
     }
 
-   public override bool WriteInit(CiType type) {
+    public override bool WriteInit(CiType type) {
       if (type is CiClassStorageType || type is CiArrayStorageType) {
         Write(" = ");
         WriteNew(type);
