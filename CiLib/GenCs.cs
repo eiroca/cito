@@ -28,7 +28,7 @@ namespace Foxoft.Ci {
     }
 
     public GenCs() : base() {
-      Namespace = "cs";
+      Namespace = "cito";
       CommentContinueStr = "///";
       CommentBeginStr = "";
       CommentEndStr = "";

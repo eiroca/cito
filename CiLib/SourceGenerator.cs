@@ -156,7 +156,7 @@ namespace Foxoft.Ci {
       result.NewType = baseType.NewType;
       result.ItemType = baseType.NewType;
       int level = type.ArrayLevel;
-      for (int i=0; i<level; i++) {
+      for (int i = 0; i < level; i++) {
         result.NewType = result.NewType + "[]";
       }
       return result;
@@ -169,7 +169,7 @@ namespace Foxoft.Ci {
       result.NewType = baseType.NewType;
       result.ItemType = baseType.NewType;
       int level = type.ArrayLevel;
-      for (int i=0; i<level; i++) {
+      for (int i = 0; i < level; i++) {
         result.NewType = result.NewType + "[{" + i + "}]";
       }
       return result;
@@ -571,6 +571,9 @@ namespace Foxoft.Ci {
       foreach (CiCase kase in swich.Cases) {
         foreach (object value in kase.Values) {
           WriteLine("case {0}:", DecodeValue(null, value));
+          if (("" + value).Equals("16")) {
+            Console.WriteLine("16");
+          }
         }
         OpenBlock(false);
         StartCase(kase.Body[0]);
@@ -904,9 +907,9 @@ namespace Foxoft.Ci {
       }
       else if (value is CiEnumValue) {
         CiEnumValue ev = (CiEnumValue)value;
-        res.Append(ev.Type.Name);
+        res.Append(DecodeSymbol(ev.Type));
         res.Append('.');
-        res.Append(ev.Name);
+        res.Append(DecodeSymbol(ev));
       }
       else if (value is Array) {
         res.Append("{ ");

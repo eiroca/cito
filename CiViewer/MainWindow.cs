@@ -34,7 +34,7 @@ public partial class MainWindow: Gtk.Window {
   private static Gdk.Atom _atom = Gdk.Atom.Intern("CLIPBOARD", false);
   private Gtk.Clipboard _clipBoard = Gtk.Clipboard.Get(_atom);
 
-  public MainWindow(): base (Gtk.WindowType.Toplevel) {
+  public MainWindow() : base(Gtk.WindowType.Toplevel) {
     Build();
     tvSource.Buffer.Changed += OnSourceChange;
     iNameSpace.Changed += OnSourceChange;
@@ -68,6 +68,7 @@ public partial class MainWindow: Gtk.Window {
     }
     catch (Exception e) {
       lbMsg.Text = e.Message;
+      // tvTarget.Buffer.Text = e.StackTrace;
     }
     PopulateCombo(cbTarget, Project.GetTargets());
   }

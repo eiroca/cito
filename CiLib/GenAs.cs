@@ -36,69 +36,8 @@ namespace Foxoft.Ci {
       CommentEndStr = "*/";
       CommentCodeBegin = "<code>";
       CommentCodeEnd = "</code>";
+      TranslateSymbolName = AS_SymbolNameTranslator;
     }
-
-    #region Converter Types
-    public virtual TypeInfo Type_CiBoolType(CiType type) {
-      return new TypeInfo(type, "Boolean", "false");
-    }
-
-    public virtual TypeInfo Type_CiByteType(CiType type) {
-      return new TypeInfo(type, "int", "0");
-    }
-
-    public virtual TypeInfo Type_CiIntType(CiType type) {
-      return new TypeInfo(type, "int", "0");
-    }
-
-    public override TypeInfo Type_CiStringPtrType(CiType type) {
-      TypeInfo result = new TypeInfo(type, "String", "null");
-      result.ItemDefault = "\"\"";
-      return result;
-    }
-
-    public override TypeInfo Type_CiStringStorageType(CiType type) {
-      TypeInfo result = new TypeInfo(type, "String", "null");
-      result.ItemDefault = "\"\"";
-      return result;
-    }
-
-    public virtual TypeInfo Type_CiEnum(CiType type) {
-      return new TypeInfo(type, "int", "0");
-    }
-
-    public override TypeInfo Type_CiClassStorageType(CiType type) {
-      TypeInfo result = new TypeInfo(type, type.Name, "null");
-      return result;
-    }
-
-    public override TypeInfo Type_CiClassPtrType(CiType type) {
-      TypeInfo result = new TypeInfo(type, type.Name, "null");
-      return result;
-    }
-
-    public override TypeInfo Type_CiArrayStorageType(CiType type) {
-      TypeInfo result;
-      if (type.BaseType is CiByteType) {
-        result = new TypeInfo(type, "ByteArray", "null");
-      }
-      else {
-        result = new TypeInfo(type, "Array", "null");
-      }
-      return result;
-    }
-
-    public override TypeInfo Type_CiArrayPtrType(CiType type) {
-      TypeInfo result;
-      if (type.BaseType is CiByteType) {
-        result = new TypeInfo(type, "ByteArray", "null");
-      }
-      else {
-        result = new TypeInfo(type, "Array", "null");
-      }
-      return result;
-    }
-    #endregion
 
     public string AS_SymbolNameTranslator(CiSymbol aSymbol) {
       String name = aSymbol.Name;
@@ -114,8 +53,8 @@ namespace Foxoft.Ci {
       else if (aSymbol is CiField) {
         name = ToCamelCase(name);
       }
-      if (IsReservedWord(name)) {
-        name = "_" + name;
+      else {
+        name = SymbolNameTranslator(aSymbol);
       }
       return name;
     }
@@ -311,6 +250,68 @@ namespace Foxoft.Ci {
       Write(" / ");
       WriteChild(CiPriority.Multiplicative, expr.Right, true);
       Write(')');
+    }
+    #endregion
+
+    #region Converter Types
+    public override TypeInfo Type_CiBoolType(CiType type) {
+      return new TypeInfo(type, "Boolean", "false");
+    }
+
+    public override TypeInfo Type_CiByteType(CiType type) {
+      return new TypeInfo(type, "int", "0");
+    }
+
+    public override TypeInfo Type_CiIntType(CiType type) {
+      return new TypeInfo(type, "int", "0");
+    }
+
+    public override TypeInfo Type_CiStringPtrType(CiType type) {
+      TypeInfo result = new TypeInfo(type, "String", "null");
+      result.ItemDefault = "\"\"";
+      return result;
+    }
+
+    public override TypeInfo Type_CiStringStorageType(CiType type) {
+      TypeInfo result = new TypeInfo(type, "String", "null");
+      result.ItemDefault = "\"\"";
+      return result;
+    }
+
+    public override TypeInfo Type_CiEnum(CiType type) {
+      return new TypeInfo(type, "int", "0");
+    }
+
+    public override TypeInfo Type_CiClassStorageType(CiType type) {
+      TypeInfo result = new TypeInfo(type, type.Name, "null");
+      return result;
+    }
+
+    public override TypeInfo Type_CiClassPtrType(CiType type) {
+      TypeInfo result = new TypeInfo(type, type.Name, "null");
+      return result;
+    }
+
+    public override TypeInfo Type_CiArrayStorageType(CiType type) {
+      TypeInfo result;
+      if (type.BaseType is CiByteType) {
+        result = new TypeInfo(type, "ByteArray", "null");
+      }
+      else {
+        result = new TypeInfo(type, "Array", "null");
+      }
+      return result;
+    }
+
+    public override TypeInfo Type_CiArrayPtrType(CiType type) {
+      TypeInfo result;
+      if (type.BaseType is CiByteType) {
+        result = new TypeInfo(type, "ByteArray", "null");
+      }
+      else {
+        result = new TypeInfo(type, "Array", "null");
+      }
+      return result;
     }
     #endregion
 
