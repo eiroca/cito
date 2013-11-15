@@ -19,42 +19,42 @@
 
 namespace Foxoft.Ci {
 
-public class GenJsWithTypedArrays : GenJs
-{
-	protected override void WriteNew(CiType type)
-	{
-		CiArrayStorageType arrayType = type as CiArrayStorageType;
-		if (arrayType != null) {
-			if (arrayType.ElementType == CiByteType.Value) {
-				Write("new Uint8Array(new ArrayBuffer(");
-				if (arrayType.LengthExpr != null)
-					Write(arrayType.LengthExpr);
-				else
-					Write(arrayType.Length);
-				Write("))");
-				return;
-			}
-			if (arrayType.ElementType == CiIntType.Value) {
-				Write("new Int32Array(new ArrayBuffer(");
-				if (arrayType.LengthExpr != null) {
-					WriteChild(CiPriority.Shift, arrayType.LengthExpr);
-					Write(" << 2");
-				}
-				else
-					Write(arrayType.Length << 2);
-				Write("))");
-				return;
-			}
-		}
-		base.WriteNew(type);
-	}
+  public class GenJsWithTypedArrays : GenJs {
+    public override void WriteNew(CiType type) {
+      CiArrayStorageType arrayType = type as CiArrayStorageType;
+      if (arrayType != null) {
+        if (arrayType.ElementType == CiByteType.Value) {
+          Write("new Uint8Array(new ArrayBuffer(");
+          if (arrayType.LengthExpr != null) {
+            Translate(arrayType.LengthExpr);
+          }
+          else {
+            Write(arrayType.Length);
+          }
+          Write("))");
+          return;
+        }
+        if (arrayType.ElementType == CiIntType.Value) {
+          Write("new Int32Array(new ArrayBuffer(");
+          if (arrayType.LengthExpr != null) {
+            WriteChild(CiPriority.Shift, arrayType.LengthExpr);
+            Write(" << 2");
+          }
+          else {
+            Write(arrayType.Length << 2);
+          }
+          Write("))");
+          return;
+        }
+      }
+      base.WriteNew(type);
+    }
 
-	protected override void WriteInitArrayStorageVar(CiVar stmt)
-	{
-		CiType type = ((CiArrayStorageType) stmt.Type).ElementType;
-		if (type != CiByteType.Value && type != CiIntType.Value)
-			base.WriteInitArrayStorageVar(stmt);
-	}
-}
-
+    protected override void WriteInitArrayStorageVar(CiVar stmt) {
+      CiType type = ((CiArrayStorageType)stmt.Type).ElementType;
+      if (type != CiByteType.Value && type != CiIntType.Value) {
+        base.WriteInitArrayStorageVar(stmt);
+      }
+    }
+  }
 }

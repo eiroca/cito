@@ -571,9 +571,6 @@ namespace Foxoft.Ci {
       foreach (CiCase kase in swich.Cases) {
         foreach (object value in kase.Values) {
           WriteLine("case {0}:", DecodeValue(null, value));
-          if (("" + value).Equals("16")) {
-            Console.WriteLine("16");
-          }
         }
         OpenBlock(false);
         StartCase(kase.Body[0]);
@@ -868,6 +865,9 @@ namespace Foxoft.Ci {
       }
     }
 
+    protected string ArrayValuePrefix = "{ ";
+    protected string ArrayValuePostfix = " }";
+
     public override string DecodeValue(CiType type, object value) {
       StringBuilder res = new StringBuilder();
       if (value is bool) {
@@ -912,9 +912,9 @@ namespace Foxoft.Ci {
         res.Append(DecodeSymbol(ev));
       }
       else if (value is Array) {
-        res.Append("{ ");
+        res.Append(ArrayValuePrefix);
         res.Append(DecodeArray(type, (Array)value));
-        res.Append(" }");
+        res.Append(ArrayValuePostfix);
       }
       else if (value == null) {
         res.Append("null");

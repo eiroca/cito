@@ -252,6 +252,9 @@ namespace Foxoft.Ci {
       WriteLine(";");
       CloseJavaFile();
     }
+
+    public override void Statement_CiDelete(ICiStatement statement) {
+    }
     #endregion
 
     #region Converter Expression
