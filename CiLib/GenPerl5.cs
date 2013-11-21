@@ -819,7 +819,7 @@ public abstract class GenPerl5 : SourceGenerator
 	{
 	}
 
-	public override void Write(CiProgram prog)
+    public override void WriteProgram(CiProgram prog)
 	{
 		CreateFile(this.OutputFile);
 		WritePragmas(prog);

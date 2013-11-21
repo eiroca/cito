@@ -42,6 +42,27 @@ namespace Foxoft.Ci {
       BlockCloseStr = "end";
       BlockOpenStr = "begin";
       BlockCloseCR = false;
+      CheckParam = true;
+  
+      CommentContinueStr = "/// ";
+      CommentBeginStr = "";
+      CommentEndStr = "";
+      CommentCodeBegin = "@code(";
+      CommentCodeEnd = ")";
+      CommentListBegin = "@unorderedList(";
+      CommentListEnd = ")";
+      CommentItemListBegin = " @item";
+      CommentItemListEnd = "";
+      CommentSummaryBegin = "";
+      CommentSummaryEnd = "";
+      CommentRemarkBegin = "";
+      CommentRemarkEnd = "";
+      CommentSpecialChar.Add('\r', "");
+      CommentSpecialChar.Add('{', "[");
+      CommentSpecialChar.Add('}', "]");
+      CommentSpecialChar.Add('(', "@(");
+      CommentSpecialChar.Add(')', "@)");
+      CommentSpecialChar.Add('@', "@@");
     }
 
     #region Base Generator specialization
@@ -205,7 +226,7 @@ namespace Foxoft.Ci {
       }
       string oldTxt = oldLine.ToString();
       if (newTxt.StartsWith("else")) {
-        for (int i=oldTxt.Length-1; i>=0; i--) {
+        for (int i = oldTxt.Length - 1; i >= 0; i--) {
           if (trimmedString.IndexOf(oldTxt[i]) < 0) {
             if (oldTxt[i] == ';') {
               oldTxt = oldTxt.Remove(i, 1);
@@ -216,7 +237,7 @@ namespace Foxoft.Ci {
       }
       else if ((!IsIndented()) && (newTxt.StartsWith("end;"))) {
         //(pork)workaround
-        for (int i=oldTxt.Length-1; i>=0; i--) {
+        for (int i = oldTxt.Length - 1; i >= 0; i--) {
           if (trimmedString.IndexOf(oldTxt[i]) < 0) {
             if (i >= 5) {
               if (oldTxt.Substring(i - 4, 5).Equals("exit;")) {
@@ -402,26 +423,26 @@ namespace Foxoft.Ci {
     #endregion
 
     public override void InitOperators() {
-      BinaryOperators.Declare(CiToken.Plus, CiPriority.Additive, ConvertOperatorAssociative, " + ");
-      BinaryOperators.Declare(CiToken.Minus, CiPriority.Additive, ConvertOperatorNotAssociative, " - ");
-      BinaryOperators.Declare(CiToken.Asterisk, CiPriority.Multiplicative, ConvertOperatorAssociative, " * ");
-      BinaryOperators.Declare(CiToken.Slash, CiPriority.Multiplicative, ConvertOperatorSlash, null);
-      BinaryOperators.Declare(CiToken.Mod, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " mod ");
-      BinaryOperators.Declare(CiToken.ShiftLeft, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " shl ");
-      BinaryOperators.Declare(CiToken.ShiftRight, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " shr ");
+      BinaryOperators.Declare(CiToken.Plus, CiPriority.Additive, true, ConvertOperator, " + ");
+      BinaryOperators.Declare(CiToken.Minus, CiPriority.Additive, false, ConvertOperator, " - ");
+      BinaryOperators.Declare(CiToken.Asterisk, CiPriority.Multiplicative, true, ConvertOperator, " * ");
+      BinaryOperators.Declare(CiToken.Slash, CiPriority.Multiplicative, false, ConvertOperatorSlash, null);
+      BinaryOperators.Declare(CiToken.Mod, CiPriority.Multiplicative, false, ConvertOperator, " mod ");
+      BinaryOperators.Declare(CiToken.ShiftLeft, CiPriority.Multiplicative, false, ConvertOperator, " shl ");
+      BinaryOperators.Declare(CiToken.ShiftRight, CiPriority.Multiplicative, false, ConvertOperator, " shr ");
       //
-      BinaryOperators.Declare(CiToken.Equal, CiPriority.Equality, ConvertOperatorNotAssociative, " = ");
-      BinaryOperators.Declare(CiToken.NotEqual, CiPriority.Equality, ConvertOperatorNotAssociative, " <> ");
-      BinaryOperators.Declare(CiToken.Less, CiPriority.Equality, ConvertOperatorNotAssociative, " < ");
-      BinaryOperators.Declare(CiToken.LessOrEqual, CiPriority.Equality, ConvertOperatorNotAssociative, " <= ");
-      BinaryOperators.Declare(CiToken.Greater, CiPriority.Equality, ConvertOperatorNotAssociative, " > ");
-      BinaryOperators.Declare(CiToken.GreaterOrEqual, CiPriority.Equality, ConvertOperatorNotAssociative, " >= ");
-      BinaryOperators.Declare(CiToken.CondAnd, CiPriority.Equality, ConvertOperatorNotAssociative, " and ");
-      BinaryOperators.Declare(CiToken.CondOr, CiPriority.Equality, ConvertOperatorNotAssociative, " or ");
+      BinaryOperators.Declare(CiToken.Equal, CiPriority.Equality, false, ConvertOperator, " = ");
+      BinaryOperators.Declare(CiToken.NotEqual, CiPriority.Equality, false, ConvertOperator, " <> ");
+      BinaryOperators.Declare(CiToken.Less, CiPriority.Equality, false, ConvertOperator, " < ");
+      BinaryOperators.Declare(CiToken.LessOrEqual, CiPriority.Equality, false, ConvertOperator, " <= ");
+      BinaryOperators.Declare(CiToken.Greater, CiPriority.Equality, false, ConvertOperator, " > ");
+      BinaryOperators.Declare(CiToken.GreaterOrEqual, CiPriority.Equality, false, ConvertOperator, " >= ");
+      BinaryOperators.Declare(CiToken.CondAnd, CiPriority.Equality, false, ConvertOperator, " and ");
+      BinaryOperators.Declare(CiToken.CondOr, CiPriority.Equality, false, ConvertOperator, " or ");
       //
-      BinaryOperators.Declare(CiToken.And, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " and ");
-      BinaryOperators.Declare(CiToken.Or, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " or ");
-      BinaryOperators.Declare(CiToken.Xor, CiPriority.Multiplicative, ConvertOperatorNotAssociative, " xor ");
+      BinaryOperators.Declare(CiToken.And, CiPriority.Multiplicative, true, ConvertOperator, " and ");
+      BinaryOperators.Declare(CiToken.Or, CiPriority.Additive, true, ConvertOperator, " or ");
+      BinaryOperators.Declare(CiToken.Xor, CiPriority.Additive, true, ConvertOperator, " xor ");
 //
       UnaryOperators.Declare(CiToken.Increment, CiPriority.Prefix, ConvertOperatorUnary, "__CINC_Pre(", ")");
       UnaryOperators.Declare(CiToken.Decrement, CiPriority.Prefix, ConvertOperatorUnary, "__CDEC_Pre(", ")");
@@ -570,7 +591,7 @@ namespace Foxoft.Ci {
     public void Symbol_CiEnum(CiSymbol symbol) {
       CiEnum enu = (CiEnum)symbol;
       WriteLine();
-      WriteCodeDoc(enu.Documentation);
+      WriteDocCode(enu.Documentation);
       Write(DecodeSymbol(enu));
       WriteLine(" = (");
       OpenBlock(false);
@@ -582,7 +603,7 @@ namespace Foxoft.Ci {
         else {
           WriteLine(",");
         }
-        WriteCodeDoc(value.Documentation);
+        WriteDocCode(value.Documentation);
         Write(DecodeSymbol(value));
       }
       WriteLine();
@@ -592,7 +613,7 @@ namespace Foxoft.Ci {
 
     public void Symbol_CiConst(CiSymbol symbol) {
       CiConst konst = (CiConst)symbol;
-      WriteCodeDoc(konst.Documentation);
+      WriteDocCode(konst.Documentation);
       Write("public ");
       if (!(konst.Type is CiArrayType)) {
         Write("const ");
@@ -1052,7 +1073,7 @@ namespace Foxoft.Ci {
       if (delegates.Count() > 0) {
         WriteLine();
         foreach (CiDelegate del in delegates) {
-          WriteCodeDoc(del.Documentation);
+          WriteDocCode(del.Documentation);
           WriteSignature(null, del, true);
           WriteLine(";");
         }
@@ -1064,7 +1085,7 @@ namespace Foxoft.Ci {
 
     public void EmitClassInterface(CiClass klass) {
       WriteLine();
-      WriteCodeDoc(klass.Documentation);
+      WriteDocCode(klass.Documentation);
       string baseType = (klass.BaseClass != null) ? DecodeSymbol(klass.BaseClass) : "TInterfacedObject";
       WriteLine("{0} = class({1})", DecodeSymbol(klass), baseType);
       OpenBlock(false);
@@ -1242,28 +1263,6 @@ namespace Foxoft.Ci {
       return res;
     }
 
-    string EscapeComment(string text) {
-      StringBuilder res = new StringBuilder(text.Length);
-      foreach (char c in text) {
-        switch (c) {
-          case '{':
-            res.Append('[');
-            break;
-          case '}':
-            res.Append(']');
-            break;
-          case '\r':
-            break;
-          case '\n':
-            break;
-          default:
-            res.Append(c);
-            break;
-        }
-      }
-      return res.ToString();
-    }
-
     bool IsAssignmentOf(ICiStatement stmt, CiVar v4r) {
       CiVar v = null;
       if (stmt is CiPostfixExpr) {
@@ -1362,12 +1361,12 @@ namespace Foxoft.Ci {
     }
 
     void WriteMethodIntf(CiMethod method) {
-      WriteCodeDoc(method.Documentation);
+      WriteDocCode(method.Documentation);
       foreach (CiParam param in method.Signature.Params) {
         if (param.Documentation != null) {
-          WriteFormat("{{ @param '{0}' ", DecodeSymbol(param));
+          WriteFormat("{1} @param '{0}' ", DecodeSymbol(param), CommentContinueStr);
           WriteDocPara(param.Documentation.Summary);
-          WriteLine("}");
+          WriteLine();
         }
       }
       WriteFormat("{0} ", DecodeVisibility(method.Visibility));
@@ -1530,14 +1529,14 @@ namespace Foxoft.Ci {
 
     void WriteField(CiField field, string NewName, bool docs) {
       if (docs) {
-        WriteCodeDoc(field.Documentation);
+        WriteDocCode(field.Documentation);
       }
       WriteLine("{0} {1}: {2};", DecodeVisibility(field.Visibility), DecodeSymbol(field), DecodeType(field.Type));
     }
 
     void WriteVar(CiVar var, string NewName, bool docs) {
       if (docs) {
-        WriteCodeDoc(var.Documentation);
+        WriteDocCode(var.Documentation);
       }
       WriteLine("var {0}: {1};", DecodeSymbol(var), DecodeType(var.Type));
     }
@@ -1720,7 +1719,7 @@ namespace Foxoft.Ci {
     void WriteArguments(CiMethodCall expr, bool[] conds) {
       Write('(');
       int cond = 0;
-      for (int i=0; i<expr.Arguments.Length; i++) {
+      for (int i = 0; i < expr.Arguments.Length; i++) {
         CiExpr arg = expr.Arguments[i];
         CiParam prm = expr.Signature.Params[i];
         if (i > 0) {
@@ -1765,7 +1764,7 @@ namespace Foxoft.Ci {
     void BuildCond(int cond, CiMethodCall expr, int level) {
       int mask = 1;
       bool[] leaf = new bool[level];
-      for (int i=0; i<level; i++, mask *= 2) {
+      for (int i = 0; i < level; i++, mask *= 2) {
         leaf[i] = ((cond & mask) == mask);
       }
       WriteMethodCall2(expr, leaf);
@@ -1780,7 +1779,7 @@ namespace Foxoft.Ci {
           if (level > 0) {
             if (level > 1) {
               Write("case (__getMagic([");
-              for (int i=0; i<level; i++) {
+              for (int i = 0; i < level; i++) {
                 if (i > 0) {
                   Write(", ");
                 }
@@ -1788,7 +1787,7 @@ namespace Foxoft.Ci {
               }
               WriteLine("])) of");
               OpenBlock(false);
-              for (int i=0; i<(1<<level); i++) {
+              for (int i = 0; i < (1 << level); i++) {
                 Write(i + ": ");
                 BuildCond(i, expr, level);
                 WriteLine(";");
@@ -1924,69 +1923,6 @@ namespace Foxoft.Ci {
       }
       else {
         Translate(expr);
-      }
-    }
-
-    void WriteDocPara(CiDocPara para) {
-      foreach (CiDocInline inline in para.Children) {
-        CiDocText text = inline as CiDocText;
-        if (text != null) {
-          Write(EscapeComment(text.Text));
-          continue;
-        }
-        CiDocCode code = inline as CiDocCode;
-        if (code != null) {
-          switch (code.Text) {
-            case "true":
-              Write("<see langword=\"true\" />");
-              break;
-            case "false":
-              Write("<see langword=\"false\" />");
-              break;
-            case "null":
-              Write("<see langword=\"null\" />");
-              break;
-            default:
-              WriteFormat("<c>{0}</c>", EscapeComment(code.Text));
-              break;
-          }
-          continue;
-        }
-        throw new ArgumentException(inline.GetType().Name);
-      }
-    }
-
-    void WriteDocBlock(CiDocBlock block) {
-      CiDocList list = block as CiDocList;
-      if (list != null) {
-        WriteLine();
-        WriteLine("/// <list type=\"bullet\">");
-        foreach (CiDocPara item in list.Items) {
-          Write("/// <item>");
-          WriteDocPara(item);
-          WriteLine("</item>");
-        }
-        Write("/// </list>");
-        WriteLine();
-        Write("/// ");
-        return;
-      }
-      WriteDocPara((CiDocPara)block);
-    }
-
-    void WriteCodeDoc(CiCodeDoc doc) {
-      if (doc == null) {
-        return;
-      }
-      Write("{ ");
-      WriteDocPara(doc.Summary);
-      WriteLine(" }");
-      if (doc.Details.Length > 0) {
-        Write("{ <remarks>");
-        foreach (CiDocBlock block in doc.Details) {
-          WriteDocBlock(block);
-        }
-        WriteLine("</remarks> }");
       }
     }
 

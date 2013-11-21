@@ -1,6 +1,7 @@
 // GenJsWithTypedArrays.cs - JavaScript with Typed Arrays code generator
 //
 // Copyright (C) 2011-2013  Piotr Fusik
+// Copyright (C) 2013  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //

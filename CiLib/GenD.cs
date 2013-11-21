@@ -130,7 +130,7 @@ namespace Foxoft.Ci {
       return sb.ToString();
     }
 
-    void WriteDoc(string text, bool inMacro) {
+    void WriteDocString(string text, bool inMacro) {
       foreach (char c in text) {
         switch (c) {
           case '&':
@@ -170,32 +170,32 @@ namespace Foxoft.Ci {
       }
     }
 
-    protected override void Write(CiDocPara para) {
+    protected override void WriteDocPara(CiDocPara para) {
       foreach (CiDocInline inline in para.Children) {
         CiDocText text = inline as CiDocText;
         if (text != null) {
-          WriteDoc(text.Text, false);
+          WriteDocString(text.Text, false);
           continue;
         }
         // TODO: $(D_CODE x) pastes "<pre>x</pre>" -
         // find some better alternative
         CiDocCode code = inline as CiDocCode;
         if (code != null) {
-          WriteDoc(code.Text, true);
+          WriteDocString(code.Text, true);
           continue;
         }
         throw new ArgumentException(inline.GetType().Name);
       }
     }
 
-    protected override void Write(CiDocBlock block) {
+    protected override void WriteDocBlock(CiDocBlock block) {
       CiDocList list = block as CiDocList;
       if (list != null) {
         WriteLine();
         WriteLine("/// $(UL");
         foreach (CiDocPara item in list.Items) {
           Write("/// $(LI ");
-          Write(item);
+          WriteDocPara(item);
           WriteLine(")");
         }
         Write("/// )");
@@ -203,21 +203,21 @@ namespace Foxoft.Ci {
         Write("/// ");
         return;
       }
-      Write((CiDocPara)block);
+      WriteDocPara((CiDocPara)block);
     }
 
-    protected override void Write(CiCodeDoc doc) {
+    protected override void WriteDocCode(CiCodeDoc doc) {
       if (doc == null) {
         return;
       }
       Write("/// ");
-      Write(doc.Summary);
+      WriteDocPara(doc.Summary);
       WriteLine();
       if (doc.Details.Length > 0) {
         WriteLine("///");
         Write("/// ");
         foreach (CiDocBlock block in doc.Details) {
-          Write(block);
+          WriteDocBlock(block);
         }
         WriteLine();
       }
@@ -353,7 +353,7 @@ namespace Foxoft.Ci {
     #region Converter Symbols
     public override void Symbol_CiField(CiSymbol symbol) {
       CiField field = (CiField)symbol;
-      Write(field.Documentation);
+      WriteDocCode(field.Documentation);
       WriteLine("{0} {1} {2};", DecodeVisibility(field.Visibility), DecodeType(field.Type), DecodeSymbol(field));
     }
 
@@ -362,14 +362,14 @@ namespace Foxoft.Ci {
       if (konst.Visibility != CiVisibility.Public) {
         return;
       }
-      Write(konst.Documentation);
+      WriteDocCode(konst.Documentation);
       WriteLine("public static immutable({0}) {1} = {2};", DecodeType(konst.Type), DecodeSymbol(konst), DecodeValue(konst.Type, konst.Value));
     }
 
     public override void Symbol_CiMethod(CiSymbol symbol) {
       CiMethod method = (CiMethod)symbol;
       WriteLine();
-      Write(method.Documentation);
+      WriteDocCode(method.Documentation);
       bool paramsStarted = false;
       foreach (CiParam param in method.Signature.Params) {
         if (param.Documentation != null) {
@@ -378,7 +378,7 @@ namespace Foxoft.Ci {
             paramsStarted = true;
           }
           WriteFormat("/// {0} = ", DecodeSymbol(param));
-          Write(param.Documentation.Summary);
+          WriteDocPara(param.Documentation.Summary);
           WriteLine();
         }
       }
@@ -413,7 +413,7 @@ namespace Foxoft.Ci {
     public override void Symbol_CiClass(CiSymbol symbol) {
       CiClass klass = (CiClass)symbol;
       WriteLine();
-      Write(klass.Documentation);
+      WriteDocCode(klass.Documentation);
       Write(DecodeVisibility(klass.Visibility));
       OpenClass(klass.IsAbstract, klass, " : ");
       CurrentClass = klass;
@@ -461,7 +461,7 @@ namespace Foxoft.Ci {
     public override void Symbol_CiDelegate(CiSymbol symbol) {
       CiDelegate del = (CiDelegate)symbol;
       // TODO: test this
-      Write(del.Documentation);
+      WriteDocCode(del.Documentation);
       Write(DecodeVisibility(del.Visibility));
       WriteSignature(del, "delegate");
       WriteLine(" {0};", DecodeSymbol(del));
@@ -470,7 +470,7 @@ namespace Foxoft.Ci {
     public override void Symbol_CiEnum(CiSymbol symbol) {
       CiEnum enu = (CiEnum)symbol;
       WriteLine();
-      Write(enu.Documentation);
+      WriteDocCode(enu.Documentation);
       WriteLine("{0} enum {1}", DecodeVisibility(enu.Visibility), DecodeSymbol(enu));
       OpenBlock();
       bool first = true;
@@ -481,7 +481,7 @@ namespace Foxoft.Ci {
         else {
           WriteLine(",");
         }
-        Write(value.Documentation);
+        WriteDocCode(value.Documentation);
         Write(DecodeSymbol(value));
       }
       WriteLine();

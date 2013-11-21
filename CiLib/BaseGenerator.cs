@@ -44,12 +44,15 @@ namespace Foxoft.Ci {
 
     object GetOption(string option, object def);
 
-    void Write(CiProgram program);
+    void WriteProgram(CiProgram program);
   }
 
   public abstract class BaseGenerator : IGenerator {
     protected static string ToCamelCase(string s) {
       return char.ToLowerInvariant(s[0]) + s.Substring(1);
+    }
+    protected static string ToCapitalize(string s) {
+      return char.ToUpperInvariant(s[0]) + s.Substring(1);
     }
 
     protected static string ToLowercase(string s) {
@@ -138,7 +141,7 @@ namespace Foxoft.Ci {
       return result;
     }
 
-    public abstract void Write(CiProgram program);
+    public abstract void WriteProgram(CiProgram program);
     #endregion
 
     #region TextWriterFactory

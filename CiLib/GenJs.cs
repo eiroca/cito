@@ -34,8 +34,8 @@ namespace Foxoft.Ci {
     public GenJs() : base() {
       Namespace = "cito";
       TranslateSymbolName = JS_SymbolNameTranslator;
-      ArrayValuePrefix = "[ ";
-      ArrayValuePostfix = " ]";
+      Decode_ARRAYBEGIN = "[ ";
+      Decode_ARRAYEND = " ]";
 
     }
 
@@ -71,7 +71,7 @@ namespace Foxoft.Ci {
       return name;
     }
 
-    protected override void Write(CiCodeDoc doc) {
+    protected override void WriteDocCode(CiCodeDoc doc) {
       if (doc == null)
         return;
       // TODO
@@ -105,7 +105,7 @@ namespace Foxoft.Ci {
     }
 
     void Write(CiField field) {
-      Write(field.Documentation);
+      WriteDocCode(field.Documentation);
       WriteFormat("this.{0}", DecodeSymbol(field));
       CiType type = field.Type;
       if (type == CiBoolType.Value) {
@@ -237,13 +237,13 @@ namespace Foxoft.Ci {
 
     public override void InitOperators() {
       base.InitOperators();
-      BinaryOperators.Declare(CiToken.Slash, CiPriority.Multiplicative, ConvertOperatorSlash, null);
+      BinaryOperators.Declare(CiToken.Slash, CiPriority.Multiplicative, false, ConvertOperatorSlash, " / ");
     }
 
     public void ConvertOperatorSlash(CiBinaryExpr expr, BinaryOperatorInfo token) {
       Write("Math.floor(");
       WriteChild(CiPriority.Multiplicative, expr.Left);
-      Write(" / ");
+      Write(token.Symbol);
       WriteChild(CiPriority.Multiplicative, expr.Right, true);
       Write(')');
     }
@@ -252,7 +252,7 @@ namespace Foxoft.Ci {
     public override void Symbol_CiEnum(CiSymbol symbol) {
       CiEnum enu = (CiEnum)symbol;
       WriteLine();
-      Write(enu.Documentation);
+      WriteDocCode(enu.Documentation);
       WriteFormat("var {0} = ", DecodeSymbol(enu));
       OpenBlock();
       for (int i = 0; i < enu.Values.Length; i++) {
@@ -260,7 +260,7 @@ namespace Foxoft.Ci {
           WriteLine(",");
         }
         CiEnumValue value = enu.Values[i];
-        Write(value.Documentation);
+        WriteDocCode(value.Documentation);
         WriteFormat("{0} : {1}", DecodeSymbol(value), i);
       }
       WriteLine();
@@ -313,7 +313,7 @@ namespace Foxoft.Ci {
       klass.WriteStatus = CiWriteStatus.Done;
       this.CurrentClass = klass;
       WriteLine();
-      Write(klass.Documentation);
+      WriteDocCode(klass.Documentation);
       WriteFormat("function {0}() ", DecodeSymbol(klass));
       OpenBlock();
       foreach (CiSymbol member in klass.Members) {

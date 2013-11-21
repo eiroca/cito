@@ -60,11 +60,13 @@ namespace Foxoft.Ci {
 
   public class BinaryOperatorInfo: OperatorInfo {
     public string Symbol;
+    public bool Associative;
     public WriteBinaryOperatorDelegate WriteDelegate;
 
-    public BinaryOperatorInfo(CiToken token, CiPriority priority, WriteBinaryOperatorDelegate writeDelegate, string symbol) {
+    public BinaryOperatorInfo(CiToken token, CiPriority priority, bool associative, WriteBinaryOperatorDelegate writeDelegate, string symbol) {
       this.Token = token;
       this.Priority = priority;
+      this.Associative = associative;
       this.Symbol = symbol;
       this.WriteDelegate = writeDelegate;
     }
@@ -140,8 +142,8 @@ namespace Foxoft.Ci {
     public BinaryOperatorMetadata() {
     }
 
-    public void Declare(CiToken token, CiPriority priority, WriteBinaryOperatorDelegate writeDelegate, string symbol) {
-      BinaryOperatorInfo info = new BinaryOperatorInfo(token, priority, writeDelegate, symbol);
+    public void Declare(CiToken token, CiPriority priority, bool associative, WriteBinaryOperatorDelegate writeDelegate, string symbol) {
+      BinaryOperatorInfo info = new BinaryOperatorInfo(token, priority, associative, writeDelegate, symbol);
       if (!Metadata.ContainsKey(token)) {
         Metadata.Add(token, info);
       }
@@ -390,7 +392,7 @@ namespace Foxoft.Ci {
       InitLibrary();
     }
 
-    public override void Write(CiProgram prog) {
+    public override void WriteProgram(CiProgram prog) {
       PreProcess(prog);
       EmitProgram(prog);
     }
@@ -512,7 +514,7 @@ namespace Foxoft.Ci {
     public void IgnoreExpr(CiExpr expression) {
     }
 
-    public void Translate(CiExpr expr) {
+    public virtual void Translate(CiExpr expr) {
       Expressions.Translate(expr);
     }
 
@@ -523,20 +525,32 @@ namespace Foxoft.Ci {
       //TODO Use reflection to fill the structure
     }
 
-    public void ConvertOperatorAssociative(CiBinaryExpr expr, BinaryOperatorInfo token) {
+    public void ConvertOperator(CiBinaryExpr expr, BinaryOperatorInfo token) {
       // Work-around to have correct left and right type
       GetExprType(expr);
-      WriteChild(expr, expr.Left);
+      CiPriority priority = GetPriority(expr);
+      // Force parantesis to increase readability
+      if (expr.Left is CiCondExpr) {
+        priority = CiPriority.Highest;
+      }
+      else if (expr.Left is CiBinaryExpr) {
+        BinaryOperatorInfo info = BinaryOperators.GetBinaryOperator(((CiBinaryExpr)expr.Left).Op);
+        if ((!info.Associative) || (info.Token != token.Token)) {
+          priority = CiPriority.Highest;
+        }
+      }
+      if (expr.Right is CiCondExpr) {
+        priority = CiPriority.Highest;
+      }
+      else if (expr.Right is CiBinaryExpr) {
+        BinaryOperatorInfo info = BinaryOperators.GetBinaryOperator(((CiBinaryExpr)expr.Right).Op);
+        if ((!info.Associative) || (info.Token != token.Token)) {
+          priority = CiPriority.Highest;
+        }
+      }
+      WriteChild(priority, expr.Left, false);
       Write(token.Symbol);
-      WriteChild(expr, expr.Right);
-    }
-
-    public void ConvertOperatorNotAssociative(CiBinaryExpr expr, BinaryOperatorInfo token) {
-      // Work-around to have correct left and right type
-      GetExprType(expr);
-      WriteChild(expr, expr.Left);
-      Write(token.Symbol);
-      WriteChild(expr, expr.Right, true);
+      WriteChild(priority, expr.Right, !token.Associative);
     }
 
     public void ConvertOperatorUnary(CiUnaryExpr expr, UnaryOperatorInfo token) {
@@ -600,6 +614,8 @@ namespace Foxoft.Ci {
     #region Pre Processor
     // If true local method variable are processed in order to obtain unique name in the context
     protected bool ExpandVar = false;
+    // If true local method parameter are processed in order to obtain unique name in the context
+    protected bool CheckParam = false;
 
     public virtual bool Execute(ICiStatement[] stmt, StatementActionDelegate action) {
       if (stmt != null) {
@@ -725,7 +741,7 @@ namespace Foxoft.Ci {
           if (method.Signature.Params.Length > 0) {
             SymbolMapping methodCall = AddSymbol(methodContext, null);
             foreach (CiParam p in method.Signature.Params) {
-              AddSymbol(methodCall, p);
+              AddSymbol(methodCall, p, CheckParam);
               AddType(p.Type);
             }
           }
@@ -1003,21 +1019,18 @@ namespace Foxoft.Ci {
     public virtual void WriteChild(CiPriority parentPriority, CiExpr child, bool nonAssoc) {
       GenericMetadata<CiExpr>.MappingData exprInfo = Expressions.GetMetadata(child);
       CiPriority priority = GetPriority(child);
+      bool par = false;
       if ((priority < parentPriority) || (nonAssoc && (priority == parentPriority))) {
-        bool par = false;
-        if ((child is CiBinaryExpr) || (child is CiUnaryExpr)) {
+        if ((child is CiUnaryExpr) || (child is CiBinaryExpr) || (child is CiCondExpr)) {
           par = true;
         }
-        if (par) {
-          Write('(');
-        }
-        exprInfo.delegatedProc(child);
-        if (par) {
-          Write(')');
-        }
       }
-      else {
-        exprInfo.delegatedProc(child);
+      if (par) {
+        Write('(');
+      }
+      exprInfo.delegatedProc(child);
+      if (par) {
+        Write(')');
       }
     }
 
@@ -1144,6 +1157,137 @@ namespace Foxoft.Ci {
       }
     }
     #endregion
+
+    #region JavaDoc
+    protected string CommentContinueStr = "/// ";
+    protected string CommentBeginStr = "";
+    protected string CommentEndStr = "";
+    protected string CommentCodeBegin = "`";
+    protected string CommentCodeEnd = "`";
+    protected string CommentListBegin = "";
+    protected string CommentListEnd = "";
+    protected string CommentItemListBegin = "* ";
+    protected string CommentItemListEnd = "";
+    protected string CommentSummaryBegin = "";
+    protected string CommentSummaryEnd = "";
+    protected string CommentRemarkBegin = "";
+    protected string CommentRemarkEnd = "";
+    protected Dictionary<string, string> CommentSpecialCode = new Dictionary<string, string>();
+    protected Dictionary<char, string> CommentSpecialChar = new Dictionary<char, string>();
+
+    protected virtual void WriteDocString(string text) {
+      foreach (char c in text) {
+        if (CommentSpecialChar.ContainsKey(c)) {
+          Write(CommentSpecialChar[c]);
+        }
+        else if (c == '\n') {
+          WriteLine();
+          Write(CommentContinueStr);
+        }
+        else {
+          Write(c);
+        }
+      }
+    }
+
+    protected virtual void WriteDocPara(CiDocPara para) {
+      foreach (CiDocInline inline in para.Children) {
+        CiDocText text = inline as CiDocText;
+        if (text != null) {
+          WriteDocString(text.Text);
+          continue;
+        }
+        CiDocCode code = inline as CiDocCode;
+        if (code != null) {
+          Write(CommentCodeBegin);
+          string codeText = code.Text ?? "";
+          if (CommentSpecialCode.ContainsKey(codeText)) {
+            Write(CommentSpecialCode[codeText]);
+          }
+          else {
+            WriteDocString(codeText);
+          }
+
+          Write(CommentCodeEnd);
+          continue;
+        }
+        throw new ArgumentException(inline.GetType().Name);
+      }
+    }
+
+    protected virtual void WriteDocBlock(CiDocBlock block) {
+      CiDocList list = block as CiDocList;
+      if (list != null) {
+        WriteLine(CommentListBegin);
+        foreach (CiDocPara item in list.Items) {
+          Write(CommentContinueStr);
+          Write(CommentItemListBegin);
+          WriteDocPara(item);
+          WriteLine(CommentItemListEnd);
+        }
+        Write(CommentContinueStr);
+        Write(CommentListEnd);
+      }
+      else {
+        WriteDocPara((CiDocPara)block);
+      }
+    }
+
+    protected void WriteDontClose(CiCodeDoc doc) {
+      if (!String.IsNullOrEmpty(CommentBeginStr)) {
+        WriteLine(CommentBeginStr);
+      }
+      Write(CommentContinueStr);
+      if (doc.Summary.Children.Length > 0) {
+        Write(CommentSummaryBegin);
+        WriteDocPara(doc.Summary);
+        WriteLine(CommentSummaryEnd);
+      }
+      if (doc.Details.Length > 0) {
+        if (!String.IsNullOrEmpty(CommentRemarkBegin)) {
+          Write(CommentContinueStr);
+          WriteLine(CommentRemarkBegin);
+        }
+        foreach (CiDocBlock block in doc.Details) {
+          Write(CommentContinueStr);
+          WriteDocBlock(block);
+          WriteLine();
+        }
+        if (!String.IsNullOrEmpty(CommentRemarkEnd)) {
+          Write(CommentContinueStr);
+          WriteLine(CommentRemarkEnd);
+        }
+      }
+    }
+
+    protected virtual void WriteDocCode(CiCodeDoc doc) {
+      if (doc != null) {
+        WriteDontClose(doc);
+        if (!String.IsNullOrEmpty(CommentEndStr)) {
+          WriteLine(CommentEndStr);
+        }
+      }
+    }
+
+    protected virtual void WriteDocMethod(CiMethod method) {
+      if (method.Documentation != null) {
+        WriteDontClose(method.Documentation);
+        foreach (CiParam param in method.Signature.Params) {
+          if (param.Documentation != null) {
+            Write(CommentContinueStr);
+            Write("@param ");
+            Write(DecodeSymbol(param));
+            Write(' ');
+            WriteDocPara(param.Documentation.Summary);
+            WriteLine();
+          }
+        }
+        if (!String.IsNullOrEmpty(CommentEndStr)) {
+          WriteLine(CommentEndStr);
+        }
+      }
+    }
+    #endregion JavaDoc
 
   }
 }

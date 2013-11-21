@@ -67,8 +67,8 @@ public partial class MainWindow: Gtk.Window {
       Project.GenerateTarget(cbLanguage.ActiveText, iNameSpace.Text);
     }
     catch (Exception e) {
+      Console.WriteLine(e.StackTrace);
       lbMsg.Text = e.Message;
-      // tvTarget.Buffer.Text = e.StackTrace;
     }
     PopulateCombo(cbTarget, Project.GetTargets());
   }

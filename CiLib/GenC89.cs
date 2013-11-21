@@ -1,6 +1,7 @@
 // GenC89.cs - C89 code generator
 //
 // Copyright (C) 2011-2013  Piotr Fusik
+// Copyright (C) 2013  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -21,140 +22,132 @@ using System;
 
 namespace Foxoft.Ci {
 
-public class GenC89 : GenC
-{
-	protected override void WriteBanner()
-	{
-		WriteLine("/* Generated automatically with \"cito\". Do not edit. */");
-	}
+  public class GenC89 : GenC {
+    public GenC89(string aNamespace) : this() {
+      SetNamespace(aNamespace);
+    }
 
-	protected override string ToString(CiType type)
-	{
-		if (type == CiBoolType.Value)
-			return "cibool";
-		return type.Name;
-	}
+    public GenC89() : base() {
+      Decode_TRUEVALUE = "TRUE";
+      Decode_FALSEVALUE = "FALSE";
+    }
 
-	protected override void WriteConst(object value)
-	{
-		if (value is bool)
-			Write((bool) value ? "TRUE" : "FALSE");
-		else
-			base.WriteConst(value);
-	}
+    public override TypeInfo Type_CiBoolType(CiType type) {
+      return new TypeInfo(type, "cibool", Decode_FALSEVALUE);
+    }
 
-	protected override void WriteBoolType()
-	{
-		WriteLine("typedef int cibool;");
-		WriteLine("#ifndef TRUE");
-		WriteLine("#define TRUE 1");
-		WriteLine("#endif");
-		WriteLine("#ifndef FALSE");
-		WriteLine("#define FALSE 0");
-		WriteLine("#endif");
-	}
+    protected override void WriteBoolType() {
+      WriteLine("typedef int cibool;");
+      WriteLine("#ifndef TRUE");
+      WriteLine("#define TRUE 1");
+      WriteLine("#endif");
+      WriteLine("#ifndef FALSE");
+      WriteLine("#define FALSE 0");
+      WriteLine("#endif");
+    }
 
-	void WriteVar(CiVar def)
-	{
-		Write(def.Type, def.Name);
-		WriteLine(";");
-		def.WriteInitialValue = true;
-	}
+    void WriteVar(CiVar def) {
+      Write(ToString(def.Type, def));
+      WriteLine(";");
+      def.WriteInitialValue = true;
+    }
 
-	protected override void Write(CiMethodCall expr)
-	{
-		if (expr.Method == CiLibrary.MulDivMethod) {
-			Write("(int) ((double) ");
-			WriteMulDiv(CiPriority.Prefix, expr);
-		}
-		else
-			base.Write(expr);
-	}
+    public override void Library_MulDiv(CiMethodCall expr) {
+      Write("(int) ((double) ");
+      WriteChild(CiPriority.Prefix, expr.Obj);
+      Write(" * ");
+      WriteChild(CiPriority.Multiplicative, expr.Arguments[0]);
+      Write(" / ");
+      WriteChild(CiPriority.Multiplicative, expr.Arguments[1], true);
+      Write(")");
+    }
 
-	public override void Visit(CiFor stmt)
-	{
-		CiVar def = stmt.Init as CiVar;
-		if (def != null) {
-			OpenBlock();
-			WriteVar(def);
-			base.Visit(stmt);
-			CloseBlock();
-		}
-		else
-			base.Visit(stmt);
-	}
+    public override void Statement_CiFor(ICiStatement statement) {
+      CiFor stmt = (CiFor)statement;
+      CiVar def = stmt.Init as CiVar;
+      if (def != null) {
+        OpenBlock();
+        WriteVar(def);
+        base.Statement_CiFor(stmt);
+        CloseBlock();
+      }
+      else {
+        base.Statement_CiFor(stmt);
+      }
+    }
 
-	protected override void StartBlock(ICiStatement[] statements)
-	{
-		// variable and const definitions, with initializers if possible
-		bool canInitVar = true;
-		foreach (ICiStatement stmt in statements) {
-			if (stmt is CiConst) {
-				base.Visit((CiConst) stmt);
-				continue;
-			}
-			CiVar def = stmt as CiVar;
-			if (canInitVar) {
-				if (def != null && IsInlineVar(def)) {
-					base.Visit(def);
-					def.WriteInitialValue = false;
-					WriteLine(";");
-					continue;
-				}
-				canInitVar = false;
-			}
-			if (def != null)
-				WriteVar(def);
-		}
-	}
+    public override void Statement_CiConst(ICiStatement statement) {
+    }
 
-	public override void Visit(CiBlock block)
-	{
-		OpenBlock();
-		StartBlock(block.Statements);
-		Write(block.Statements);
-		CloseBlock();
-	}
+    protected override void StartBlock(ICiStatement[] statements) {
+      // variable and const definitions, with initializers if possible
+      bool canInitVar = true;
+      foreach (ICiStatement stmt in statements) {
+        if (stmt is CiConst) {
+          Symbol_CiConst((CiConst)stmt);
+          continue;
+        }
+        CiVar def = stmt as CiVar;
+        if (canInitVar) {
+          if (def != null && IsInlineVar(def)) {
+            base.Statement_CiVar(stmt);
+            def.WriteInitialValue = false;
+            WriteLine(";");
+            continue;
+          }
+          canInitVar = false;
+        }
+        if (def != null) {
+          WriteVar(def);
+        }
+      }
+    }
 
-	public override void Visit(CiVar stmt)
-	{
-		if (stmt.WriteInitialValue) {
-			if (stmt.InitialValue != null) {
-				if (stmt.Type is CiArrayStorageType)
-					WriteClearArray(new CiVarAccess { Var = stmt });
-				else {
-					Visit(new CiAssign {
-						Target = new CiVarAccess { Var = stmt },
-						Op = CiToken.Assign,
-						Source = stmt.InitialValue
-					});
-				}
-			}
-			else if (stmt.Type is CiClassStorageType) {
-				CiClass klass = ((CiClassStorageType) stmt.Type).Class;
-				if (klass.Constructs)
-					WriteConstruct(klass, stmt);
-			}
-			stmt.WriteInitialValue = false;
-		}
-	}
+    public override void Statement_CiBlock(ICiStatement statement) {
+      CiBlock block = (CiBlock)statement;
+      OpenBlock();
+      StartBlock(block.Statements);
+      WriteCode(block.Statements);
+      CloseBlock();
+    }
 
-	public override void Visit(CiConst stmt)
-	{
-	}
+    public override void Statement_CiVar(ICiStatement statement) {
+      CiVar stmt = (CiVar)statement;
+      if (stmt.WriteInitialValue) {
+        if (stmt.InitialValue != null) {
+          if (stmt.Type is CiArrayStorageType) {
+            WriteClearArray(new CiVarAccess { Var = stmt });
+          }
+          else {
+            Translate(new CiAssign {
+              Target = new CiVarAccess { Var = stmt },
+              Op = CiToken.Assign,
+              Source = stmt.InitialValue
+            });
+          }
+        }
+        else if (stmt.Type is CiClassStorageType) {
+          CiClass klass = ((CiClassStorageType)stmt.Type).Class;
+          if (klass.Constructs) {
+            WriteConstruct(klass, stmt);
+          }
+        }
+        stmt.WriteInitialValue = false;
+      }
+    }
 
-	void WriteSwitchDefs(ICiStatement[] body)
-	{
-		foreach (ICiStatement stmt in body) {
-			if (stmt is CiConst)
-				base.Visit((CiConst) stmt);
-			else if (stmt is CiVar)
-				WriteVar((CiVar) stmt);
-		}
-	}
+    void WriteSwitchDefs(ICiStatement[] body) {
+      foreach (ICiStatement stmt in body) {
+        if (stmt is CiConst) {
+          Symbol_CiConst((CiConst)stmt);
+        }
+        else if (stmt is CiVar) {
+          WriteVar((CiVar)stmt);
+        }
+      }
+    }
 
-	protected override void StartSwitch(CiSwitch stmt)
-	{
+    protected override void StartSwitch(CiSwitch stmt) {
       OpenBlock(false);
       foreach (CiCase kase in stmt.Cases) {
         WriteSwitchDefs(kase.Body);
@@ -163,11 +156,9 @@ public class GenC89 : GenC
         WriteSwitchDefs(stmt.DefaultBody);
       }
       CloseBlock(false);
-	}
+    }
 
-	protected override void StartCase(ICiStatement stmt)
-	{
-	}
-}
-
+    protected override void StartCase(ICiStatement stmt) {
+    }
+  }
 }

@@ -85,7 +85,7 @@ namespace Foxoft.Ci {
         WriteLine("package {0};", this.Namespace);
       }
       WriteLine();
-      Write(symbol.Documentation);
+      WriteDocCode(symbol.Documentation);
       Write(DecodeVisibility(symbol.Visibility));
       Write(" ");
     }
@@ -148,7 +148,7 @@ namespace Foxoft.Ci {
       OpenBlock();
       for (int i = 0; i < enu.Values.Length; i++) {
         CiEnumValue value = enu.Values[i];
-        Write(value.Documentation);
+        WriteDocCode(value.Documentation);
         WriteLine("int {0} = {1};", DecodeSymbol(value), i);
       }
       CloseJavaFile();
@@ -156,7 +156,7 @@ namespace Foxoft.Ci {
 
     public override void Symbol_CiField(CiSymbol symbol) {
       CiField field = (CiField)symbol;
-      Write(field.Documentation);
+      WriteDocCode(field.Documentation);
       string qual = "";
       if (field.Type is CiClassStorageType || field.Type is CiArrayStorageType) {
         qual = "final ";
@@ -171,14 +171,14 @@ namespace Foxoft.Ci {
       if (konst.Visibility != CiVisibility.Public) {
         return;
       }
-      Write(konst.Documentation);
+      WriteDocCode(konst.Documentation);
       WriteLine("public static final {0} {1} = {2};", DecodeType(konst.Type), DecodeSymbol(konst), DecodeValue(konst.Type, konst.Value));
     }
 
     public override void Symbol_CiMethod(CiSymbol symbol) {
       CiMethod method = (CiMethod)symbol;
       WriteLine();
-      WriteDoc(method);
+      WriteDocMethod(method);
       if (method.CallType == CiCallType.Override) {
         WriteLine("@Override");
       }

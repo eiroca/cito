@@ -71,7 +71,7 @@ namespace Foxoft.Ci {
       OpenBlock();
       WriteLine("import flash.utils.ByteArray;");
       WriteLine();
-      Write(symbol.Documentation);
+      WriteDocCode(symbol.Documentation);
       WriteVisibility(symbol);
     }
 
@@ -241,13 +241,13 @@ namespace Foxoft.Ci {
 
     public override void InitOperators() {
       base.InitOperators();
-      BinaryOperators.Declare(CiToken.Slash, CiPriority.Multiplicative, ConvertOperatorSlash, null);
+      BinaryOperators.Declare(CiToken.Slash, CiPriority.Multiplicative, false, ConvertOperatorSlash, " / ");
     }
 
     public void ConvertOperatorSlash(CiBinaryExpr expr, BinaryOperatorInfo token) {
       Write("int(");
       WriteChild(CiPriority.Multiplicative, expr.Left);
-      Write(" / ");
+      Write(token.Symbol);
       WriteChild(CiPriority.Multiplicative, expr.Right, true);
       Write(')');
     }
@@ -347,7 +347,7 @@ namespace Foxoft.Ci {
     public override void Symbol_CiMethod(CiSymbol symbol) {
       CiMethod method = (CiMethod)symbol;
       WriteLine();
-      WriteDoc(method);
+      WriteDocMethod(method);
       WriteVisibility(method);
       string qual = "";
       switch (method.CallType) {
@@ -400,7 +400,7 @@ namespace Foxoft.Ci {
       OpenBlock();
       for (int i = 0; i < enu.Values.Length; i++) {
         CiEnumValue value = enu.Values[i];
-        Write(value.Documentation);
+        WriteDocCode(value.Documentation);
         WriteLine("public static const {0} : int = {1};", DecodeSymbol(value), i);
       }
       CloseAsFile();
@@ -408,7 +408,7 @@ namespace Foxoft.Ci {
 
     public override void Symbol_CiField(CiSymbol symbol) {
       CiField field = (CiField)symbol;
-      Write(field.Documentation);
+      WriteDocCode(field.Documentation);
       WriteVisibility(field);
       string qual = (field.Type is CiClassStorageType || field.Type is CiArrayStorageType) ? "const" : "var";
       WriteFormat("{0} {1} : {2}", qual, DecodeSymbol(field), DecodeType(field.Type));
@@ -421,7 +421,7 @@ namespace Foxoft.Ci {
       if (konst.Visibility != CiVisibility.Public) {
         return;
       }
-      Write(konst.Documentation);
+      WriteDocCode(konst.Documentation);
       WriteLine("public static const {0} : {1} = {2};", DecodeSymbol(konst), DecodeType(konst.Type), DecodeValue(konst.Type, konst.Value));
     }
 

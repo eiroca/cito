@@ -151,7 +151,7 @@ namespace Foxoft.Ci {
       }
       gen.SetOutputFile(outputFile);
       gen.SetNamespace(aNamespace);
-      gen.Write(program);
+      gen.WriteProgram(program);
       return 0;
     }
   }

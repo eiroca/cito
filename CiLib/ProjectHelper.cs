@@ -173,7 +173,7 @@ namespace Foxoft.Ci {
         generator.Generator.SetOutputFile(Path.ChangeExtension(string.IsNullOrEmpty(NameSpace) ? "cito" : NameSpace, generator.Extension));
       }
       generator.Generator.SetNamespace(NameSpace);
-      generator.Generator.Write(program);
+      generator.Generator.WriteProgram(program);
     }
   }
 

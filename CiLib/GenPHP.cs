@@ -27,6 +27,19 @@ namespace Foxoft.Ci {
     }
 
     public GenPHP() : base() {
+      CommentCodeBegin = "<c>";
+      CommentCodeEnd = "</c>";
+      CommentListBegin = "<list type=\"bullet\">";
+      CommentListEnd = "</list>";
+      CommentItemListBegin = " <item>";
+      CommentItemListEnd = "</item>";
+      CommentSummaryBegin = "<summary>";
+      CommentSummaryEnd = "</summary>";
+      CommentBeginStr = "/**";
+      CommentEndStr = " */";
+      CommentContinueStr = " * ";
+      CommentRemarkBegin = "<remarks>";
+      CommentRemarkEnd = "</remarks>";
     }
 
     #region Converter specialization
@@ -136,17 +149,17 @@ namespace Foxoft.Ci {
 
     public override void Symbol_CiConst(CiSymbol symbol) {
       CiConst konst = (CiConst)symbol;
-      Write(konst.Documentation);
+      WriteDocCode(konst.Documentation);
       WriteLine("const {0} = {1};", DecodeSymbol(konst), DecodeValue(konst.Type, konst.Value));
     }
 
     public override void Symbol_CiEnum(CiSymbol symbol) {
       CiEnum enu = (CiEnum)symbol;
       WriteLine();
-      Write(enu.Documentation);
+      WriteDocCode(enu.Documentation);
       int i = 0;
       foreach (CiEnumValue value in enu.Values) {
-        Write(value.Documentation);
+        WriteDocCode(value.Documentation);
         WriteLine("define('{0}_{1}', {2});", DecodeSymbol(enu), DecodeSymbol(value), i);
         i++;
       }
@@ -154,14 +167,14 @@ namespace Foxoft.Ci {
 
     public override void Symbol_CiField(CiSymbol symbol) {
       CiField field = (CiField)symbol;
-      Write(field.Documentation);
+      WriteDocCode(field.Documentation);
       WriteLine("var ${0};", DecodeSymbol(field));
     }
 
     public override void Symbol_CiClass(CiSymbol symbol) {
       CiClass klass = (CiClass)symbol;
       WriteLine();
-      Write(klass.Documentation);
+      WriteDocCode(klass.Documentation);
       OpenClass(klass.IsAbstract, klass, " extends ");
       foreach (CiConst konst in klass.ConstArrays) {
         WriteLine("var ${0} = {1};", DecodeSymbol(konst), DecodeValue(konst.Type, konst.Value));
@@ -205,7 +218,7 @@ namespace Foxoft.Ci {
 
     public override void Symbol_CiDelegate(CiSymbol symbol) {
       CiDelegate del = (CiDelegate)symbol;
-      Write(del.Documentation);
+      WriteDocCode(del.Documentation);
       Write("// delegate ");
       WriteSignature(del);
       WriteLine(";");
@@ -214,11 +227,11 @@ namespace Foxoft.Ci {
     public override void Symbol_CiMethod(CiSymbol symbol) {
       CiMethod method = (CiMethod)symbol;
       WriteLine();
-      Write(method.Documentation);
+      WriteDocCode(method.Documentation);
       foreach (CiParam param in method.Signature.Params) {
         if (param.Documentation != null) {
           WriteFormat("/** <param name=\"{0}\">", DecodeSymbol(param));
-          Write(param.Documentation.Summary);
+          WriteDocPara(param.Documentation.Summary);
           WriteLine("</param> */");
         }
       }
@@ -329,72 +342,6 @@ namespace Foxoft.Ci {
       Write(')');
     }
     #endregion
-
-    protected override void Write(CiDocPara para) {
-      foreach (CiDocInline inline in para.Children) {
-        CiDocText text = inline as CiDocText;
-        if (text != null) {
-          WriteDoc(text.Text);
-          continue;
-        }
-        CiDocCode code = inline as CiDocCode;
-        if (code != null) {
-          switch (code.Text) {
-            case "true":
-              Write("<see langword=\"true\" />");
-              break;
-            case "false":
-              Write("<see langword=\"false\" />");
-              break;
-            case "null":
-              Write("<see langword=\"null\" />");
-              break;
-            default:
-              Write("<c>");
-              WriteDoc(code.Text);
-              Write("</c>");
-              break;
-          }
-          continue;
-        }
-        throw new ArgumentException(inline.GetType().Name);
-      }
-    }
-
-    protected override  void Write(CiDocBlock block) {
-      CiDocList list = block as CiDocList;
-      if (list != null) {
-        WriteLine();
-        WriteLine("<list type=\"bullet\">");
-        foreach (CiDocPara item in list.Items) {
-          Write("<item>");
-          Write(item);
-          WriteLine("</item>");
-        }
-        Write("</list>");
-        WriteLine();
-        return;
-      }
-      Write((CiDocPara)block);
-    }
-
-    protected override void Write(CiCodeDoc doc) {
-      if (doc == null)
-        return;
-      WriteLine("/**");
-      Write("<summary>");
-      Write(doc.Summary);
-      Write("</summary>");
-      WriteLine();
-      if (doc.Details.Length > 0) {
-        Write("<remarks>");
-        foreach (CiDocBlock block in doc.Details) {
-          Write(block);
-        }
-        WriteLine("</remarks>");
-      }
-      WriteLine("*/");
-    }
 
     void Write(CiVisibility visibility) {
       switch (visibility) {
