@@ -393,6 +393,7 @@ namespace Foxoft.Ci {
     }
 
     public override void WriteProgram(CiProgram prog) {
+      ClearUsedFunction();
       PreProcess(prog);
       EmitProgram(prog);
     }
@@ -987,7 +988,7 @@ namespace Foxoft.Ci {
       if (array.Length >= ElemPerRow) {
         res.Append(NewLineStr);
         OpenBlock(false);
-        res.Append(GetIndentStr());
+        AppendIndentStr(res);
       }
       for (int i = 0; i < array.Length; i++) {
         res.Append(DecodeValue(type, array.GetValue(i)));
@@ -995,14 +996,14 @@ namespace Foxoft.Ci {
           res.Append(ElemSeparator);
           if ((i + 1) % ElemPerRow == 0) {
             res.Append(NewLineStr);
-            res.Append(GetIndentStr());
+            AppendIndentStr(res);
           }
         }
       }
       if (array.Length >= ElemPerRow) {
         CloseBlock(false);
         res.Append(NewLineStr);
-        res.Append(GetIndentStr());
+        AppendIndentStr(res);
       }
       return res.ToString();
     }

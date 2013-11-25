@@ -180,10 +180,14 @@ namespace Foxoft.Ci {
       fullCode = new StringBuilder();
     }
 
-    protected virtual void Close() {
+    protected virtual void Flush() {
       if (curLine.Length > 0) {
-        fullCode.Append(curLine);
+        WriteLine();
       }
+    }
+
+    protected virtual void Close() {
+      Flush();
       Writer.Write(fullCode);
       Writer.Close();
     }
@@ -215,21 +219,19 @@ namespace Foxoft.Ci {
     }
 
     protected virtual void WriteLine() {
-      string newTxt = curLine.ToString().Trim();
+      string newTxt = curLine.ToString().TrimEnd();
       if (newTxt.Length > 0) {
-        fullCode.Append(GetIndentStr());
+        AppendIndentStr(fullCode);
         fullCode.Append(newTxt);
       }
       fullCode.Append(NewLineStr);
       curLine = new StringBuilder();
     }
 
-    protected virtual string GetIndentStr() {
-      StringBuilder res = new StringBuilder();
+    protected virtual void AppendIndentStr(StringBuilder res) {
       for (int i = 0; i < this.Indent; i++) {
         res.Append(IndentStr);
       }
-      return res.ToString();
     }
     #endregion
 

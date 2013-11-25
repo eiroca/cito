@@ -33,18 +33,21 @@ public partial class MainWindow: Gtk.Window {
   //
   private static Gdk.Atom _atom = Gdk.Atom.Intern("CLIPBOARD", false);
   private Gtk.Clipboard _clipBoard = Gtk.Clipboard.Get(_atom);
+  private bool InUpdate = false;
 
   public MainWindow() : base(Gtk.WindowType.Toplevel) {
     Build();
+    InUpdate = true;
     tvSource.Buffer.Changed += OnSourceChange;
     iNameSpace.Changed += OnSourceChange;
     lbMsg.Text = "";
-    TranslateCode();
     PopulateCombo(cbSource, Project.GetSources());
     PopulateCombo(cbLanguage, GeneratorHelper.GetLanguages());
     FixMac();
     tvSource.ModifyFont(Pango.FontDescription.FromString("monospace 12"));
     tvTarget.ModifyFont(Pango.FontDescription.FromString("monospace 12"));
+    InUpdate = false;
+    TranslateCode();
   }
 
   private void PopulateCombo(ComboBox cb, string[] items) {
@@ -74,8 +77,10 @@ public partial class MainWindow: Gtk.Window {
   }
 
   private void LoadSourceFiles(string[] Filenames) {
+    InUpdate = true;
     Project.LoadFiles(Filenames);
     PopulateCombo(cbSource, Project.GetSources());
+    InUpdate = false;
     TranslateCode();
   }
 
@@ -143,7 +148,7 @@ public partial class MainWindow: Gtk.Window {
   }
 
   protected void OnSourceChange(object sender, EventArgs e) {
-    if (AutoTranslateAction.Active) {
+    if (AutoTranslateAction.Active && !InUpdate) {
       CopySource();
       TranslateCode();
     }
@@ -195,7 +200,9 @@ public partial class MainWindow: Gtk.Window {
   }
 
   protected void OnLanguageChange(object sender, EventArgs e) {
-    TranslateCode();
+    if (!InUpdate) {
+      TranslateCode();
+    }
   }
 
   private void FixMac() {

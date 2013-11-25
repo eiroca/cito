@@ -182,7 +182,7 @@ namespace Foxoft.Ci {
     private static string trimmedString = new string(trimmedChar);
 
     protected override void WriteLine() {
-      string newTxt = curLine.ToString().Trim(trimmedChar);
+      string newTxt = curLine.ToString().TrimEnd(trimmedChar);
       if (curLine.Equals("")) {
         oldLine.Append(NewLineStr);
         return;
@@ -213,7 +213,7 @@ namespace Foxoft.Ci {
       }
       fullCode.Append(oldTxt);
       oldLine = new StringBuilder();
-      oldLine.Append(GetIndentStr());
+      AppendIndentStr(oldLine);
       oldLine.Append(newTxt);
       oldLine.Append(NewLineStr);
       curLine = new StringBuilder();
@@ -224,10 +224,16 @@ namespace Foxoft.Ci {
       base.Open(writer);
     }
 
-    protected override void Close() {
+    protected override void Flush() {
+      base.Flush();
       if (oldLine.Length > 0) {
         fullCode.Append(oldLine);
+        oldLine = new StringBuilder();
       }
+    }
+
+    protected override void Close() {
+      Flush();
       base.Close();
     }
 
@@ -407,10 +413,20 @@ namespace Foxoft.Ci {
       BinaryOperators.Declare(CiToken.Or, CiPriority.Additive, true, ConvertOperator, " or ");
       BinaryOperators.Declare(CiToken.Xor, CiPriority.Additive, true, ConvertOperator, " xor ");
 //
-      UnaryOperators.Declare(CiToken.Increment, CiPriority.Prefix, ConvertOperatorUnary, "__CINC_Pre(", ")");
-      UnaryOperators.Declare(CiToken.Decrement, CiPriority.Prefix, ConvertOperatorUnary, "__CDEC_Pre(", ")");
+      UnaryOperators.Declare(CiToken.Increment, CiPriority.Prefix, ConvertOperatorInc, "__CINC_Pre(", ")");
+      UnaryOperators.Declare(CiToken.Decrement, CiPriority.Prefix, ConvertOperatorDec, "__CDEC_Pre(", ")");
       UnaryOperators.Declare(CiToken.Minus, CiPriority.Prefix, ConvertOperatorUnary, "-(", ")");
       UnaryOperators.Declare(CiToken.Not, CiPriority.Prefix, ConvertOperatorUnary, "not (", ")");
+    }
+
+    public void ConvertOperatorInc(CiUnaryExpr expr, UnaryOperatorInfo token) {
+      UseFunction("__CINC_Pre");
+      ConvertOperatorUnary(expr, token);
+    }
+
+    public void ConvertOperatorDec(CiUnaryExpr expr, UnaryOperatorInfo token) {
+      UseFunction("__CDEC_Pre");
+      ConvertOperatorUnary(expr, token);
     }
 
     public void ConvertOperatorSlash(CiBinaryExpr expr, BinaryOperatorInfo token) {
@@ -508,9 +524,11 @@ namespace Foxoft.Ci {
       CiPostfixExpr expr = (CiPostfixExpr)expression;
       switch (expr.Op) {
         case CiToken.Increment:
+          UseFunction("__CINC_Post");
           Write("__CINC_Post(");
           break;
         case CiToken.Decrement:
+          UseFunction("__CDEC_Post");
           Write("__CDEC_Post(");
           break;
         default:
@@ -949,6 +967,7 @@ namespace Foxoft.Ci {
     }
 
     public void Library_ToString(CiMethodCall expr) {
+      UseFunction("__TOSTR");
       Write("__TOSTR(");
       Translate(expr.Obj);
       Write(", ");
@@ -988,6 +1007,8 @@ namespace Foxoft.Ci {
       //Epilogue
       EmitInitialization(prog);
       WriteLine("end.");
+      //Insert used Helper functions
+      EmitHelperFunctions();
       CloseFile();
     }
 
@@ -1071,7 +1092,6 @@ namespace Foxoft.Ci {
       WriteLine();
       WriteLine("implementation");
       WriteLine();
-      bool getResProc = false;
       bool first = true;
       HashSet<string> types = new HashSet<string>();
       foreach (CiType t in GetTypeList()) {
@@ -1086,26 +1106,42 @@ namespace Foxoft.Ci {
             WriteLine("procedure __CCLEAR(var x: {0}); overload; var i: integer; begin for i:= low(x) to high(x) do x[i]:= {1}; end;", info.NewType, info.ItemDefault);
             WriteLine("procedure __CFILL (var x: {0}; v: {1}); overload; var i: integer; begin for i:= low(x) to high(x) do x[i]:= v; end;", info.NewType, info.ItemType);
             WriteLine("procedure __CCOPY (const source: {0}; sourceStart: integer; var dest: {0}; destStart: integer; len: integer); overload; var i: integer; begin for i:= 0 to len do dest[i+destStart]:= source[i+sourceStart]; end;", info.NewType);
-            if ((info.ItemType != null) && (info.ItemType.Equals("byte"))) {
-              getResProc = true;
-            }
           }
         }
       }
-      if (getResProc) {
-        WriteLine("function  __getBinaryResource(const aName: string): ArrayOf_byte; var myfile: TFileStream; begin myFile:= TFileStream.Create(aName, fmOpenRead); SetLength(Result, myFile.Size); try myFile.seek(0, soFromBeginning); myFile.ReadBuffer(Result, myFile.Size); finally myFile.free; end; end;");
-        WriteLine("function  __TOSTR (const x: ArrayOf_byte; sourceIndex: integer; len: integer): string; var i: integer; begin Result:= ''; for i:= sourceIndex to sourceIndex+len do Result:= Result + chr(x[i]); end;");
-      }
-      WriteLine("function  __CDEC_Pre (var x: integer): integer; overload; inline; begin dec(x); Result:= x; end;");
-      WriteLine("function  __CDEC_Post(var x: integer): integer; overload; inline; begin Result:= x; dec(x); end;");
-      WriteLine("function  __CINC_Pre (var x: integer): integer; overload; inline; begin inc(x); Result:= x; end;");
-      WriteLine("function  __CINC_Post(var x: integer): integer; overload; inline; begin Result:= x; inc(x); end;");
-      WriteLine("function  __CDEC_Pre (var x: byte): byte; overload; inline; begin dec(x); Result:= x; end;");
-      WriteLine("function  __CDEC_Post(var x: byte): byte; overload; inline; begin Result:= x; dec(x); end;");
-      WriteLine("function  __CINC_Pre (var x: byte): byte; overload; inline; begin inc(x); Result:= x; end;");
-      WriteLine("function  __CINC_Post(var x: byte): byte; overload; inline; begin Result:= x; inc(x); end;");
-      WriteLine("function  __getMagic(const cond: array of boolean): integer; var i: integer; var o: integer; begin Result:= 0; for i:= low(cond) to high(cond) do begin if (cond[i]) then o:= 1 else o:= 0; Result:= Result shl 1 + o; end; end;");
+      Flush();
+      mark = fullCode.Length;
     }
+
+    public void EmitHelperFunctions() {
+      if (IsUsedFunction("__CDEC_Pre")) {
+        fullCode.Insert(mark, "function  __CDEC_Pre (var x: integer): integer; overload; inline; begin dec(x); Result:= x; end;" + NewLineStr);
+        fullCode.Insert(mark, "function  __CDEC_Pre (var x: byte): byte; overload; inline; begin dec(x); Result:= x; end;" + NewLineStr);
+      }
+      if (IsUsedFunction("__CDEC_Post")) {
+        fullCode.Insert(mark, "function  __CDEC_Post(var x: integer): integer; overload; inline; begin Result:= x; dec(x); end;" + NewLineStr);
+        fullCode.Insert(mark, "function  __CDEC_Post(var x: byte): byte; overload; inline; begin Result:= x; dec(x); end;" + NewLineStr);
+      }
+      if (IsUsedFunction("__CINC_Pre")) {
+        fullCode.Insert(mark, "function  __CINC_Pre (var x: integer): integer; overload; inline; begin inc(x); Result:= x; end;" + NewLineStr);
+        fullCode.Insert(mark, "function  __CINC_Pre (var x: byte): byte; overload; inline; begin inc(x); Result:= x; end;" + NewLineStr);
+      }
+      if (IsUsedFunction("__CINC_Post")) {
+        fullCode.Insert(mark, "function  __CINC_Post(var x: integer): integer; overload; inline; begin Result:= x; inc(x); end;" + NewLineStr);
+        fullCode.Insert(mark, "function  __CINC_Post(var x: byte): byte; overload; inline; begin Result:= x; inc(x); end;" + NewLineStr);
+      }
+      if (IsUsedFunction("__getMagic")) {
+        fullCode.Insert(mark, "function  __getMagic(const cond: array of boolean): integer; var i: integer; var o: integer; begin Result:= 0; for i:= low(cond) to high(cond) do begin if (cond[i]) then o:= 1 else o:= 0; Result:= Result shl 1 + o; end; end;" + NewLineStr);
+      }
+      if (IsUsedFunction("__getBinaryResource")) {
+        fullCode.Insert(mark, "function  __getBinaryResource(const aName: string): ArrayOf_byte; var myfile: TFileStream; begin myFile:= TFileStream.Create(aName, fmOpenRead); SetLength(Result, myFile.Size); try myFile.seek(0, soFromBeginning); myFile.ReadBuffer(Result, myFile.Size); finally myFile.free; end; end;" + NewLineStr);
+      }
+      if (IsUsedFunction("__TOSTR")) {
+        fullCode.Insert(mark, "function  __TOSTR (const x: ArrayOf_byte; sourceIndex: integer; len: integer): string; var i: integer; begin Result:= ''; for i:= sourceIndex to sourceIndex+len do Result:= Result + chr(x[i]); end;" + NewLineStr);
+      }
+    }
+
+    protected int mark;
 
     public void EmitConstants(CiProgram prog) {
       bool first = true;
@@ -1193,6 +1229,7 @@ namespace Foxoft.Ci {
         if (symbol is CiClass) {
           CiClass klass = (CiClass)symbol;
           foreach (CiBinaryResource resource in klass.BinaryResources) {
+            UseFunction("__getBinaryResource");
             WriteLine("{0}:= __getBinaryResource('{1}');", DecodeSymbol(resource), resource.Name);
           }
         }
@@ -1757,6 +1794,7 @@ namespace Foxoft.Ci {
           int level = iifs.Count;
           if (level > 0) {
             if (level > 1) {
+              UseFunction("__getMagic");
               Write("case (__getMagic([");
               for (int i = 0; i < level; i++) {
                 if (i > 0) {

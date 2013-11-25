@@ -217,8 +217,7 @@ namespace Foxoft.Ci {
 
     public override void EmitProgram(CiProgram prog) {
       CreateFile(this.OutputFile);
-      ClearUsedFunction();
-      foreach (CiSymbol symbol in prog.Globals) {
+        foreach (CiSymbol symbol in prog.Globals) {
         if (symbol is CiClass) {
           ((CiClass)symbol).WriteStatus = CiWriteStatus.NotYet;
         }

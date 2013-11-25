@@ -379,7 +379,6 @@ namespace Foxoft.Ci {
     }
 
     public override void EmitProgram(CiProgram prog) {
-      ClearUsedFunction();
       CreateFile(this.OutputFile);
       if (this.Namespace != null) {
         WriteLine("namespace {0};", this.Namespace);
