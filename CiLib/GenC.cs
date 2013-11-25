@@ -33,9 +33,9 @@ namespace Foxoft.Ci {
 
     public GenC() : base() {
       Namespace = "cito";
+      TranslateSymbolName = C_SymbolNameTranslator;
       Decode_NULLVALUE = "NULL";
       Decode_ENUMFORMAT = "{0}_{1}";
-      TranslateSymbolName = C_SymbolNameTranslator;
       Decode_TRUEVALUE = "TRUE";
       Decode_FALSEVALUE = "FALSE";
       CommentContinueStr = "* ";
@@ -462,7 +462,11 @@ namespace Foxoft.Ci {
         }
         else {
           WriteLine(";");
-          Translate(new CiAssign { Target = new CiVarAccess { Var = stmt }, Op = CiToken.Assign, Source = stmt.InitialValue });
+          Translate(new CiAssign {
+            Target = new CiVarAccess { Var = stmt },
+            Op = CiToken.Assign,
+            Source = stmt.InitialValue
+          });
         }
       }
     }
@@ -665,7 +669,7 @@ namespace Foxoft.Ci {
         WriteFormat("#define {0}_LENGTH {1}", DecodeSymbol(konst), stg.Length);
       }
       else {
-        WriteFormat("#define {0}  {1}", DecodeSymbol(konst), DecodeValue(konst.Type, konst.Value));
+        WriteFormat("#define {0} {1}", DecodeSymbol(konst), DecodeValue(konst.Type, konst.Value));
       }
       WriteLine();
     }
@@ -1246,10 +1250,6 @@ namespace Foxoft.Ci {
 
     protected virtual void WriteBoolType() {
       WriteLine("#include <stdbool.h>");
-    }
-
-    protected void WriteSum(CiExpr left, CiExpr right) {
-      Translate(new CiBinaryExpr { Left = left, Op = CiToken.Plus, Right = right });
     }
 
     #region CiTo Library handlers

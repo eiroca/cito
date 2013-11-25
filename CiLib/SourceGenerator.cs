@@ -45,6 +45,11 @@ namespace Foxoft.Ci {
       CommentSpecialChar.Add('&', "&amp;");
       CommentSpecialChar.Add('<', "&lt;");
       CommentSpecialChar.Add('>', "&gt;");
+      Decode_SPECIALCHAR.Add('\t', "\\t");
+      Decode_SPECIALCHAR.Add('\r', "\\r");
+      Decode_SPECIALCHAR.Add('\n', "\\n");
+      Decode_SPECIALCHAR.Add('\\', "\\\\");
+      Decode_SPECIALCHAR.Add('\"', "\\\"");
     }
 
     public override string[] GetReservedWords() {
@@ -205,8 +210,7 @@ namespace Foxoft.Ci {
     public virtual void Expression_CiFieldAccess(CiExpr expression) {
       CiFieldAccess expr = (CiFieldAccess)expression;
       WriteChild(expr, expr.Obj);
-      Write('.');
-      Write(DecodeSymbol(expr.Field));
+      WriteFormat(".{0}", DecodeSymbol(expr.Field));
     }
 
     public virtual void Expression_CiPropertyAccess(CiExpr expression) {
@@ -234,8 +238,7 @@ namespace Foxoft.Ci {
           else {
             Write(DecodeSymbol(expr.Method.Class));
           }
-          Write('.');
-          Write(DecodeSymbol(expr.Method));
+          WriteFormat(".{0}", DecodeSymbol(expr.Method));
         }
         else {
           Translate(expr.Obj);
@@ -777,6 +780,9 @@ namespace Foxoft.Ci {
     protected string Decode_FALSEVALUE = "false";
     protected string Decode_ENUMFORMAT = "{0}.{1}";
     protected string Decode_NULLVALUE = "null";
+    protected string Decode_STRINGBEGIN = "\"";
+    protected string Decode_STRINGEND = "\"";
+    protected Dictionary<char, string> Decode_SPECIALCHAR = new Dictionary<char, string>();
 
     public override string DecodeValue(CiType type, object value) {
       StringBuilder res = new StringBuilder();
@@ -790,30 +796,19 @@ namespace Foxoft.Ci {
         res.Append((int)value);
       }
       else if (value is string) {
-        res.Append('"');
+        res.Append(Decode_STRINGBEGIN);
         foreach (char c in (string) value) {
-          switch (c) {
-            case '\t':
-              res.Append("\\t");
-              break;
-            case '\r':
-              res.Append("\\r");
-              break;
-            case '\n':
-              res.Append("\\n");
-              break;
-            case '\\':
-              res.Append("\\\\");
-              break;
-            case '\"':
-              res.Append("\\\"");
-              break;
-            default:
-              res.Append(c);
-              break;
+          if (Decode_SPECIALCHAR.ContainsKey(c)) {
+            res.Append(Decode_SPECIALCHAR[c]);
+          }
+          else if (((int)c < 32) || ((int)c > 126)) {
+            res.Append(c);
+          }
+          else {
+            res.Append(c);
           }
         }
-        res.Append('"');
+        res.Append(Decode_STRINGEND);
       }
       else if (value is CiEnumValue) {
         CiEnumValue ev = (CiEnumValue)value;
@@ -923,6 +918,10 @@ namespace Foxoft.Ci {
       }
       Write(" ");
       OpenBlock();
+    }
+
+    protected void WriteSum(CiExpr left, CiExpr right) {
+      Translate(new CiBinaryExpr { Left = left, Op = CiToken.Plus, Right = right });
     }
   }
 }
