@@ -681,6 +681,8 @@ namespace Foxoft.Ci {
       return false;
     }
 
+    protected bool promoteClassConst = true;
+
     public virtual void PreProcess(CiProgram program) {
       ResetSymbolMapping();
       ResetClassOrder();
@@ -707,6 +709,11 @@ namespace Foxoft.Ci {
       foreach (CiClass klass in GetOrderedClassList()) {
         SymbolMapping parent = (klass.BaseClass != null ? FindSymbol(klass.BaseClass) : root);
         AddSymbol(parent, klass);
+        if (promoteClassConst) {
+          foreach (CiConst konst in klass.ConstArrays) {
+            AddSymbol(root, konst);
+          }
+        }
       }
       foreach (CiClass klass in GetOrderedClassList()) {
         PreProcess(program, klass);
@@ -716,7 +723,12 @@ namespace Foxoft.Ci {
     public virtual void PreProcess(CiProgram program, CiClass klass) {
       SymbolMapping parent = FindSymbol(klass);
       foreach (CiSymbol member in klass.Members) {
-        if (!(member is CiMethod)) {
+        if (member is CiConst) {
+          if (!promoteClassConst) {
+            AddSymbol(parent, member);
+          }
+        }
+        else if (!(member is CiMethod)) {
           AddSymbol(parent, member);
         }
         if (member is CiField) {
@@ -995,8 +1007,60 @@ namespace Foxoft.Ci {
       return res.ToString();
     }
 
+    protected string Decode_ARRAYBEGIN = "{ ";
+    protected string Decode_ARRAYEND = " }";
+    protected string Decode_TRUEVALUE = "true";
+    protected string Decode_FALSEVALUE = "false";
+    protected string Decode_ENUMFORMAT = "{0}.{1}";
+    protected string Decode_NULLVALUE = "null";
+    protected string Decode_STRINGBEGIN = "\"";
+    protected string Decode_STRINGEND = "\"";
+    protected string Decode_NONANSICHAR = "{0}";
+    protected Dictionary<char, string> Decode_SPECIALCHAR = new Dictionary<char, string>();
+
     public virtual string DecodeValue(CiType type, object value) {
-      return (value != null) ? value.ToString() : "";
+      StringBuilder res = new StringBuilder();
+      if (value is bool) {
+        res.Append((bool)value ? Decode_TRUEVALUE : Decode_FALSEVALUE);
+      }
+      else if (value is byte) {
+        res.Append((byte)value);
+      }
+      else if (value is int) {
+        res.Append((int)value);
+      }
+      else if (value is string) {
+        res.Append(Decode_STRINGBEGIN);
+        foreach (char c in (string) value) {
+          if (Decode_SPECIALCHAR.ContainsKey(c)) {
+            res.Append(Decode_SPECIALCHAR[c]);
+          }
+          else if (((int)c < 32) || ((int)c > 126)) {
+            res.AppendFormat(Decode_NONANSICHAR, c, (int)c);
+          }
+          else {
+            res.Append(c);
+          }
+        }
+        res.Append(Decode_STRINGEND);
+      }
+      else if (value is CiEnumValue) {
+        CiEnumValue ev = (CiEnumValue)value;
+        res.AppendFormat(Decode_ENUMFORMAT, DecodeSymbol(ev.Type), DecodeSymbol(ev));
+      }
+      else if (value is Array) {
+        res.Append(Decode_ARRAYBEGIN);
+        res.Append(DecodeArray(type, (Array)value));
+        res.Append(Decode_ARRAYEND);
+      }
+      else if (value == null) {
+        TypeInfo info = GetTypeInfo(type);
+        res.Append(info.Null ?? Decode_NULLVALUE);
+      }
+      else {
+        throw new ArgumentException(value.ToString());
+      }
+      return res.ToString();
     }
 
     public virtual string DecodeSymbol(CiSymbol symbol) {

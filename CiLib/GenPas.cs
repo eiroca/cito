@@ -43,7 +43,6 @@ namespace Foxoft.Ci {
       BlockOpenStr = "begin";
       BlockCloseCR = false;
       CheckParam = true;
-  
       CommentContinueStr = "/// ";
       CommentBeginStr = "";
       CommentEndStr = "";
@@ -63,6 +62,15 @@ namespace Foxoft.Ci {
       CommentSpecialChar.Add('(', "@(");
       CommentSpecialChar.Add(')', "@)");
       CommentSpecialChar.Add('@', "@@");
+      Decode_TRUEVALUE = "true";
+      Decode_FALSEVALUE = "false";
+      Decode_STRINGBEGIN = "'";
+      Decode_STRINGEND = "'";
+      Decode_SPECIALCHAR.Clear();
+      Decode_SPECIALCHAR.Add('\'', "\'\'");
+      Decode_NONANSICHAR = "'#{1}'";
+      Decode_ARRAYEND = " )";
+      Decode_ARRAYBEGIN = "( ";
     }
 
     #region Base Generator specialization
@@ -153,63 +161,18 @@ namespace Foxoft.Ci {
       WriteLine("(* Generated automatically with \"cito\". Do not edit. *)");
     }
 
-    public override string DecodeValue(CiType type, object value) {
-      StringBuilder res = new StringBuilder();
-      if (value is string) {
-        res.Append('\'');
-        foreach (char c in (string) value) {
-          if ((int)c < 32) {
-            res.Append("'+chr(" + (int)c + ")+'");
-          }
-          else if (c == '\'') {
-            res.Append("''");
-          }
-          else {
-            res.Append(c);
-          }
-        }
-        res.Append('\'');
-      }
-      else if (value is Array) {
-        res.Append("( ");
-        res.Append(DecodeArray(type, (Array)value));
-        res.Append(" )");
-      }
-      else if (value == null) {
-        TypeInfo info = GetTypeInfo(type);
-        res.Append(info.Null);
-      }
-      else if (value is bool) {
-        res.Append((bool)value ? "true" : "false");
-      }
-      else if (value is byte) {
-        res.Append((byte)value);
-      }
-      else if (value is int) {
-        res.Append((int)value);
-      }
-      else if (value is CiEnumValue) {
-        CiEnumValue ev = (CiEnumValue)value;
-        res.Append(ev.Type.Name);
-        res.Append('.');
-        res.Append(ev.Name);
-      }
-      else {
-        throw new ArgumentException(value.ToString());
-      }
-      return res.ToString();
-    }
-
     public override CiPriority GetPriority(CiExpr expr) {
       if (expr is CiPropertyAccess) {
         CiProperty prop = ((CiPropertyAccess)expr).Property;
-        if (prop == CiLibrary.SByteProperty || prop == CiLibrary.LowByteProperty)
+        if (prop == CiLibrary.SByteProperty || prop == CiLibrary.LowByteProperty) {
           return CiPriority.Prefix;
+        }
       }
       else if (expr is CiCoercion) {
         CiCoercion c = (CiCoercion)expr;
-        if (c.ResultType == CiByteType.Value && c.Inner.Type == CiIntType.Value)
+        if (c.ResultType == CiByteType.Value && c.Inner.Type == CiIntType.Value) {
           return CiPriority.Prefix;
+        }
       }
       return base.GetPriority(expr);
     }
@@ -1263,6 +1226,19 @@ namespace Foxoft.Ci {
       return res;
     }
 
+    bool IsChanging(CiExpr expr, CiVar v4r) {
+      CiVar v = null;
+      if (expr is CiBoolBinaryExpr) {
+        if (((CiBoolBinaryExpr)expr).Left is CiUnaryExpr) {
+          var stmt = ((CiUnaryExpr)(((CiBoolBinaryExpr)expr).Left)).Inner;
+          if (stmt is CiVarAccess) {
+            v = ((CiVarAccess)stmt).Var;
+          }
+        }
+      }
+      return (v != null) ? (v == v4r) : false;
+    }
+
     bool IsAssignmentOf(ICiStatement stmt, CiVar v4r) {
       CiVar v = null;
       if (stmt is CiPostfixExpr) {
@@ -1270,10 +1246,10 @@ namespace Foxoft.Ci {
           v = (CiVar)((CiVarAccess)(((CiPostfixExpr)stmt).Inner)).Var;
         }
       }
-      if (stmt is CiVarAccess) {
+      else if (stmt is CiVarAccess) {
         v = (CiVar)((CiVarAccess)stmt).Var;
       }
-      if (stmt is CiAssign) {
+      else if (stmt is CiAssign) {
         if (((CiAssign)stmt).Target is CiVarAccess) {
           v = (CiVar)((CiVarAccess)(((CiAssign)stmt).Target)).Var;
         }
@@ -1301,6 +1277,9 @@ namespace Foxoft.Ci {
           if (((CiVarAccess)cond.Left).Var == loopVar) {
             // loop variabale cannot be changed inside the loop
             if (Execute(stmt.Body, s => IsAssignmentOf(s, loopVar))) {
+              return false;
+            }
+            if (Execute(stmt.Body, s => (s is CiLoop) && IsChanging(((CiLoop)s).Cond, loopVar))) {
               return false;
             }
             return true;

@@ -774,60 +774,6 @@ namespace Foxoft.Ci {
       }
     }
 
-    protected string Decode_ARRAYBEGIN = "{ ";
-    protected string Decode_ARRAYEND = " }";
-    protected string Decode_TRUEVALUE = "true";
-    protected string Decode_FALSEVALUE = "false";
-    protected string Decode_ENUMFORMAT = "{0}.{1}";
-    protected string Decode_NULLVALUE = "null";
-    protected string Decode_STRINGBEGIN = "\"";
-    protected string Decode_STRINGEND = "\"";
-    protected Dictionary<char, string> Decode_SPECIALCHAR = new Dictionary<char, string>();
-
-    public override string DecodeValue(CiType type, object value) {
-      StringBuilder res = new StringBuilder();
-      if (value is bool) {
-        res.Append((bool)value ? Decode_TRUEVALUE : Decode_FALSEVALUE);
-      }
-      else if (value is byte) {
-        res.Append((byte)value);
-      }
-      else if (value is int) {
-        res.Append((int)value);
-      }
-      else if (value is string) {
-        res.Append(Decode_STRINGBEGIN);
-        foreach (char c in (string) value) {
-          if (Decode_SPECIALCHAR.ContainsKey(c)) {
-            res.Append(Decode_SPECIALCHAR[c]);
-          }
-          else if (((int)c < 32) || ((int)c > 126)) {
-            res.Append(c);
-          }
-          else {
-            res.Append(c);
-          }
-        }
-        res.Append(Decode_STRINGEND);
-      }
-      else if (value is CiEnumValue) {
-        CiEnumValue ev = (CiEnumValue)value;
-        res.AppendFormat(Decode_ENUMFORMAT, DecodeSymbol(ev.Type), DecodeSymbol(ev));
-      }
-      else if (value is Array) {
-        res.Append(Decode_ARRAYBEGIN);
-        res.Append(DecodeArray(type, (Array)value));
-        res.Append(Decode_ARRAYEND);
-      }
-      else if (value == null) {
-        res.Append(Decode_NULLVALUE);
-      }
-      else {
-        throw new ArgumentException(value.ToString());
-      }
-      return res.ToString();
-    }
-
     public override CiPriority GetPriority(CiExpr expr) {
       if (expr is CiPropertyAccess) {
         CiProperty prop = ((CiPropertyAccess)expr).Property;
