@@ -712,6 +712,7 @@ namespace Foxoft.Ci {
         AddSymbol(parent, klass);
         if (promoteClassConst) {
           foreach (CiConst konst in klass.ConstArrays) {
+            AddType(((CiConst)konst).Type);
             AddSymbol(root, konst);
           }
         }
@@ -726,6 +727,7 @@ namespace Foxoft.Ci {
       foreach (CiSymbol member in klass.Members) {
         if (member is CiConst) {
           if (!promoteClassConst) {
+            AddType(((CiConst)member).Type);
             AddSymbol(parent, member);
           }
         }
@@ -734,9 +736,6 @@ namespace Foxoft.Ci {
         }
         if (member is CiField) {
           AddType(((CiField)member).Type);
-        }
-        else if (member is CiConst) {
-          AddType(((CiConst)member).Type);
         }
       }
       foreach (CiBinaryResource resource in klass.BinaryResources) {

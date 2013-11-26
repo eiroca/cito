@@ -211,7 +211,9 @@ namespace Foxoft.Ci {
           }
         }
       }
-      fullCode.Append(oldTxt);
+      int oldLength = fullCode.Length;
+      fullCode.Insert(Position, oldTxt);
+      Position += fullCode.Length - oldLength;
       oldLine = new StringBuilder();
       AppendIndentStr(oldLine);
       oldLine.Append(newTxt);
@@ -225,11 +227,13 @@ namespace Foxoft.Ci {
     }
 
     protected override void Flush() {
-      base.Flush();
       if (oldLine.Length > 0) {
-        fullCode.Append(oldLine);
+        int oldLength = fullCode.Length;
+        fullCode.Insert(Position, oldLine);
+        Position += fullCode.Length - oldLength;
         oldLine = new StringBuilder();
       }
+      base.Flush();
     }
 
     protected override void Close() {
@@ -298,6 +302,7 @@ namespace Foxoft.Ci {
     }
 
     public TypeInfo Type_CiStringPtrType(CiType type) {
+      UseFunction("Unit_StrUtils");
       if (type.ArrayLevel > 0) {
         throw new ArgumentException("Invalid level in type :" + type);
       }
@@ -305,6 +310,7 @@ namespace Foxoft.Ci {
     }
 
     public TypeInfo Type_CiStringStorageType(CiType type) {
+      UseFunction("Unit_StrUtils");
       if (type.ArrayLevel > 0) {
         throw new ArgumentException("Invalid level in type :" + type);
       }
@@ -540,6 +546,7 @@ namespace Foxoft.Ci {
 
     public void Expression_CiCondExpr(CiExpr expression) {
       CiCondExpr expr = (CiCondExpr)expression;
+      UseFunction("Unit_Math");
       Write("IfThen(");
       WriteChild(expr, expr.Cond, true);
       Write(", ");
@@ -1009,14 +1016,35 @@ namespace Foxoft.Ci {
       WriteLine("end.");
       //Insert used Helper functions
       EmitHelperFunctions();
+      EmitUses();
       CloseFile();
     }
+
+    PositionMark UsesMark;
 
     public void EmitInterfaceHeader() {
       WriteLine();
       WriteLine("interface");
       WriteLine();
-      WriteLine("uses SysUtils, StrUtils, Classes, Math;");
+      UsesMark = GetMark();
+    }
+
+    public void EmitUses() {
+      SetMark(UsesMark);
+      StringBuilder uses = new StringBuilder();
+      uses.Append("uses SysUtils");
+      if (IsUsedFunction("Unit_StrUtils")) {
+        uses.Append(", StrUtils");
+      }
+      if (IsUsedFunction("Unit_Classes")) {
+        uses.Append(", Classes");
+      }
+      if (IsUsedFunction("Unit_Math")) {
+        uses.Append(", Math");
+      }
+      uses.Append(";");
+      WriteLine(uses.ToString());
+      SetMark(null);
     }
 
     public void EmitEnums(CiProgram prog) {
@@ -1053,6 +1081,7 @@ namespace Foxoft.Ci {
     }
 
     public void EmitClassesInterface(CiProgram prog) {
+      UseFunction("Unit_Classes");
       var delegates = prog.Globals.Where(s => s is CiDelegate);
       if (delegates.Count() > 0) {
         WriteLine();
@@ -1088,6 +1117,8 @@ namespace Foxoft.Ci {
       WriteLine("end;");
     }
 
+    protected PositionMark HelperMark;
+
     public void EmitImplementationHeader() {
       WriteLine();
       WriteLine("implementation");
@@ -1109,39 +1140,38 @@ namespace Foxoft.Ci {
           }
         }
       }
-      Flush();
-      mark = fullCode.Length;
+      HelperMark = GetMark();
     }
 
     public void EmitHelperFunctions() {
+      SetMark(HelperMark);
       if (IsUsedFunction("__CDEC_Pre")) {
-        fullCode.Insert(mark, "function  __CDEC_Pre (var x: integer): integer; overload; inline; begin dec(x); Result:= x; end;" + NewLineStr);
-        fullCode.Insert(mark, "function  __CDEC_Pre (var x: byte): byte; overload; inline; begin dec(x); Result:= x; end;" + NewLineStr);
+        WriteLine("function  __CDEC_Pre (var x: integer): integer; overload; inline; begin dec(x); Result:= x; end;");
+        WriteLine("function  __CDEC_Pre (var x: byte): byte; overload; inline; begin dec(x); Result:= x; end;");
       }
       if (IsUsedFunction("__CDEC_Post")) {
-        fullCode.Insert(mark, "function  __CDEC_Post(var x: integer): integer; overload; inline; begin Result:= x; dec(x); end;" + NewLineStr);
-        fullCode.Insert(mark, "function  __CDEC_Post(var x: byte): byte; overload; inline; begin Result:= x; dec(x); end;" + NewLineStr);
+        WriteLine("function  __CDEC_Post(var x: integer): integer; overload; inline; begin Result:= x; dec(x); end;");
+        WriteLine("function  __CDEC_Post(var x: byte): byte; overload; inline; begin Result:= x; dec(x); end;");
       }
       if (IsUsedFunction("__CINC_Pre")) {
-        fullCode.Insert(mark, "function  __CINC_Pre (var x: integer): integer; overload; inline; begin inc(x); Result:= x; end;" + NewLineStr);
-        fullCode.Insert(mark, "function  __CINC_Pre (var x: byte): byte; overload; inline; begin inc(x); Result:= x; end;" + NewLineStr);
+        WriteLine("function  __CINC_Pre (var x: integer): integer; overload; inline; begin inc(x); Result:= x; end;");
+        WriteLine("function  __CINC_Pre (var x: byte): byte; overload; inline; begin inc(x); Result:= x; end;");
       }
       if (IsUsedFunction("__CINC_Post")) {
-        fullCode.Insert(mark, "function  __CINC_Post(var x: integer): integer; overload; inline; begin Result:= x; inc(x); end;" + NewLineStr);
-        fullCode.Insert(mark, "function  __CINC_Post(var x: byte): byte; overload; inline; begin Result:= x; inc(x); end;" + NewLineStr);
+        WriteLine("function  __CINC_Post(var x: integer): integer; overload; inline; begin Result:= x; inc(x); end;");
+        WriteLine("function  __CINC_Post(var x: byte): byte; overload; inline; begin Result:= x; inc(x); end;");
       }
       if (IsUsedFunction("__getMagic")) {
-        fullCode.Insert(mark, "function  __getMagic(const cond: array of boolean): integer; var i: integer; var o: integer; begin Result:= 0; for i:= low(cond) to high(cond) do begin if (cond[i]) then o:= 1 else o:= 0; Result:= Result shl 1 + o; end; end;" + NewLineStr);
+        WriteLine("function  __getMagic(const cond: array of boolean): integer; var i: integer; var o: integer; begin Result:= 0; for i:= low(cond) to high(cond) do begin if (cond[i]) then o:= 1 else o:= 0; Result:= Result shl 1 + o; end; end;");
       }
       if (IsUsedFunction("__getBinaryResource")) {
-        fullCode.Insert(mark, "function  __getBinaryResource(const aName: string): ArrayOf_byte; var myfile: TFileStream; begin myFile:= TFileStream.Create(aName, fmOpenRead); SetLength(Result, myFile.Size); try myFile.seek(0, soFromBeginning); myFile.ReadBuffer(Result, myFile.Size); finally myFile.free; end; end;" + NewLineStr);
+        WriteLine("function  __getBinaryResource(const aName: string): ArrayOf_byte; var myfile: TFileStream; begin myFile:= TFileStream.Create(aName, fmOpenRead); SetLength(Result, myFile.Size); try myFile.seek(0, soFromBeginning); myFile.ReadBuffer(Result, myFile.Size); finally myFile.free; end; end;");
       }
       if (IsUsedFunction("__TOSTR")) {
-        fullCode.Insert(mark, "function  __TOSTR (const x: ArrayOf_byte; sourceIndex: integer; len: integer): string; var i: integer; begin Result:= ''; for i:= sourceIndex to sourceIndex+len do Result:= Result + chr(x[i]); end;" + NewLineStr);
+        WriteLine("function  __TOSTR (const x: ArrayOf_byte; sourceIndex: integer; len: integer): string; var i: integer; begin Result:= ''; for i:= sourceIndex to sourceIndex+len do Result:= Result + chr(x[i]); end;");
       }
+      SetMark(null);
     }
-
-    protected int mark;
 
     public void EmitConstants(CiProgram prog) {
       bool first = true;
@@ -1203,8 +1233,8 @@ namespace Foxoft.Ci {
     }
 
     public void EmitInitialization(CiProgram prog) {
-      WriteLine();
-      WriteLine("initialization");
+      PositionMark mark = GetMark();
+      bool hasInit = false;
       OpenBlock(false);
       HashSet<string> types = new HashSet<string>();
       foreach (CiType t in GetTypeList()) {
@@ -1214,6 +1244,7 @@ namespace Foxoft.Ci {
             types.Add(info.NewType);
             Write(info.NullInit);
             WriteLine(";");
+            hasInit = true;
           }
         }
       }
@@ -1222,6 +1253,7 @@ namespace Foxoft.Ci {
           CiClass klass = (CiClass)symbol;
           foreach (CiConst konst in klass.ConstArrays) {
             WriteConstFull(konst);
+            hasInit = true;
           }
         }
       }
@@ -1231,10 +1263,17 @@ namespace Foxoft.Ci {
           foreach (CiBinaryResource resource in klass.BinaryResources) {
             UseFunction("__getBinaryResource");
             WriteLine("{0}:= __getBinaryResource('{1}');", DecodeSymbol(resource), resource.Name);
+            hasInit = true;
           }
         }
       }
       CloseBlock(false);
+      if (hasInit) {
+        SetMark(mark);
+        WriteLine();
+        WriteLine("initialization");
+        SetMark(null);
+      }
     }
 
     string DecodeDivSymbol(CiType type) {

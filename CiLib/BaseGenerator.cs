@@ -172,18 +172,27 @@ namespace Foxoft.Ci {
     //
     protected StringBuilder curLine = null;
     protected StringBuilder fullCode = null;
+    protected int Position = 0;
 
     protected virtual void Open(TextWriter writer) {
       this.Writer = writer;
       this.Indent = 0;
+      this.Position = 0;
       curLine = new StringBuilder();
       fullCode = new StringBuilder();
     }
 
     protected virtual void Flush() {
-      if (curLine.Length > 0) {
-        WriteLine();
+      string newTxt = curLine.ToString().TrimEnd();
+      if (newTxt.Length > 0) {
+        int oldLength = fullCode.Length;
+        AppendIndentStr(fullCode);
+        Position += (fullCode.Length - oldLength);  
+        oldLength = fullCode.Length;
+        fullCode.Insert(Position, newTxt);
+        Position += (fullCode.Length - oldLength);  
       }
+      curLine = new StringBuilder();
     }
 
     protected virtual void Close() {
@@ -219,18 +228,43 @@ namespace Foxoft.Ci {
     }
 
     protected virtual void WriteLine() {
-      string newTxt = curLine.ToString().TrimEnd();
-      if (newTxt.Length > 0) {
-        AppendIndentStr(fullCode);
-        fullCode.Append(newTxt);
-      }
-      fullCode.Append(NewLineStr);
-      curLine = new StringBuilder();
+      Flush();
+      fullCode.Insert(Position, NewLineStr);
+      Position += NewLineStr.Length;
     }
 
     protected virtual void AppendIndentStr(StringBuilder res) {
+      int len = this.IndentStr.Length;
       for (int i = 0; i < this.Indent; i++) {
         res.Append(IndentStr);
+      }
+    }
+
+    public class PositionMark {
+      private int FPos;
+
+      public int Position { get { return FPos; } }
+
+      public PositionMark(int Position) {
+        FPos = Position;
+      }
+    }
+
+    public PositionMark GetMark() {
+      Flush();
+      return new PositionMark(Position);
+    }
+
+    /**
+     * @param mark if null goto end of buffer
+     */
+    public void SetMark(PositionMark mark) {
+      Flush();
+      if (mark == null) {
+        Position = fullCode.Length;
+      }
+      else {
+        Position = mark.Position;
       }
     }
     #endregion
