@@ -1,4 +1,4 @@
-VERSION := 0.5.0
+VERSION := 0.5.1
 MAKEFLAGS = -r
 
 prefix := /usr/local
@@ -10,7 +10,7 @@ ASCIIDOC = asciidoc -o - $(1) $< | xmllint -o $@ -
 MAKEPDF = a2x -f pdf $< 
 SEVENZIP = 7z a -mx=9 -bd
 
-GTK_DIR = /Library/Frameworks/Mono.framework/Versions/3.2.3/lib/mono/gtk-sharp-2.0/
+GTK_DIR = /Library/Frameworks/Mono.framework/Versions/Current/lib/mono/gtk-sharp-2.0/
 
 CISVG = $(addprefix $(srcdir)res/,  ci-logo.svg)
 CIICO = $(addprefix $(srcdir)res/,  ci-logo.ico)
@@ -34,7 +34,7 @@ MANIFEST_FILE = $(addprefix $(srcdir),MANIFEST)
 DIST_BIN = ../cito-$(VERSION)-bin.zip 
 DIST_SRC = ../cito-$(VERSION)-src.tar.gz
 
-all: cito.exe cipad.exe
+all: cito.exe cipad.exe civiewer.exe
 
 cito.exe: $(CITO) $(CILIB) $(CIGEN)
 	$(CSC) -nologo -out:$@ -o+ $^
@@ -58,7 +58,7 @@ check: $(SAMPLE_DIR)/hello.ci cito.exe
 	$(MONO) ./cito.exe          -o $(SAMPLE_DIR)/hello.pas $<
 	$(MONO) ./cito.exe -l pm510 -o $(SAMPLE_DIR)/hello.php $<
 
-install: install-cito install-cipad
+install: install-cito install-cipad install-civiewer
 
 install-cito: cito.exe
 	(echo '#!/bin/sh' && echo 'exec /usr/bin/mono $(DESTDIR)$(prefix)/lib/cito/cito.exe "$$@"') > cito.sh
@@ -75,10 +75,19 @@ install-cipad: cipad.exe
 	cp cipad.sh $(DESTDIR)$(prefix)/bin/cipad
 	chmod 755 $(DESTDIR)$(prefix)/bin/cipad
 	rm cipad.sh
-
+	
+install-civiewer: civiewer.exe
+	(echo '#!/bin/bash' && echo 'export DYLD_FALLBACK_LIBRARY_PATH="/Library/Frameworks/Mono.framework/Versions/Current/lib:/usr/local/lib:/usr/lib"' && echo 'exec /usr/bin/mono $(DESTDIR)$(prefix)/lib/cito/civiewer.exe "$$@"') > civiewer.sh
+	mkdir -p $(DESTDIR)$(prefix)/lib/cito $(DESTDIR)$(prefix)/bin
+	cp $< $(DESTDIR)$(prefix)/lib/cito/civiewer.exe
+	cp civiewer.sh $(DESTDIR)$(prefix)/bin/civiewer
+	chmod 755 $(DESTDIR)$(prefix)/bin/civiewer
+	rm civiewer.sh
+	
 uninstall:
 	$(RM) $(DESTDIR)$(prefix)/bin/cito  $(DESTDIR)$(prefix)/lib/cito/cito.exe 
 	$(RM) $(DESTDIR)$(prefix)/bin/cipad $(DESTDIR)$(prefix)/lib/cito/cipad.exe
+	$(RM) $(DESTDIR)$(prefix)/bin/civiewer $(DESTDIR)$(prefix)/lib/cito/civiewer.exe
 	rmdir $(DESTDIR)$(prefix)/lib/cito
 
 res: $(CIPNG) $(CIICO)
@@ -123,7 +132,7 @@ clean:
 
 dist: $(DIST_BIN) $(DIST_SRC)
 
-$(DIST_BIN): cito.exe cipad.exe $(srcdir)COPYING $(srcdir)README $(DOCS)/readme.pdf $(DOCS)/ci.pdf $(SAMPLE_DIR)/hello.ci
+$(DIST_BIN): cito.exe cipad.exe civiewer.exe $(srcdir)COPYING $(srcdir)README $(DOCS)/readme.pdf $(DOCS)/ci.pdf $(SAMPLE_DIR)/hello.ci
 	$(RM) $@ && $(SEVENZIP) -tzip $@ $(^:%=./%)
 # "./" makes 7z don't store paths in the archive
 
