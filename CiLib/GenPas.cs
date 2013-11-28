@@ -71,6 +71,7 @@ namespace Foxoft.Ci {
       Decode_NONANSICHAR = "'#{1}'";
       Decode_ARRAYEND = " )";
       Decode_ARRAYBEGIN = "( ";
+      promoteClassConst = true;
     }
 
     #region Base Generator specialization
@@ -1007,7 +1008,9 @@ namespace Foxoft.Ci {
         EmitClassesInterface(prog);
         CloseBlock(false);
       }
-      EmitConstants(prog);
+      if (promoteClassConst) {
+        EmitConstants(prog);
+      }
       // Implementation
       EmitImplementationHeader();
       EmitClassesImplementation();
@@ -1104,7 +1107,22 @@ namespace Foxoft.Ci {
       OpenBlock(false);
       foreach (CiSymbol member in klass.Members) {
         if (!(member is CiMethod)) {
+          if ((member is CiConst) && promoteClassConst) {
+            continue;
+          } 
           Translate(member);
+        }
+      }
+      if (!promoteClassConst) {
+        foreach (CiSymbol member in klass.Members) {
+          if ((member is CiMethod)) {
+            Execute(((CiMethod)member).Body, s => {
+              if (s is CiConst) {
+                Symbol_CiConst((CiConst)s);
+              }
+              return false;
+            });
+          }
         }
       }
       WriteLine("public constructor Create;");
@@ -1185,8 +1203,8 @@ namespace Foxoft.Ci {
               OpenBlock(false);
               first = false;
             }
-            WriteFormat("{0}: {1}", DecodeSymbol(konst), DecodeType(konst.Type));
-            WriteLine(";");
+            WriteLine("{0}: {1};", DecodeSymbol(konst), DecodeType(konst.Type));
+
           }
         }
       }
@@ -1248,12 +1266,14 @@ namespace Foxoft.Ci {
           }
         }
       }
-      foreach (CiSymbol symbol in prog.Globals) {
-        if (symbol is CiClass) {
-          CiClass klass = (CiClass)symbol;
-          foreach (CiConst konst in klass.ConstArrays) {
-            WriteConstFull(konst);
-            hasInit = true;
+      if (promoteClassConst) {
+        foreach (CiSymbol symbol in prog.Globals) {
+          if (symbol is CiClass) {
+            CiClass klass = (CiClass)symbol;
+            foreach (CiConst konst in klass.ConstArrays) {
+              WriteConstFull(konst);
+              hasInit = true;
+            }
           }
         }
       }
@@ -1450,11 +1470,21 @@ namespace Foxoft.Ci {
         WriteVars(klass.Constructor);
       }
       OpenBlock();
-      foreach (CiSymbol member in klass.Members) {
-        if (member is CiConst) {
-          var konst = (CiConst)member;
-          if (konst.Type is CiArrayType) {
-            WriteConstFull(konst);
+      if (!promoteClassConst) {
+        foreach (CiSymbol member in klass.Members) {
+          if (member is CiConst) {
+            var konst = (CiConst)member;
+            if (konst.Type is CiArrayType) {
+              WriteConstFull(konst);
+            }
+          }
+          else if (member is CiMethod) {
+            Execute(((CiMethod)member).Body, s => {
+              if (s is CiConst) {
+                WriteConstFull((CiConst)s);
+              }
+              return false;
+            });
           }
         }
       }
