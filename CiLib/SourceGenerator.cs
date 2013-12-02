@@ -396,10 +396,10 @@ namespace Foxoft.Ci {
           hasFields = true;
         }
       }
-      if (hasFields) {
-        WriteLine();
-      }
       if (klass.Constructor != null) {
+        if (hasFields) {
+          WriteLine();
+        }
         WriteFormat("public {0}() ", DecodeSymbol(klass));
         WriteCode(klass.Constructor.Body);
       }
@@ -408,12 +408,7 @@ namespace Foxoft.Ci {
           Translate(member);
         }
       }
-      foreach (CiConst konst in klass.ConstArrays) {
-        WriteLine("static readonly {0} {1} = {2};", DecodeType(konst.Type), DecodeSymbol(konst), DecodeValue(konst.Type, konst.Value));
-      }
-      foreach (CiBinaryResource resource in klass.BinaryResources) {
-        WriteLine("static readonly byte[] {0} = {1};", DecodeSymbol(resource), DecodeValue(resource.Type, resource.Content));
-      }
+
       CloseBlock();
     }
 
@@ -435,6 +430,9 @@ namespace Foxoft.Ci {
     }
 
     public virtual void Statement_CiConst(ICiStatement statement) {
+      CiConst konst = (CiConst)statement;
+      WriteDocCode(konst.Documentation);
+      WriteLine("public const {0} {1} = {2};", DecodeType(konst.Type), DecodeSymbol(konst), DecodeValue(konst.Type, konst.Value));
     }
 
     public virtual void Statement_CiVar(ICiStatement statement) {
