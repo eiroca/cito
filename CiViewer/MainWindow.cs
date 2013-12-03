@@ -27,6 +27,7 @@ using Gtk;
 using CiToViewer;
 using IgeMacIntegration;
 using Foxoft.Ci;
+using Pango;
 
 public partial class MainWindow: Gtk.Window {
   protected ProjectFiles Project = new ProjectFiles();
@@ -44,10 +45,26 @@ public partial class MainWindow: Gtk.Window {
     PopulateCombo(cbSource, Project.GetSources());
     PopulateCombo(cbLanguage, GeneratorHelper.GetLanguages());
     FixMac();
-    tvSource.ModifyFont(Pango.FontDescription.FromString("monospace 12"));
-    tvTarget.ModifyFont(Pango.FontDescription.FromString("monospace 12"));
+    Pango.FontDescription font = Pango.FontDescription.FromString("monospace 12");
+    tvSource.ModifyFont(font);
+    tvTarget.ModifyFont(font);
+    SetTabs(tvSource, font, 2);
+    SetTabs(tvTarget, font, 2);
     InUpdate = false;
     TranslateCode();
+  }
+
+  private void SetTabs(TextView textview, Pango.FontDescription font, int numSpaces) {                  
+    int charWidth = 0;
+    int charHeight = 0;                                 
+    var layout = textview.CreatePangoLayout("A");      
+    var tabs = new TabArray(30, true);                         
+    layout.FontDescription = font;         
+    layout.GetPixelSize(out charWidth, out charHeight);        
+    for (int i = 0; i < tabs.Size; i++) {                              
+      tabs.SetTab(i, TabAlign.Left, i * charWidth * numSpaces);
+    }
+    textview.Tabs = tabs;
   }
 
   private void PopulateCombo(ComboBox cb, string[] items) {

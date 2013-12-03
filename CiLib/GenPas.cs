@@ -545,6 +545,22 @@ namespace Foxoft.Ci {
       Write(")");
     }
 
+    public void Expression_CiPostfixStatement(CiExpr expression) {
+      CiPostfixExpr expr = (CiPostfixExpr)expression;
+      switch (expr.Op) {
+        case CiToken.Increment:
+          Write("inc(");
+          break;
+        case CiToken.Decrement:
+          Write("dec(");
+          break;
+        default:
+          throw new ArgumentException(expr.Op.ToString());
+      }
+      WriteChild(expr, expr.Inner);
+      Write(")");
+    }
+
     public void Expression_CiCondExpr(CiExpr expression) {
       CiCondExpr expr = (CiCondExpr)expression;
       UseFunction("Unit_Math");
@@ -633,7 +649,12 @@ namespace Foxoft.Ci {
     }
 
     public void Statement_CiExpr(ICiStatement statement) {
-      Translate((CiExpr)statement);
+      if (statement is CiPostfixExpr) {
+        Expression_CiPostfixStatement((CiPostfixExpr)statement);
+      }
+      else {
+        Translate((CiExpr)statement);
+      }
     }
 
     public void Statement_CiAssign(ICiStatement statement) {
@@ -1369,7 +1390,7 @@ namespace Foxoft.Ci {
         }
         CiBoolBinaryExpr cond = (CiBoolBinaryExpr)stmt.Cond;
         // bounded by const or var
-        if ((cond.Left is CiVarAccess) && ((cond.Right is CiConstExpr) || (cond.Right is CiVarAccess))) {
+        if ((cond.Left is CiVarAccess) && ((cond.Right is CiConstExpr) || (cond.Right is CiVarAccess) || (cond.Right is CiFieldAccess))) {
           if (((CiVarAccess)cond.Left).Var == loopVar) {
             // loop variabale cannot be changed inside the loop
             if (Execute(stmt.Body, s => IsAssignmentOf(s, loopVar))) {
