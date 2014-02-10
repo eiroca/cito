@@ -72,6 +72,18 @@ namespace Foxoft.Ci {
       Decode_ARRAYEND = " )";
       Decode_ARRAYBEGIN = "( ";
       promoteClassConst = true;
+      TranslateSymbolName = Pas_SymbolNameTranslator;
+    }
+
+    public string Pas_SymbolNameTranslator(CiSymbol aSymbol) {
+      String name = base.SymbolNameTranslator(aSymbol);
+      if (aSymbol is CiClass) {
+        name = "T" + name;
+      }
+      else if (aSymbol is CiClassType) {
+        name = "T" + name;
+      }
+      return name;
     }
 
     #region Base Generator specialization
@@ -322,14 +334,14 @@ namespace Foxoft.Ci {
       if (type.ArrayLevel > 0) {
         throw new ArgumentException("Invalid level in type :" + type);
       }
-      return new TypeInfo(type, type.Name, "nil");
+      return new TypeInfo(type, DecodeSymbol(type), "nil");
     }
 
     public TypeInfo Type_CiClassStorageType(CiType type) {
       if (type.ArrayLevel > 0) {
         throw new ArgumentException("Invalid level in type :" + type);
       }
-      return new TypeInfo(type, type.Name, "nil");
+      return new TypeInfo(type, DecodeSymbol(type), "nil");
     }
 
     public TypeInfo Type_CiEnum(CiType type) {
@@ -1531,7 +1543,7 @@ namespace Foxoft.Ci {
       if (method.CallType == CiCallType.Static) {
         Write("class ");
       }
-      WriteSignature(method.Class.Name, method.Signature, false);
+      WriteSignature(DecodeSymbol(method.Class), method.Signature, false);
       WriteLine(";");
       // Emit Variabiles
       WriteLabels(method);
@@ -1611,7 +1623,7 @@ namespace Foxoft.Ci {
             continue;
           }
           if (var.Symbol is CiVar) {
-            WriteVar((CiVar)var.Symbol, var.NewName, true);
+            WriteVar((CiVar)var.Symbol, true);
           }
           if (var.Symbol is CiField) {
             WriteField((CiField)var.Symbol, var.NewName, true);
@@ -1642,7 +1654,7 @@ namespace Foxoft.Ci {
       WriteLine("{0} {1}: {2};", DecodeVisibility(field.Visibility), DecodeSymbol(field), DecodeType(field.Type));
     }
 
-    void WriteVar(CiVar var, string NewName, bool docs) {
+    void WriteVar(CiVar var, bool docs) {
       if (docs) {
         WriteDocCode(var.Documentation);
       }
