@@ -643,7 +643,9 @@ namespace Foxoft.Ci {
     }
 
     public void Symbol_CiField(CiSymbol symbol) {
-      WriteField((CiField)symbol, null, true);
+      var field = (CiField)symbol;
+      WriteDocCode(field.Documentation);
+      WriteLine("{0} {1}: {2};", DecodeVisibility(field.Visibility), DecodeSymbol(field), DecodeType(field.Type));
     }
     #endregion
 
@@ -1624,16 +1626,24 @@ namespace Foxoft.Ci {
     void WriteVars(CiSymbol symb) {
       SymbolMapping vars = FindSymbol(symb);
       if (vars != null) {
+        bool first = true;
         foreach (SymbolMapping var in vars.childs) {
           if (var.Symbol == null) {
             continue;
           }
           if (var.Symbol is CiVar) {
-            WriteVar((CiVar)var.Symbol, true);
+            if (first) {
+              WriteLine("var");
+              OpenBlock(false);
+              first = false;
+            }
+            CiVar v = (CiVar)var.Symbol;
+            WriteDocCode(v.Documentation);
+            WriteLine("{0}: {1};", DecodeSymbol(v), DecodeType(v.Type));
           }
-          if (var.Symbol is CiField) {
-            WriteField((CiField)var.Symbol, var.NewName, true);
-          }
+        }
+        if (!first) {
+          CloseBlock(false);
         }
       }
     }
@@ -1651,20 +1661,6 @@ namespace Foxoft.Ci {
           }
         }
       }
-    }
-
-    void WriteField(CiField field, string NewName, bool docs) {
-      if (docs) {
-        WriteDocCode(field.Documentation);
-      }
-      WriteLine("{0} {1}: {2};", DecodeVisibility(field.Visibility), DecodeSymbol(field), DecodeType(field.Type));
-    }
-
-    void WriteVar(CiVar var, bool docs) {
-      if (docs) {
-        WriteDocCode(var.Documentation);
-      }
-      WriteLine("var {0}: {1};", DecodeSymbol(var), DecodeType(var.Type));
     }
 
     void WriteAssignNew(CiVar Target, CiType Type) {
