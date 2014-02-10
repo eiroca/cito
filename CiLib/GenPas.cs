@@ -827,7 +827,6 @@ namespace Foxoft.Ci {
       if (stmt.OnFalse != null) {
         Write("else ");
         if (stmt.OnFalse is CiIf) {
-          Write(" ");
           WriteCode(stmt.OnFalse);
         }
         else {
@@ -1491,6 +1490,9 @@ namespace Foxoft.Ci {
         WriteVars(klass.Constructor);
       }
       OpenBlock();
+      if (klass.BaseClass != null) {
+        WriteLine("inherited;");
+      }
       if (!promoteClassConst) {
         foreach (CiSymbol member in klass.Members) {
           if (member is CiConst) {
