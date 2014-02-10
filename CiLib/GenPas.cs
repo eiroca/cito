@@ -691,18 +691,24 @@ namespace Foxoft.Ci {
       else if (stmt.Expr is CiFieldAccess) {
         vr = ((CiFieldAccess)stmt.Expr).Field;
       }
+      else if ((stmt.Expr is CiArrayAccess)) {
+        var e = (CiArrayAccess)stmt.Expr;
+        if (e.Type is CiClassType) {
+          Write("FreeAndNil(");
+          Translate(e);
+          Write(")");
+        }
+        else if (e.Type is CiArrayType) {
+          TypeInfo info = GetTypeInfo(e.Type);
+          Translate(e);
+          WriteFormat(":= {0}", info.Null);
+        }
+      }
       if (vr != null) {
-        if (vr.Type is CiClassStorageType) {
+        if (vr.Type is CiClassType) {
           WriteFormat("FreeAndNil({0})", DecodeSymbol(vr));
         }
-        else if (vr.Type is CiClassPtrType) {
-          WriteFormat("FreeAndNil({0})", DecodeSymbol(vr));
-        }
-        else if (vr.Type is CiArrayStorageType) {
-          TypeInfo info = GetTypeInfo(vr.Type);
-          WriteFormat("{0}:= {1}", DecodeSymbol(vr), info.Null);
-        }
-        else if (vr.Type is CiArrayPtrType) {
+        else if (vr.Type is CiArrayType) {
           TypeInfo info = GetTypeInfo(vr.Type);
           WriteFormat("{0}:= {1}", DecodeSymbol(vr), info.Null);
         }
