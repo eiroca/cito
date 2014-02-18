@@ -1,4 +1,4 @@
-﻿Ć Programming Language
+Ć Programming Language
 ======================
 
 ifdef::www[]
@@ -27,7 +27,7 @@ public class HelloCi
 -------------------
 
 See http://cito.sourceforge.net/hello.html[here] for a slightly bigger example and its translations.
-See http://asap.sourceforge.net/[ASAP] and http://fail.sourceforge.net/[FAIL] for real programs written in Ć.
+See http://asap.sourceforge.net/[ASAP], http://recoil.sourceforge.net/[RECOIL], http://www.eiroca.net/apple2graphic/[Apple2Graphic] for real programs written in Ć.
 
 Ć is released under the GPL 3 licence (see COPYING for more information).
 
