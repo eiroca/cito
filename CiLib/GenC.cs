@@ -862,6 +862,10 @@ namespace Foxoft.Ci {
       }
     }
 
+    static bool HasCStruct(CiClass klass) {
+      return klass.BaseClass != null || klass.HasFields || AddsVirtualMethods(klass);
+    }
+
     void WriteNew(CiClass klass) {
       WriteNewSignature(klass);
       WriteLine();
@@ -928,20 +932,22 @@ namespace Foxoft.Ci {
         CloseBlock();
         ExitMethod();
       }
-      if (klass.Visibility == CiVisibility.Public) {
-        WriteLine();
-        WriteNew(klass);
-        WriteLine();
-        WriteDeleteSignature(klass);
-        WriteLine();
-        OpenBlock();
-        WriteLine("free(self);");
-        CloseBlock();
-      }
-      else if (klass.IsAllocated) {
-        WriteLine();
-        Write("static ");
-        WriteNew(klass);
+      if (!klass.IsAbstract && HasCStruct(klass)) {
+        if (klass.Visibility == CiVisibility.Public) {
+          WriteLine();
+          WriteNew(klass);
+          WriteLine();
+          WriteDeleteSignature(klass);
+          WriteLine();
+          OpenBlock();
+          WriteLine("free(self);");
+          CloseBlock();
+        }
+        else if (klass.IsAllocated) {
+          WriteLine();
+          Write("static ");
+          WriteNew(klass);
+        }
       }
     }
 
@@ -1058,7 +1064,7 @@ namespace Foxoft.Ci {
         WriteConstructorSignature(klass);
         WriteLine(";");
       }
-      if (pub && klass.Visibility == CiVisibility.Public && klass.HasFields) {
+      if (pub && klass.Visibility == CiVisibility.Public && !klass.IsAbstract && HasCStruct(klass)) {
         WriteLine();
         WriteNewSignature(klass);
         WriteLine(";");
@@ -1188,7 +1194,7 @@ namespace Foxoft.Ci {
       klass.WriteStatus = CiWriteStatus.Done;
       WriteLine();
       WriteVtblStruct(klass);
-      if (klass.BaseClass != null || klass.HasFields) {
+      if (HasCStruct(klass)) {
         WriteFormat("struct {0} ", DecodeSymbol(klass));
         OpenBlock();
         if (klass.BaseClass != null) {
@@ -1220,9 +1226,7 @@ namespace Foxoft.Ci {
     }
 
     void WriteCode(CiClass klass) {
-      if (klass.BaseClass != null || klass.HasFields) {
-        WriteConstructorNewDelete(klass);
-      }
+      WriteConstructorNewDelete(klass);
       foreach (CiSymbol member in klass.Members) {
         if (member is CiMethod) {
           Translate(member);
