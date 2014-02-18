@@ -854,12 +854,9 @@ namespace Foxoft.Ci {
         CiField field = member as CiField;
         if (field != null) {
           CiType type = field.Type;
-          while (type is CiArrayStorageType) {
-            type = ((CiArrayStorageType)type).ElementType;
-          }
-          CiClassStorageType stg = type as CiClassStorageType;
-          if (stg != null) {
-            action(field, stg.Class);
+          CiClass storageClass = field.Type.StorageClass;
+          if (storageClass != null) {
+            action(field, storageClass);
           }
         }
       }
@@ -1181,25 +1178,13 @@ namespace Foxoft.Ci {
       klass.Constructs = klass.Constructor != null || HasVirtualMethods(klass);
       if (klass.BaseClass != null) {
         WriteStruct(klass.BaseClass);
-        if (klass.BaseClass.Constructs) {
-          klass.Constructs = true;
-        }
+        klass.Constructs |= klass.BaseClass.Constructs;
       }
-      foreach (CiSymbol member in klass.Members) {
-        if (member is CiField) {
-          CiType type = ((CiField)member).Type;
-          while (type is CiArrayStorageType) {
-            type = ((CiArrayStorageType)type).ElementType;
-          }
-          CiClassStorageType stg = type as CiClassStorageType;
-          if (stg != null) {
-            WriteStruct(stg.Class);
-            if (stg.Class.Constructs) {
-              klass.Constructs = true;
-            }
-          }
-        }
-      }
+      ForEachStorageField(klass, (field, storageClass) => {
+        WriteStruct(storageClass);
+        klass.Constructs |= storageClass.Constructs;
+      });
+
       klass.WriteStatus = CiWriteStatus.Done;
       WriteLine();
       WriteVtblStruct(klass);
