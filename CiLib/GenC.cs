@@ -1,7 +1,7 @@
 // GenC.cs - C code generator
 //
-// Copyright (C) 2011-2013  Piotr Fusik
-// Copyright (C) 2013  Enrico Croce
+// Copyright (C) 2011-2014  Piotr Fusik
+// Copyright (C) 2014  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -266,7 +266,7 @@ namespace Foxoft.Ci {
 
     public override void Expression_CiMethodCall(CiExpr expression) {
       CiMethodCall call = (CiMethodCall)expression;
-      if (call.Method != null && call.Method.Throws) {
+      if (HasThrows(call)) {
         WrapCall(call, null);
       }
       else {
@@ -518,7 +518,7 @@ namespace Foxoft.Ci {
         }
       }
       CiMethodCall call = assign.Source as CiMethodCall;
-      if (call != null && call.Method.Throws) {
+      if (HasThrows(call)) {
         WrapCall(call, assign);
       }
       else {
@@ -567,7 +567,7 @@ namespace Foxoft.Ci {
         else {
           call = stmt.OnTrue as CiMethodCall;
         }
-        if (call != null && call.Method != null && call.Method.Throws) {
+        if (HasThrows(call)) {
           Write(' ');
           OpenBlock();
           WriteChild(stmt.OnTrue);
@@ -726,7 +726,7 @@ namespace Foxoft.Ci {
 
     bool TryWriteCallAndReturn(ICiStatement[] statements, int lastCallIndex, CiExpr returnValue) {
       CiMethodCall call = statements[lastCallIndex] as CiMethodCall;
-      if (call == null || !call.Method.Throws) {
+      if (!HasThrows(call)) {
         return false;
       }
       EnterContext(1);
@@ -772,6 +772,11 @@ namespace Foxoft.Ci {
       }
     }
 
+    static bool HasThrows(CiExpr expr) {
+      CiMethodCall call = expr as CiMethodCall;
+      return call != null && call.Method != null && call.Method.Throws;
+    }
+
     protected static bool IsInlineVar(CiVar def) {
       if (def.Type is CiClassStorageType) {
         CiClass klass = ((CiClassStorageType)def.Type).Class;
@@ -786,7 +791,7 @@ namespace Foxoft.Ci {
       if (def.Type is CiStringStorageType) {
         return def.InitialValue is CiConstExpr;
       }
-      if (def.InitialValue is CiMethodCall && ((CiMethodCall)def.InitialValue).Method.Throws) {
+      if (HasThrows(def.InitialValue)) {
         return false;
       }
       return true;
