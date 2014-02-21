@@ -41,7 +41,7 @@ public partial class MainWindow: Gtk.Window {
     InUpdate = true;
     tvSource.Buffer.Changed += OnSourceChange;
     iNameSpace.Changed += OnSourceChange;
-    lbMsg.Text = "";
+    SetMessage(null, null);
     PopulateCombo(cbSource, Project.GetSources());
     PopulateCombo(cbLanguage, GeneratorHelper.GetLanguages());
     FixMac();
@@ -52,6 +52,51 @@ public partial class MainWindow: Gtk.Window {
     SetTabs(tvTarget, font, 2);
     InUpdate = false;
     TranslateCode();
+  }
+
+  private CodePosition OldPos = null;
+
+  private void SetMessage(string msg, CodePosition pos) {
+    OldPos = pos;
+    if (String.IsNullOrEmpty(msg)) {
+      lbMsg.Text = "";
+      btLocate.Visible = false;
+    }
+    else {
+      StringBuilder txt = new StringBuilder(msg);
+      lbMsg.Text = txt.ToString();
+      btLocate.Visible = (pos != null);
+      OldPos = pos;
+      if (pos != null) {
+        txt.AppendFormat(" @{0}:{1}", pos.SourceID, pos.Offset);
+      }
+      lbMsg.Text = txt.ToString();
+    }
+  }
+
+  protected void btLocateClick(object sender, EventArgs e) {
+    bool found = true;
+    if (!cbSource.ActiveText.Equals(OldPos.SourceID)) {
+      Gtk.TreeIter iter;
+      cbSource.Model.GetIterFirst(out iter);
+      found = false;
+      do {
+        GLib.Value thisRow = new GLib.Value();
+        cbSource.Model.GetValue(iter, 0, ref thisRow);
+        if ((thisRow.Val as string).Equals(OldPos.SourceID)) {
+          cbSource.SetActiveIter(iter);
+          found = true;
+          break;
+        }
+      }
+      while (cbSource.Model.IterNext(ref iter));
+    }
+    if (found) {
+      TextIter p = tvSource.Buffer.GetIterAtOffset(OldPos.Offset);
+      tvSource.Buffer.PlaceCursor(p);
+      tvSource.ScrollToIter(p, 0, true, 0.5, 0.5);
+      tvSource.HasFocus = true;
+    }
   }
 
   private void SetTabs(TextView textview, Pango.FontDescription font, int numSpaces) {                  
@@ -81,10 +126,13 @@ public partial class MainWindow: Gtk.Window {
   }
 
   private void TranslateCode() {
-    lbMsg.Text = "";
+    SetMessage(null, null);
     tvTarget.Buffer.Text = "";
     try {
       Project.GenerateTarget(cbLanguage.ActiveText, iNameSpace.Text);
+    }
+    catch (CiCodeException e) {
+      SetMessage(e.Message, e.Position);
     }
     catch (Exception e) {
       Console.WriteLine(e.StackTrace);

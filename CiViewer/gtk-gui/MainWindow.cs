@@ -33,7 +33,9 @@ public partial class MainWindow
 	private global::Gtk.ComboBox cbTarget;
 	private global::Gtk.ScrolledWindow GtkScrolledWindow1;
 	private global::Gtk.TextView tvTarget;
+	private global::Gtk.HBox hbox3;
 	private global::Gtk.Label lbMsg;
+	private global::Gtk.Button btLocate;
 
 	protected virtual void Build ()
 	{
@@ -197,21 +199,39 @@ public partial class MainWindow
 		global::Gtk.Box.BoxChild w14 = ((global::Gtk.Box.BoxChild)(this.vbox1 [this.hbox1]));
 		w14.Position = 2;
 		// Container child vbox1.Gtk.Box+BoxChild
+		this.hbox3 = new global::Gtk.HBox ();
+		this.hbox3.Name = "hbox3";
+		this.hbox3.Spacing = 6;
+		// Container child hbox3.Gtk.Box+BoxChild
 		this.lbMsg = new global::Gtk.Label ();
 		this.lbMsg.Name = "lbMsg";
 		this.lbMsg.LabelProp = global::Mono.Unix.Catalog.GetString ("label1");
-		this.vbox1.Add (this.lbMsg);
-		global::Gtk.Box.BoxChild w15 = ((global::Gtk.Box.BoxChild)(this.vbox1 [this.lbMsg]));
-		w15.PackType = ((global::Gtk.PackType)(1));
-		w15.Position = 3;
-		w15.Expand = false;
+		this.hbox3.Add (this.lbMsg);
+		global::Gtk.Box.BoxChild w15 = ((global::Gtk.Box.BoxChild)(this.hbox3 [this.lbMsg]));
+		w15.Position = 0;
 		w15.Fill = false;
+		// Container child hbox3.Gtk.Box+BoxChild
+		this.btLocate = new global::Gtk.Button ();
+		this.btLocate.CanFocus = true;
+		this.btLocate.Name = "btLocate";
+		this.btLocate.UseUnderline = true;
+		this.btLocate.Label = global::Mono.Unix.Catalog.GetString ("Go!");
+		this.hbox3.Add (this.btLocate);
+		global::Gtk.Box.BoxChild w16 = ((global::Gtk.Box.BoxChild)(this.hbox3 [this.btLocate]));
+		w16.Position = 1;
+		w16.Expand = false;
+		w16.Fill = false;
+		this.vbox1.Add (this.hbox3);
+		global::Gtk.Box.BoxChild w17 = ((global::Gtk.Box.BoxChild)(this.vbox1 [this.hbox3]));
+		w17.Position = 3;
+		w17.Expand = false;
+		w17.Fill = false;
 		this.Add (this.vbox1);
 		if ((this.Child != null)) {
 			this.Child.ShowAll ();
 		}
 		this.DefaultWidth = 553;
-		this.DefaultHeight = 300;
+		this.DefaultHeight = 334;
 		this.Show ();
 		this.DeleteEvent += new global::Gtk.DeleteEventHandler (this.OnDeleteEvent);
 		this.OpenFileSAction.Activated += new global::System.EventHandler (this.OnOpen);
@@ -225,5 +245,6 @@ public partial class MainWindow
 		this.cbLanguage.Changed += new global::System.EventHandler (this.OnLanguageChange);
 		this.cbSource.Changed += new global::System.EventHandler (this.cbSourceChanged);
 		this.cbTarget.Changed += new global::System.EventHandler (this.cbTargetChanged);
+		this.btLocate.Clicked += new global::System.EventHandler (this.btLocateClick);
 	}
 }
