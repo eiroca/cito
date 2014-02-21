@@ -1352,6 +1352,5 @@ namespace Foxoft.Ci {
       }
     }
     #endregion JavaDoc
-
   }
 }

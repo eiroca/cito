@@ -570,6 +570,5 @@ namespace Foxoft.Ci {
       Write("[] = 0");
     }
     #endregion
-
   }
 }

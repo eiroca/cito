@@ -308,6 +308,5 @@ namespace Foxoft.Ci {
       }
     }
     #endregion
-
   }
 }

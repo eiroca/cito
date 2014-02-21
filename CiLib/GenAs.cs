@@ -562,6 +562,5 @@ namespace Foxoft.Ci {
       WriteClearArray(expr.Obj);
     }
     #endregion
-
   }
 }

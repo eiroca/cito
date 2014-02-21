@@ -93,7 +93,7 @@ namespace Foxoft.Ci {
         }
         name = res.ToString();
       }
-           else {
+      else {
         name = SymbolNameTranslator(aSymbol);
       }
       return name;
@@ -791,6 +791,5 @@ namespace Foxoft.Ci {
       Write(((CiArrayStorageType)expr.Obj.Type).Length);
     }
     #endregion
-
   }
 }

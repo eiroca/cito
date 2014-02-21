@@ -34,12 +34,11 @@ namespace IgeMacIntegration {
       return false;
     }
 
-    [System.Runtime.InteropServices.DllImport ("libc")]
+    [System.Runtime.InteropServices.DllImport("libc")]
     static extern int uname(IntPtr buf);
   }
 
   public class IgeMacMenu {
-
     [DllImport("libigemacintegration.dylib")]
     static extern void ige_mac_menu_connect_window_key_handler(IntPtr window);
 
@@ -85,7 +84,6 @@ namespace IgeMacIntegration {
   }
 
   public class IgeMacMenuGroup : GLib.Opaque {
-
     [DllImport("libigemacintegration.dylib")]
     static extern void ige_mac_menu_add_app_menu_item(IntPtr raw, IntPtr menu_item, IntPtr label);
 
