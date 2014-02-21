@@ -1,6 +1,7 @@
 // CiDocLexer.cs - Ci documentation lexer
 //
 // Copyright (C) 2011  Piotr Fusik
+// Copyright (C) 2014  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -19,82 +20,74 @@
 
 namespace Foxoft.Ci {
 
-public enum CiDocToken
-{
-	EndOfFile,
-	Char,
-	CodeDelimiter,
-	Bullet,
-	Para,
-	Period
-}
+  public enum CiDocToken {
+    EndOfFile,
+    Char,
+    CodeDelimiter,
+    Bullet,
+    Para,
+    Period
+  }
 
-public class CiDocLexer
-{
-	readonly CiLexer CiLexer;
-	bool CheckPeriod;
-	public CiDocToken CurrentToken;
-	public int CurrentChar = '\n';
+  public class CiDocLexer {
+    readonly protected CiLexer CiLexer;
+    bool CheckPeriod;
+    public CiDocToken CurrentToken;
+    public int CurrentChar = '\n';
 
-	public CiDocLexer(CiLexer ciLexer)
-	{
-		this.CiLexer = ciLexer;
-		this.CheckPeriod = true;
-		NextToken();
-	}
+    public CiDocLexer(CiLexer ciLexer) {
+      this.CiLexer = ciLexer;
+      this.CheckPeriod = true;
+      NextToken();
+    }
 
-	int PeekChar()
-	{
-		return this.CiLexer.PeekChar();
-	}
+    int PeekChar() {
+      return this.CiLexer.PeekChar();
+    }
 
-	int ReadChar()
-	{
-		int c = this.CiLexer.ReadChar();
-		if (c == '\n' && this.CiLexer.NextToken() != CiToken.DocComment)
-			return -1;
-		return c;
-	}
+    int ReadChar() {
+      int c = this.CiLexer.ReadChar();
+      if (c == '\n' && this.CiLexer.NextToken() != CiToken.DocComment)
+        return -1;
+      return c;
+    }
 
-	CiDocToken ReadToken()
-	{
-		int lastChar = this.CurrentChar;
-		for (;;) {
-			int c = ReadChar();
-			this.CurrentChar = c;
-			switch (c) {
-			case -1:
-				return CiDocToken.EndOfFile;
-			case '`':
-				return CiDocToken.CodeDelimiter;
-			case '*':
-				if (lastChar == '\n' && PeekChar() == ' ') {
-					ReadChar();
-					return CiDocToken.Bullet;
-				}
-				return CiDocToken.Char;
-			case '\r':
-				continue;
-			case '\n':
-				if (this.CheckPeriod && lastChar == '.') {
-					this.CheckPeriod = false;
-					return CiDocToken.Period;
-				}
-				if (lastChar == '\n')
-					return CiDocToken.Para;
-				return CiDocToken.Char;
-			default:
-				return CiDocToken.Char;
-			}
-		}
-	}
+    CiDocToken ReadToken() {
+      int lastChar = this.CurrentChar;
+      for (;;) {
+        int c = ReadChar();
+        this.CurrentChar = c;
+        switch (c) {
+          case -1:
+            return CiDocToken.EndOfFile;
+          case '`':
+            return CiDocToken.CodeDelimiter;
+          case '*':
+            if (lastChar == '\n' && PeekChar() == ' ') {
+              ReadChar();
+              return CiDocToken.Bullet;
+            }
+            return CiDocToken.Char;
+          case '\r':
+            continue;
+          case '\n':
+            if (this.CheckPeriod && lastChar == '.') {
+              this.CheckPeriod = false;
+              return CiDocToken.Period;
+            }
+            if (lastChar == '\n')
+              return CiDocToken.Para;
+            return CiDocToken.Char;
+          default:
+            return CiDocToken.Char;
+        }
+      }
+    }
 
-	public CiDocToken NextToken()
-	{
-		CiDocToken token = ReadToken();
-		this.CurrentToken = token;
-		return token;
-	}
-}
-
+    public CiDocToken NextToken() {
+      CiDocToken token = ReadToken();
+      this.CurrentToken = token;
+      return token;
+    }
+  }
 }

@@ -880,8 +880,7 @@ namespace Foxoft.Ci {
           WriteLine(";");
         }
         else if (stmt.Value is CiNewExpr) {
-          CiVar result = new CiVar();
-          result.Name = "Result";
+          CiVar result = new CiVar(null, "Result");
           WriteInitNew(result, ((CiNewExpr)stmt.Value).NewType);
           WriteLine(";");
         }
@@ -2118,6 +2117,5 @@ namespace Foxoft.Ci {
       return exitPoints.Peek();
     }
     #endregion
-
   }
 }

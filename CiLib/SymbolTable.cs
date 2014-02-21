@@ -23,56 +23,57 @@ using System.Collections.Generic;
 
 namespace Foxoft.Ci {
 
-public class SymbolTable : IEnumerable<CiSymbol>
-{
-	public SymbolTable Parent;
-	readonly SortedDictionary<string, CiSymbol> Dict = new SortedDictionary<string, CiSymbol>(StringComparer.Ordinal);
+  public class SymbolTable : IEnumerable<CiSymbol> {
+    public SymbolTable Parent;
+    readonly SortedDictionary<string, CiSymbol> Dict = new SortedDictionary<string, CiSymbol>(StringComparer.Ordinal);
 
-	IEnumerator IEnumerable.GetEnumerator()
-	{
-		return this.Dict.Values.GetEnumerator();
-	}
+    IEnumerator IEnumerable.GetEnumerator() {
+      return this.Dict.Values.GetEnumerator();
+    }
 
-	public IEnumerator<CiSymbol> GetEnumerator()
-	{
-		return this.Dict.Values.GetEnumerator();
-	}
+    public IEnumerator<CiSymbol> GetEnumerator() {
+      return this.Dict.Values.GetEnumerator();
+    }
 
-	public void Add(CiSymbol symbol)
-	{
-		string name = symbol.Name;
-		for (SymbolTable t = this; t != null; t = t.Parent)
-			if (t.Dict.ContainsKey(name))
-				throw new ParseException("Symbol {0} already defined", name);
-		this.Dict.Add(name, symbol);
-	}
+    public void Add(CiSymbol symbol) {
+      string name = symbol.Name;
+      for (SymbolTable t = this; t != null; t = t.Parent)
+        if (t.Dict.ContainsKey(name))
+          throw new ParseException(symbol.Position, "Symbol {0} already defined", name);
+      this.Dict.Add(name, symbol);
+    }
 
-	public CiSymbol TryLookup(string name)
-	{
-		for (SymbolTable t = this; t != null; t = t.Parent) {
-			CiSymbol result;
-			if (t.Dict.TryGetValue(name, out result))
-				return result;
-		}
-		return null;
-	}
+    public CiSymbol TryLookup(string name) {
+      for (SymbolTable t = this; t != null; t = t.Parent) {
+        CiSymbol result;
+        if (t.Dict.TryGetValue(name, out result))
+          return result;
+      }
+      return null;
+    }
 
-	void Dump()
-	{
-		foreach (CiSymbol symbol in this)
-			Console.Error.Write("{0} {1}, ", symbol.GetType().Name, symbol.Name);
-		Console.Error.WriteLine();
-		if (Parent != null)
-			Parent.Dump();
-	}
+    void Dump() {
+      foreach (CiSymbol symbol in this)
+        Console.Error.Write("{0} {1}, ", symbol.GetType().Name, symbol.Name);
+      Console.Error.WriteLine();
+      if (Parent != null)
+        Parent.Dump();
+    }
 
-	public CiSymbol Lookup(string name)
-	{
-		CiSymbol result = TryLookup(name);
-		if (result == null)
-			throw new ResolveException("Unknown symbol {0}", name);
-		return result;
-	}
-}
+    public CiSymbol Lookup(CiSymbol symbol) {
+      CiSymbol result = TryLookup(symbol.Name);
+      if (result == null) {
+        throw new ResolveException(symbol, "Unknown symbol {0}");
+      }
+      return result;
+    }
 
+    public CiSymbol Lookup(CodePosition position, string name) {
+      CiSymbol result = TryLookup(name);
+      if (result == null) {
+        throw new ResolveException(position, "Unknown symbol {0}", name);
+      }
+      return result;
+    }
+  }
 }

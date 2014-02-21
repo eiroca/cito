@@ -26,11 +26,26 @@ using System.Linq;
 namespace Foxoft.Ci {
 
   [Serializable]
-  public class ResolveException : Exception {
-    public ResolveException(string message) : base(message) {
+  public class ResolveException : CiCodeException {
+    public ResolveException(CodePosition position, string message) : base(position, message) {
     }
 
-    public ResolveException(string format, params object[] args) : this(string.Format(format, args)) {
+    public ResolveException(CiSymbol symbol, string format) : base(symbol.Position, string.Format(format, symbol.Name)) {
+    }
+
+    public ResolveException(ICiStatement statement, string message) : base(null, message) {
+    }
+
+    public ResolveException(CiVar expr, string message) : base(expr.Position, message) {
+    }
+
+    public ResolveException(CiMethodCall expr, string message) : base(expr.Position, message) {
+    }
+
+    public ResolveException(CiExpr expr, string message) : base(expr.Position, message) {
+    }
+
+    public ResolveException(CodePosition position, string format, params object[] args) : base(position, string.Format(format, args)) {
     }
   }
 
@@ -57,16 +72,19 @@ namespace Foxoft.Ci {
       }
       if (File.Exists(name))
         return name;
-      throw new ResolveException("File {0} not found", name);
+      throw new ResolveException(null, "File {0} not found", name);
     }
 
     CiType ICiTypeVisitor.Visit(CiUnknownType type) {
-      CiSymbol symbol = this.Symbols.Lookup(type.Name);
-      if (symbol is CiType)
+      CiSymbol symbol = this.Symbols.Lookup(type);
+      if (symbol is CiType) {
         return (CiType)symbol;
-      if (symbol is CiClass)
-        return new CiClassPtrType { Name = type.Name, Class = (CiClass)symbol };
-      throw new ResolveException("{0} is not a type", type.Name);
+      }
+      if (symbol is CiClass) {
+        var klass = (CiClass)symbol;
+        return new CiClassPtrType(klass.Position, type.Name, klass);
+      }
+      throw new ResolveException(type.Position, "{0} is not a type", type.Name);
     }
 
     CiType ICiTypeVisitor.Visit(CiStringStorageType type) {
@@ -77,9 +95,10 @@ namespace Foxoft.Ci {
     CiClass ResolveClass(CiClass klass) {
       if (klass is CiUnknownClass) {
         string name = klass.Name;
-        klass = this.Symbols.Lookup(name) as CiClass;
-        if (klass == null)
-          throw new ResolveException("{0} is not a class", name);
+        klass = this.Symbols.Lookup(klass) as CiClass;
+        if (klass == null) {
+          throw new ResolveException(klass, "{0} is not a class");
+        }
       }
       return klass;
     }
@@ -177,7 +196,7 @@ namespace Foxoft.Ci {
         if (got != null && ((CiArrayPtrType)expected).ElementType.Equals(gotArray.ElementType))
           return new CiCoercion { ResultType = expected, Inner = expr };
       }
-      throw new ResolveException("Expected {0}, got {1}", expected, got);
+      throw new ResolveException(null, "Expected {0}, got {1}", expected, got);
     }
 
     CiExpr Coerce(CiExpr expr, CiType expected) {
@@ -188,7 +207,7 @@ namespace Foxoft.Ci {
       expr = Coerce(Resolve(expr), type);
       CiConstExpr ce = expr as CiConstExpr;
       if (ce == null)
-        throw new ResolveException("{0} is not constant", expr);
+        throw new ResolveException(null, "{0} is not constant", expr);
       return ce.Value;
     }
 
@@ -201,10 +220,10 @@ namespace Foxoft.Ci {
         if (type is CiArrayStorageType) {
           int expected = ((CiArrayStorageType)type).Length;
           if (array.Length != expected)
-            throw new ResolveException("Expected {0} array elements, got {1}", expected, array.Length);
+            throw new ResolveException(null, "Expected {0} array elements, got {1}", expected, array.Length);
         }
         else {
-          type = new CiArrayStorageType { ElementType = elementType, Length = array.Length };
+          type = new CiArrayStorageType(null, null) { ElementType = elementType, Length = array.Length };
         }
         Array dest = Array.CreateInstance(elementType.DotNetType, array.Length);
         for (int i = 0; i < array.Length; i++)
@@ -228,7 +247,7 @@ namespace Foxoft.Ci {
 
     void ICiSymbolVisitor.Visit(CiConst konst) {
       if (konst.CurrentlyResolving)
-        throw new ResolveException("Circular dependency for {0}", konst.Name);
+        throw new ResolveException(konst.Position, "Circular dependency for {0}", konst.Name);
       konst.CurrentlyResolving = true;
       konst.Type = Resolve(konst.Type);
       konst.Value = ResolveConstInitializer(ref konst.Type, konst.Value);
@@ -242,7 +261,7 @@ namespace Foxoft.Ci {
       object o = ((CiConstExpr)expr).Value;
       if (o is string || o is int || o is byte)
         return Convert.ToString(o, CultureInfo.InvariantCulture);
-      throw new ResolveException("Cannot convert {0} to string", expr.Type);
+      throw new ResolveException(null, "Cannot convert {0} to string", expr.Type);
     }
 
     static int GetConstInt(CiExpr expr) {
@@ -296,8 +315,9 @@ namespace Foxoft.Ci {
 
     CiLValue ResolveLValue(CiExpr expr) {
       CiLValue result = Resolve(expr) as CiLValue;
-      if (result == null)
-        throw new ResolveException("Expected l-value");
+      if (result == null) {
+        throw new ResolveException(expr, "Expected l-value");
+      }
       MarkWritable(result);
       return result;
     }
@@ -305,7 +325,7 @@ namespace Foxoft.Ci {
     CiSymbol Lookup(CiSymbolAccess expr) {
       CiSymbol symbol = expr.Symbol;
       if (symbol is CiUnknownSymbol)
-        symbol = this.Symbols.Lookup(((CiUnknownSymbol)symbol).Name);
+        symbol = this.Symbols.Lookup((CiUnknownSymbol)symbol);
       return symbol;
     }
 
@@ -320,36 +340,42 @@ namespace Foxoft.Ci {
     CiFieldAccess CreateFieldAccess(CiExpr obj, CiField field) {
       if (field.Class != this.CurrentClass && field.Visibility == CiVisibility.Private)
         field.Visibility = CiVisibility.Internal;
-      if (!(obj.Type is CiClassPtrType) || ((CiClassPtrType)obj.Type).Class != field.Class)
-        obj = Coerce(obj, new CiClassStorageType { Class = field.Class });
+      if (!(obj.Type is CiClassPtrType) || ((CiClassPtrType)obj.Type).Class != field.Class) {
+        obj = Coerce(obj, new CiClassStorageType(null, null, field.Class));
+      }
       return new CiFieldAccess { Obj = obj, Field = field };
     }
 
     CiExpr ICiExprVisitor.Visit(CiSymbolAccess expr) {
       CiSymbol symbol = Lookup(expr);
-      if (symbol is CiVar)
+      if (symbol is CiVar) {
         return new CiVarAccess { Var = (CiVar)symbol };
-      if (symbol is CiConst)
+      }
+      if (symbol is CiConst) {
         return GetValue((CiConst)symbol);
+      }
       if (symbol is CiField) {
-        if (this.CurrentMethod.CallType == CiCallType.Static)
-          throw new ResolveException("Cannot access field from a static method");
+        if (this.CurrentMethod.CallType == CiCallType.Static) {
+          throw new ResolveException(CurrentMethod, "Cannot access field from a static method {0}");
+        }
         symbol.Accept(this);
         return CreateFieldAccess(new CiVarAccess { Var = this.CurrentMethod.This }, (CiField)symbol);
       }
-      throw new ResolveException("Invalid expression");
+      throw new ResolveException(expr, "Invalid expression");
     }
 
     CiExpr ICiExprVisitor.Visit(CiUnknownMemberAccess expr) {
       if (expr.Parent is CiSymbolAccess) {
         CiSymbol symbol = Lookup((CiSymbolAccess)expr.Parent);
-        if (symbol is CiEnum)
+        if (symbol is CiEnum) {
           return new CiConstExpr(((CiEnum)symbol).LookupMember(expr.Name));
+        }
         if (symbol is CiClass) {
-          symbol = ((CiClass)symbol).Members.Lookup(expr.Name);
-          if (symbol is CiConst)
+          symbol = ((CiClass)symbol).Members.Lookup(expr.Position, expr.Name);
+          if (symbol is CiConst) {
             return GetValue((CiConst)symbol);
-          throw new ResolveException("Cannot access " + expr.Name);
+          }
+          throw new ResolveException(expr.Position, "Cannot access {0}", expr.Name);
         }
       }
       CiExpr parent = Resolve(expr.Parent);
@@ -369,9 +395,10 @@ namespace Foxoft.Ci {
         }
         return new CiPropertyAccess { Obj = parent, Property = prop };
       }
-      if (member is CiConst)
+      if (member is CiConst) {
         return new CiConstExpr(((CiConst)member).Value);
-      throw new ResolveException(member.ToString());
+      }
+      throw new ResolveException(member, member.ToString());
     }
 
     CiExpr ICiExprVisitor.Visit(CiIndexAccess expr) {
@@ -392,7 +419,7 @@ namespace Foxoft.Ci {
           Arguments = new CiExpr[1] { index }
         };
       }
-      throw new ResolveException("Indexed object is neither array or string");
+      throw new ResolveException(expr, "Indexed object is neither array or string");
     }
 
     void ICiSymbolVisitor.Visit(CiDelegate del) {
@@ -415,9 +442,10 @@ namespace Foxoft.Ci {
           if (method.CallType == CiCallType.Static)
             expr.Obj = null;
           else {
-            if (this.CurrentMethod.CallType == CiCallType.Static)
-              throw new ResolveException("Cannot call instance method from a static method");
-            expr.Obj = Coerce(new CiVarAccess { Var = this.CurrentMethod.This }, new CiClassPtrType { Class = method.Class });
+            if (this.CurrentMethod.CallType == CiCallType.Static) {
+              throw new ResolveException(this.CurrentMethod.Position, "Cannot call instance method from a static method");
+            }
+            expr.Obj = Coerce(new CiVarAccess { Var = this.CurrentMethod.This }, new CiClassPtrType(null, null, method.Class));
             CheckCopyPtr(method.This.Type, expr.Obj);
           }
           return;
@@ -430,10 +458,10 @@ namespace Foxoft.Ci {
           CiClass klass = Lookup((CiSymbolAccess)uma.Parent) as CiClass;
           if (klass != null) {
             // Class.Foo(...)
-            CiMethod method = klass.Members.Lookup(uma.Name) as CiMethod;
+            CiMethod method = klass.Members.Lookup(uma.Position, uma.Name) as CiMethod;
             if (method != null) {
               if (method.CallType != CiCallType.Static)
-                throw new ResolveException("{0} is a non-static method", method.Name);
+                throw new ResolveException(method.Position, "{0} is a non-static method", method.Name);
               expr.Method = method;
               expr.Obj = null;
               return;
@@ -446,11 +474,11 @@ namespace Foxoft.Ci {
           if (method != null) {
             // obj.Foo(...)
             if (method.CallType == CiCallType.Static)
-              throw new ResolveException("{0} is a static method", method.Name);
+              throw new ResolveException(method.Position, "{0} is a static method", method.Name);
             if (method.This != null) {
               // user-defined method
               CheckCopyPtr(method.This.Type, obj);
-              obj = Coerce(obj, new CiClassPtrType { Class = method.Class });
+              obj = Coerce(obj, new CiClassPtrType(null, null, method.Class));
             }
             expr.Method = method;
             expr.Obj = obj;
@@ -459,17 +487,19 @@ namespace Foxoft.Ci {
         }
       }
       expr.Obj = Resolve(expr.Obj);
-      if (!(expr.Obj.Type is CiDelegate))
-        throw new ResolveException("Invalid call");
-      if (expr.Obj.HasSideEffect)
-        throw new ResolveException("Side effects not allowed in delegate call");
+      if (!(expr.Obj.Type is CiDelegate)) {
+        throw new ResolveException(expr, "Invalid call");
+      }
+      if (expr.Obj.HasSideEffect) {
+        throw new ResolveException(expr, "Side effects not allowed in delegate call");
+      }
     }
 
     void CoerceArguments(CiMethodCall expr) {
       expr.Signature.Accept(this);
       CiParam[] paramz = expr.Signature.Params;
       if (expr.Arguments.Length != paramz.Length)
-        throw new ResolveException("Invalid number of arguments for {0}, expected {1}, got {2}", expr.Signature.Name, paramz.Length, expr.Arguments.Length);
+        throw new ResolveException(null, "Invalid number of arguments for {0}, expected {1}, got {2}", expr.Signature.Name, paramz.Length, expr.Arguments.Length);
       for (int i = 0; i < paramz.Length; i++) {
         CiExpr arg = Resolve(expr.Arguments[i]);
         CheckCopyPtr(paramz[i].Type, arg);
@@ -515,8 +545,9 @@ namespace Foxoft.Ci {
       CiExpr left = Resolve(expr.Left);
       CiExpr right = Resolve(expr.Right);
       if (expr.Op == CiToken.Plus && (left.Type is CiStringType || right.Type is CiStringType)) {
-        if (!(left is CiConstExpr && right is CiConstExpr))
-          throw new ResolveException("String concatenation allowed only for constants. Consider using +=");
+        if (!(left is CiConstExpr && right is CiConstExpr)) {
+          throw new ResolveException(expr, "String concatenation allowed only for constants. Consider using +=");
+        }
         string a = GetConstString(left);
         string b = GetConstString(right);
         return new CiConstExpr(a + b);
@@ -590,7 +621,7 @@ namespace Foxoft.Ci {
         return type1; // ptr, null
       if (type2 != CiType.Null)
         return type2; // null, ptr
-      throw new ResolveException("Incompatible types");
+      throw new ResolveException(expr1, "Incompatible types");
     }
 
     CiExpr ICiExprVisitor.Visit(CiBoolBinaryExpr expr) {
@@ -673,10 +704,9 @@ namespace Foxoft.Ci {
       string name = (string)ResolveConstExpr(expr.NameExpr, CiStringPtrType.Value);
       CiBinaryResource resource;
       if (!this.BinaryResources.TryGetValue(name, out resource)) {
-        resource = new CiBinaryResource();
-        resource.Name = name;
+        resource = new CiBinaryResource(null, name);
         resource.Content = File.ReadAllBytes(FindFile(name));
-        resource.Type = new CiArrayStorageType { ElementType = CiByteType.Value, Length = resource.Content.Length };
+        resource.Type = new CiArrayStorageType(null, null) { ElementType = CiByteType.Value, Length = resource.Content.Length };
         this.BinaryResources.Add(name, resource);
       }
       expr.Resource = resource;
@@ -686,7 +716,7 @@ namespace Foxoft.Ci {
     void CheckCreatable(CiType type) {
       CiClass storageClass = type.StorageClass;
       if (storageClass != null && storageClass.IsAbstract)
-        throw new ResolveException("Cannot create instances of an abstract class {0}", storageClass.Name);
+        throw new ResolveException(null, "Cannot create instances of an abstract class {0}", storageClass.Name);
     }
 
     CiExpr ICiExprVisitor.Visit(CiNewExpr expr) {
@@ -716,8 +746,9 @@ namespace Foxoft.Ci {
     bool Resolve(ICiStatement[] statements) {
       bool reachable = true;
       foreach (ICiStatement child in statements) {
-        if (!reachable)
-          throw new ResolveException("Unreachable statement");
+        if (!reachable) {
+          throw new ResolveException(child, "Unreachable statement");
+        }
         child.Accept(this);
         reachable = child.CompletesNormally;
       }
@@ -742,26 +773,26 @@ namespace Foxoft.Ci {
           type = ((CiArrayStorageType)type).ElementType;
           CiConstExpr ce = Coerce(initialValue, type) as CiConstExpr;
           if (ce == null) {
-            throw new ResolveException("Array initializer is not constant");
+            throw new ResolveException(statement, "Array initializer is not constant");
           }
           statement.InitialValue = ce;
           if (type == CiBoolType.Value) {
             if (!false.Equals(ce.Value)) {
-              throw new ResolveException("Bool arrays can only be initialized with false");
+              throw new ResolveException(statement, "Bool arrays can only be initialized with false");
             }
           }
           else if (type == CiByteType.Value) {
             if (!((byte)0).Equals(ce.Value)) {
-              throw new ResolveException("Byte arrays can only be initialized with zero");
+              throw new ResolveException(statement, "Byte arrays can only be initialized with zero");
             }
           }
           else if (type == CiIntType.Value) {
             if (!0.Equals(ce.Value)) {
-              throw new ResolveException("Int arrays can only be initialized with zero");
+              throw new ResolveException(statement, "Int arrays can only be initialized with zero");
             }
           }
           else {
-            throw new ResolveException("Invalid array initializer");
+            throw new ResolveException(statement, "Invalid array initializer");
           }
         }
         else {
@@ -777,7 +808,7 @@ namespace Foxoft.Ci {
     void ICiStatementVisitor.Visit(CiAssign statement) {
       statement.Target = ResolveLValue(statement.Target);
       if (statement.Target is CiVarAccess && ((CiVarAccess)statement.Target).Var == this.CurrentMethod.This)
-        throw new ResolveException("Cannot assign to this");
+        throw new ResolveException(statement, "Cannot assign to this");
       CiMaybeAssign source = statement.Source;
       if (source is CiAssign)
         Resolve((ICiStatement)source);
@@ -790,7 +821,7 @@ namespace Foxoft.Ci {
         if (statement.Op == CiToken.AddAssign && type is CiStringStorageType && statement.Source.Type is CiStringType) {
         } // OK
 			else
-          throw new ResolveException("Invalid compound assignment");
+          throw new ResolveException(statement, "Invalid compound assignment");
       }
     }
 
@@ -798,21 +829,21 @@ namespace Foxoft.Ci {
       statement.Expr = Resolve(statement.Expr);
       ICiPtrType type = statement.Expr.Type as ICiPtrType;
       if (type == null)
-        throw new ResolveException("'delete' takes a class or array pointer");
+        throw new ResolveException(statement, "'delete' takes a class or array pointer");
       if (statement.Expr.HasSideEffect)
-        throw new ResolveException("Side effects not allowed in 'delete'");
+        throw new ResolveException(statement, "Side effects not allowed in 'delete'");
       this.WritablePtrTypes.Add(type);
     }
 
     void ICiStatementVisitor.Visit(CiBreak statement) {
       if (this.CurrentLoopOrSwitch == null)
-        throw new ResolveException("break outside loop and switch");
+        throw new ResolveException(statement, "break outside loop and switch");
       this.CurrentLoopOrSwitch.CompletesNormally = true;
     }
 
     void ICiStatementVisitor.Visit(CiContinue statement) {
       if (this.CurrentLoop == null)
-        throw new ResolveException("continue outside loop");
+        throw new ResolveException(statement, "continue outside loop");
     }
 
     void ResolveLoop(CiLoop statement) {
@@ -873,37 +904,37 @@ namespace Foxoft.Ci {
         for (int i = 0; i < kase.Values.Length; i++) {
           kase.Values[i] = ResolveConstExpr((CiExpr)kase.Values[i], type);
           if (!values.Add(kase.Values[i]))
-            throw new ResolveException("Duplicate case value");
+            throw new ResolveException(statement, "Duplicate case value");
         }
         if (fallthroughFrom != null) {
           if (fallthroughFrom.FallthroughTo == null)
-            throw new ResolveException("goto default followed by case");
+            throw new ResolveException(statement, "goto default followed by case");
           if (!ResolveConstExpr(fallthroughFrom.FallthroughTo, type).Equals(kase.Values[0]))
-            throw new ResolveException("goto case doesn't match the next case");
+            throw new ResolveException(statement, "goto case doesn't match the next case");
         }
         bool reachable = Resolve(kase.Body);
         if (kase.Fallthrough) {
           if (!reachable)
-            throw new ResolveException("goto is not reachable");
+            throw new ResolveException(statement, "goto is not reachable");
           fallthroughFrom = kase;
         }
         else {
           if (reachable)
-            throw new ResolveException("case must end with break, return, throw or goto");
+            throw new ResolveException(statement, "case must end with break, return, throw or goto");
           fallthroughFrom = null;
         }
       }
 
       if (statement.DefaultBody != null) {
         if (fallthroughFrom != null && fallthroughFrom.FallthroughTo != null)
-          throw new ResolveException("goto case followed by default");
+          throw new ResolveException(statement, "goto case followed by default");
         bool reachable = Resolve(statement.DefaultBody);
         if (reachable)
-          throw new ResolveException("default must end with break, return, throw or goto");
+          throw new ResolveException(statement, "default must end with break, return, throw or goto");
       }
       else {
         if (fallthroughFrom != null)
-          throw new ResolveException("goto cannot be the last statement in switch");
+          throw new ResolveException(statement, "goto cannot be the last statement in switch");
       }
 
       this.CurrentLoopOrSwitch = oldLoopOrSwitch;
@@ -928,7 +959,7 @@ namespace Foxoft.Ci {
       if (method.CallType != CiCallType.Abstract) {
         Resolve(method.Body);
         if (method.Signature.ReturnType != CiType.Void && method.Body.CompletesNormally)
-          throw new ResolveException("Method can complete without a return value");
+          throw new ResolveException(method, "Method can complete without a return value");
       }
       this.CurrentMethod = null;
     }
@@ -953,33 +984,41 @@ namespace Foxoft.Ci {
       this.CurrentClass = null;
     }
 
-    static void MarkWritable(ICiPtrType type) {
-      if (type.Writability == PtrWritability.ReadWrite)
+    static void MarkWritable(CodePosition position, ICiPtrType type) {
+      if (type.Writability == PtrWritability.ReadWrite) {
         return;
-      if (type.Writability == PtrWritability.ReadOnly)
-        throw new ResolveException("Attempt to write a read-only array");
+      }
+      if (type.Writability == PtrWritability.ReadOnly) {
+        throw new ResolveException(position, "Attempt to write a read-only array");
+      }
       type.Writability = PtrWritability.ReadWrite;
-      foreach (ICiPtrType source in type.Sources)
-        MarkWritable(source);
+      foreach (ICiPtrType source in type.Sources) {
+        MarkWritable(position, source);
+      }
     }
 
-    static object GetErrorValue(CiType type) {
-      if (type == CiType.Void)
+    static object GetErrorValue(CiMethod method, CiType type) {
+      if (type == CiType.Void) {
         return false;
-      if (type == CiIntType.Value)
+      }
+      if (type == CiIntType.Value) {
         return -1;
-      if (type == CiStringPtrType.Value || type is CiClassPtrType || type is CiArrayPtrType)
+      }
+      if (type == CiStringPtrType.Value || type is CiClassPtrType || type is CiArrayPtrType) {
         return null;
-      throw new ResolveException("throw in a method of unsupported return type");
+      }
+      throw new ResolveException(method, "throw in a method of unsupported return type");
     }
 
     static void MarkThrows(CiMethod method) {
-      if (method.Throws)
+      if (method.Throws) {
         return;
+      }
       method.Throws = true;
-      method.ErrorReturnValue = GetErrorValue(method.Signature.ReturnType);
-      foreach (CiMethod calledBy in method.CalledBy)
+      method.ErrorReturnValue = GetErrorValue(method, method.Signature.ReturnType);
+      foreach (CiMethod calledBy in method.CalledBy) {
         MarkThrows(calledBy);
+      }
     }
 
     static void MarkDead(CiMethod method) {
@@ -1019,8 +1058,9 @@ namespace Foxoft.Ci {
       }
       foreach (CiSymbol symbol in program.Globals)
         symbol.Accept(this);
-      foreach (ICiPtrType type in this.WritablePtrTypes)
-        MarkWritable(type);
+      foreach (ICiPtrType type in this.WritablePtrTypes) {
+        MarkWritable(null, type);
+      }
       foreach (CiMethod method in this.ThrowingMethods)
         MarkThrows(method);
       foreach (CiSymbol symbol in program.Globals) {

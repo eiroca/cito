@@ -1,6 +1,7 @@
 // CiTree.cs - Ci object model
 //
 // Copyright (C) 2011-2014  Piotr Fusik
+// Copyright (C) 2014  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -90,9 +91,15 @@ namespace Foxoft.Ci {
   }
 
   public abstract class CiSymbol {
+    public CodePosition Position;
     public CiCodeDoc Documentation;
     public CiVisibility Visibility;
     public string Name;
+
+    public CiSymbol(CodePosition p, string name) {
+      this.Position = p;
+      this.Name = name;
+    }
 
     public virtual void Accept(ICiSymbolVisitor v) {
       throw new NotImplementedException(this.ToString());
@@ -114,19 +121,35 @@ namespace Foxoft.Ci {
   }
 
   public class CiType : CiSymbol {
-    public static readonly CiType Null = new CiType { Name = "null" };
-    public static readonly CiType Void = new CiType { Name = "void" };
+    public static readonly CiType Null = new CiType(null, "null");
+    public static readonly CiType Void = new CiType(null, "void");
 
-    public virtual Type DotNetType { get { throw new NotSupportedException("No corresponding .NET type"); } }
+    public virtual Type DotNetType { 
+      get { 
+        throw new NotSupportedException("No corresponding .NET type");
+      }
+    }
 
-    public virtual CiType BaseType { get { return this; } }
+    public virtual CiType BaseType { 
+      get { 
+        return this;
+      }
+    }
 
-    public virtual int ArrayLevel { get { return 0; } }
+    public virtual int ArrayLevel { 
+      get {
+        return 0;
+      }
+    }
 
-    public virtual CiType Ptr { get { return null; } }
+    public virtual CiType Ptr { 
+      get { 
+        return null;
+      }
+    }
 
     public virtual CiSymbol LookupMember(string name) {
-      throw new ParseException("{0} has no members", this.GetType());
+      throw new ParseException(Position, "{0} has no members", this.GetType());
     }
 
     public virtual CiType Accept(ICiTypeVisitor v) {
@@ -137,49 +160,71 @@ namespace Foxoft.Ci {
       return this == obj;
     }
 
-    public virtual CiClass StorageClass { get { return null; } }
+    public virtual CiClass StorageClass { 
+      get {
+        return null; 
+      }
+    }
+
+    public CiType(CodePosition p, string name) : base(p, name) {
+    }
   }
 
   public class CiUnknownType : CiType {
+    public CiUnknownType(CodePosition p, string name) : base(p, name) {
+    }
+
     public override CiType Accept(ICiTypeVisitor v) {
       return v.Visit(this);
     }
   }
 
   public class CiBoolType : CiType {
-    private CiBoolType() {
+    public static readonly CiBoolType Value = new CiBoolType(null, "bool");
+
+    public CiBoolType(CodePosition p, string name) : base(p, name) {
     }
 
-    public static readonly CiBoolType Value = new CiBoolType { Name = "bool" };
-
-    public override Type DotNetType { get { return typeof(bool); } }
+    public override Type DotNetType { 
+      get { 
+        return typeof(bool);
+      }
+    }
   }
 
   public class CiByteType : CiType {
-    private CiByteType() {
+    public static readonly CiByteType Value = new CiByteType(null, "byte");
+
+    public CiByteType(CodePosition p, string name) : base(p, name) {
     }
 
-    public static readonly CiByteType Value = new CiByteType { Name = "byte" };
-
-    public override Type DotNetType { get { return typeof(byte); } }
+    public override Type DotNetType {
+      get { 
+        return typeof(byte); 
+      } 
+    }
 
     public override CiSymbol LookupMember(string name) {
       switch (name) {
         case "SByte":
           return CiLibrary.SByteProperty;
         default:
-          throw new ParseException("No member {0} in byte", name);
+          throw new ParseException(Position, "No member {0} in byte", name);
       }
     }
   }
 
   public class CiIntType : CiType {
-    private CiIntType() {
+    public static readonly CiIntType Value = new CiIntType(null, "int");
+
+    public CiIntType(CodePosition p, string name) : base(p, name) {
     }
 
-    public static readonly CiIntType Value = new CiIntType { Name = "int" };
-
-    public override Type DotNetType { get { return typeof(int); } }
+    public override Type DotNetType { 
+      get { 
+        return typeof(int);
+      }
+    }
 
     public override CiSymbol LookupMember(string name) {
       switch (name) {
@@ -188,13 +233,20 @@ namespace Foxoft.Ci {
         case "MulDiv":
           return CiLibrary.MulDivMethod;
         default:
-          throw new ParseException("No member {0} in int", name);
+          throw new ParseException(Position, "No member {0} in int", name);
       }
     }
   }
 
   public abstract class CiStringType : CiType {
-    public override Type DotNetType { get { return typeof(string); } }
+    public CiStringType(CodePosition p, string name) : base(p, name) {
+    }
+
+    public override Type DotNetType { 
+      get { 
+        return typeof(string);
+      }
+    }
 
     public override CiSymbol LookupMember(string name) {
       switch (name) {
@@ -204,28 +256,35 @@ namespace Foxoft.Ci {
           return CiLibrary.SubstringMethod;
       // CharAt is available only via bracket indexing
         default:
-          throw new ParseException("No member {0} in string", name);
+          throw new ParseException(Position, "No member {0} in string", name);
       }
     }
   }
 
   public class CiStringPtrType : CiStringType {
-    private CiStringPtrType() {
+    public CiStringPtrType(CodePosition p, string name) : base(p, name) {
     }
 
-    public static readonly CiStringPtrType Value = new CiStringPtrType { Name = "string" };
+    public static readonly CiStringPtrType Value = new CiStringPtrType(null, "string");
   }
 
   public class CiStringStorageType : CiStringType {
     public CiExpr LengthExpr;
     public int Length;
 
+    public CiStringStorageType(CodePosition p, string name) : base(p, name) {
+    }
+
     public override bool Equals(CiType obj) {
       CiStringStorageType that = obj as CiStringStorageType;
       return that != null && this.Length == that.Length;
     }
 
-    public override CiType Ptr { get { return CiStringPtrType.Value; } }
+    public override CiType Ptr { 
+      get {
+        return CiStringPtrType.Value;
+      }
+    }
 
     public override CiType Accept(ICiTypeVisitor v) {
       return v.Visit(this);
@@ -239,16 +298,24 @@ namespace Foxoft.Ci {
   }
 
   public interface ICiPtrType {
-    PtrWritability Writability { get; set; }
+    PtrWritability Writability { 
+      get; 
+      set;
+    }
 
-    HashSet<ICiPtrType> Sources { get; }
+    HashSet<ICiPtrType> Sources { 
+      get;
+    }
   }
 
   public abstract class CiClassType : CiType {
     public CiClass Class;
 
+    public CiClassType(CodePosition p, string name) : base(p, name) {
+    }
+
     public override CiSymbol LookupMember(string name) {
-      return this.Class.Members.Lookup(name);
+      return this.Class.Members.Lookup(Position, name);
     }
 
     public override CiType Accept(ICiTypeVisitor v) {
@@ -257,13 +324,27 @@ namespace Foxoft.Ci {
   }
 
   public class CiClassPtrType : CiClassType, ICiPtrType {
+    readonly HashSet<ICiPtrType> _sources = new HashSet<ICiPtrType>();
     PtrWritability _writability = PtrWritability.Unknown;
 
-    public PtrWritability Writability { get { return this._writability; } set { this._writability = value; } }
+    public PtrWritability Writability { 
+      get {
+        return this._writability;
+      } 
+      set { 
+        this._writability = value;
+      }
+    }
 
-    readonly HashSet<ICiPtrType> _sources = new HashSet<ICiPtrType>();
+    public HashSet<ICiPtrType> Sources { 
+      get { 
+        return this._sources;
+      }
+    }
 
-    public HashSet<ICiPtrType> Sources { get { return this._sources; } }
+    public CiClassPtrType(CodePosition p, string name, CiClass klass) : base(p, name) {
+      this.Class = klass;
+    }
 
     public override bool Equals(CiType obj) {
       CiClassPtrType that = obj as CiClassPtrType;
@@ -272,12 +353,20 @@ namespace Foxoft.Ci {
   }
 
   public class CiClassStorageType : CiClassType {
+    public CiClassStorageType(CodePosition p, string name, CiClass klass) : base(p, name) {
+      this.Class = klass;
+    }
+
     public override bool Equals(CiType obj) {
       CiClassStorageType that = obj as CiClassStorageType;
       return that != null && this.Class == that.Class;
     }
 
-    public override CiType Ptr { get { return new CiClassPtrType { Class = this.Class }; } }
+    public override CiType Ptr { 
+      get { 
+        return new CiClassPtrType(Position, Name, this.Class);
+      }
+    }
 
     public override CiClass StorageClass { 
       get { 
@@ -289,22 +378,33 @@ namespace Foxoft.Ci {
   public abstract class CiArrayType : CiType {
     public CiType ElementType;
 
-    public override CiType BaseType { get { return this.ElementType.BaseType; } }
+    public CiArrayType(CodePosition p, string name) : base(p, name) {
+    }
 
-    public override int ArrayLevel { get { return 1 + this.ElementType.ArrayLevel; } }
+    public override CiType BaseType { 
+      get { 
+        return this.ElementType.BaseType;
+      }
+    }
+
+    public override int ArrayLevel { 
+      get { 
+        return 1 + this.ElementType.ArrayLevel;
+      }
+    }
 
     public override CiSymbol LookupMember(string name) {
       switch (name) {
         case "CopyTo":
           if (this.ElementType == CiByteType.Value)
             return CiLibrary.ArrayCopyToMethod;
-          throw new ParseException("CopyTo available only for byte arrays");
+          throw new ParseException(Position, "CopyTo available only for byte arrays");
         case "ToString":
           if (this.ElementType == CiByteType.Value)
             return CiLibrary.ArrayToStringMethod;
-          throw new ParseException("ToString available only for byte arrays");
+          throw new ParseException(Position, "ToString available only for byte arrays");
         default:
-          throw new ParseException("No member {0} in array", name);
+          throw new ParseException(Position, "No member {0} in array", name);
       }
     }
 
@@ -320,15 +420,25 @@ namespace Foxoft.Ci {
   }
 
   public class CiArrayPtrType : CiArrayType, ICiPtrType {
+    public CiArrayPtrType(CodePosition p, string name) : base(p, name) {
+    }
+
     PtrWritability _writability = PtrWritability.Unknown;
 
-    public PtrWritability Writability { get { return this._writability; } set { this._writability = value; } }
+    public PtrWritability Writability { 
+      get { 
+        return this._writability;
+      } 
+      set { 
+        this._writability = value;
+      }
+    }
 
     readonly HashSet<ICiPtrType> _sources = new HashSet<ICiPtrType>();
 
     public HashSet<ICiPtrType> Sources { get { return this._sources; } }
 
-    public static readonly CiArrayPtrType WritableByteArray = new CiArrayPtrType { ElementType = CiByteType.Value };
+    public static readonly CiArrayPtrType WritableByteArray = new CiArrayPtrType(null, null) { ElementType = CiByteType.Value };
 
     public override bool Equals(CiType obj) {
       CiArrayPtrType that = obj as CiArrayPtrType;
@@ -340,16 +450,23 @@ namespace Foxoft.Ci {
     public CiExpr LengthExpr;
     public int Length;
 
-    public override CiType Ptr { get { return new CiArrayPtrType { ElementType = this.ElementType }; } }
+    public CiArrayStorageType(CodePosition p, string name) : base(p, name) {
+    }
+
+    public override CiType Ptr { 
+      get { 
+        return new CiArrayPtrType(null, null) { ElementType = this.ElementType };
+      }
+    }
 
     public override CiSymbol LookupMember(string name) {
       switch (name) {
         case "Clear":
           if (this.ElementType == CiByteType.Value || this.ElementType == CiIntType.Value)
             return CiLibrary.ArrayStorageClearMethod;
-          throw new ParseException("Clear available only for byte and int arrays");
+          throw new ParseException(Position, "Clear available only for byte and int arrays");
         case "Length":
-          return new CiConst { Type = CiIntType.Value, Value = this.Length };
+          return new CiConst(null, null) { Type = CiIntType.Value, Value = this.Length };
         default:
           return base.LookupMember(name);
       }
@@ -361,31 +478,39 @@ namespace Foxoft.Ci {
   }
 
   public class CiLibrary {
-    public static readonly CiProperty LowByteProperty = new CiProperty { Name = "LowByte", Type = CiByteType.Value };
-    public static readonly CiProperty SByteProperty = new CiProperty { Name = "SByte", Type = CiIntType.Value };
-    public static readonly CiMethod MulDivMethod = new CiMethod(CiIntType.Value, "MulDiv", new CiParam(CiIntType.Value, "numerator"), new CiParam(CiIntType.Value, "denominator"));
-    public static readonly CiProperty StringLengthProperty = new CiProperty { Name = "Length", Type = CiIntType.Value };
-    public static readonly CiMethod CharAtMethod = new CiMethod(CiIntType.Value, "CharAt", new CiParam(CiIntType.Value, "index"));
-    public static readonly CiMethod SubstringMethod = new CiMethod(CiStringPtrType.Value, "Substring", new CiParam(CiIntType.Value, "startIndex"), new CiParam(CiIntType.Value, "length"));
-    public static readonly CiMethod ArrayCopyToMethod = new CiMethod(CiType.Void, "CopyTo", new CiParam(CiIntType.Value, "sourceIndex"), new CiParam(CiArrayPtrType.WritableByteArray, "destinationArray"), new CiParam(CiIntType.Value, "destinationIndex"), new CiParam(CiIntType.Value, "length"));
-    public static readonly CiMethod ArrayToStringMethod = new CiMethod(CiStringPtrType.Value, "ToString", new CiParam(CiIntType.Value, "startIndex"), new CiParam(CiIntType.Value, "length"));
-    public static readonly CiMethod ArrayStorageClearMethod = new CiMethod(CiType.Void, "Clear") { IsMutator = true };
+    public static readonly CiProperty LowByteProperty = new CiProperty(null, "LowByte"){ Type = CiByteType.Value };
+    public static readonly CiProperty SByteProperty = new CiProperty(null, "SByte"){ Type = CiIntType.Value };
+    public static readonly CiMethod MulDivMethod = new CiMethod(null, CiIntType.Value, "MulDiv", new CiParam(null, CiIntType.Value, "numerator"), new CiParam(null, CiIntType.Value, "denominator"));
+    public static readonly CiProperty StringLengthProperty = new CiProperty(null, "Length"){ Type = CiIntType.Value };
+    public static readonly CiMethod CharAtMethod = new CiMethod(null, CiIntType.Value, "CharAt", new CiParam(null, CiIntType.Value, "index"));
+    public static readonly CiMethod SubstringMethod = new CiMethod(null, CiStringPtrType.Value, "Substring", new CiParam(null, CiIntType.Value, "startIndex"), new CiParam(null, CiIntType.Value, "length"));
+    public static readonly CiMethod ArrayCopyToMethod = new CiMethod(null, CiType.Void, "CopyTo", new CiParam(null, CiIntType.Value, "sourceIndex"), new CiParam(null, CiArrayPtrType.WritableByteArray, "destinationArray"), new CiParam(null, CiIntType.Value, "destinationIndex"), new CiParam(null, CiIntType.Value, "length"));
+    public static readonly CiMethod ArrayToStringMethod = new CiMethod(null, CiStringPtrType.Value, "ToString", new CiParam(null, CiIntType.Value, "startIndex"), new CiParam(null, CiIntType.Value, "length"));
+    public static readonly CiMethod ArrayStorageClearMethod = new CiMethod(null, CiType.Void, "Clear") { IsMutator = true };
   }
 
   public class CiUnknownSymbol : CiSymbol {
+    public CiUnknownSymbol(CodePosition p, string name) : base(p, name) {
+    }
   }
 
   public class CiEnumValue : CiSymbol {
     public CiEnum Type;
+
+    public CiEnumValue(CodePosition p, string name) : base(p, name) {
+    }
   }
 
   public class CiEnum : CiType {
     public CiEnumValue[] Values;
 
+    public CiEnum(CodePosition p, string name) : base(p, name) {
+    }
+
     public override CiSymbol LookupMember(string name) {
       CiEnumValue value = this.Values.SingleOrDefault(v => v.Name == name);
       if (value == null)
-        throw new ParseException("{0} not found in enum {1}", name, this.Name);
+        throw new ParseException(Position, "{0} not found in enum {1}", name, this.Name);
       return value;
     }
 
@@ -397,6 +522,9 @@ namespace Foxoft.Ci {
   public class CiField : CiTypedSymbol {
     public CiClass Class;
 
+    public CiField(CodePosition p, string name) : base(p, name) {
+    }
+
     public override void Accept(ICiSymbolVisitor v) {
       v.Visit(this);
     }
@@ -404,6 +532,9 @@ namespace Foxoft.Ci {
 
   public class CiProperty : CiSymbol {
     public CiType Type;
+
+    public CiProperty(CodePosition p, string name) : base(p, name) {
+    }
 
     public override void Accept(ICiSymbolVisitor v) {
     }
@@ -459,6 +590,9 @@ namespace Foxoft.Ci {
 
     public bool CompletesNormally { get { return true; } }
 
+    public CiConst(CodePosition p, string name) : base(p, name) {
+    }
+
     public override void Accept(ICiSymbolVisitor v) {
       v.Visit(this);
     }
@@ -469,6 +603,9 @@ namespace Foxoft.Ci {
   }
 
   public class CiTypedSymbol : CiSymbol {
+    public CiTypedSymbol(CodePosition p, string name) : base(p, name) {
+    }
+
     public CiType Type;
   }
 
@@ -478,6 +615,9 @@ namespace Foxoft.Ci {
     // C89 only
     public bool CompletesNormally { get { return true; } }
 
+    public CiVar(CodePosition p, string name) : base(p, name) {
+    }
+
     public void Accept(ICiStatementVisitor v) {
       v.Visit(this);
     }
@@ -486,20 +626,18 @@ namespace Foxoft.Ci {
   public class CiBinaryResource : CiSymbol {
     public byte[] Content;
     public CiArrayStorageType Type;
+
+    public CiBinaryResource(CodePosition p, string name) : base(p, name) {
+    }
   }
 
   public class CiParam : CiVar {
-    public CiParam() {
+    public CiParam(CodePosition p, string name) : base(p, name) {
     }
 
-    public CiParam(CiType type, string name) {
+    public CiParam(CodePosition p, CiType type, string name) : base(p, name) {
       this.Type = type;
-      this.Name = name;
     }
-  }
-
-  public abstract class CiMaybeAssign {
-    public abstract CiType Type { get; }
   }
 
   public interface ICiExprVisitor {
@@ -528,7 +666,13 @@ namespace Foxoft.Ci {
     CiExpr Visit(CiNewExpr expr);
   }
 
+  public abstract class CiMaybeAssign {
+    public abstract CiType Type { get; }
+  }
+
   public abstract class CiExpr : CiMaybeAssign {
+    public CodePosition Position;
+
     public virtual bool IsConst(object value) {
       return false;
     }
@@ -941,6 +1085,9 @@ namespace Foxoft.Ci {
     public CiParam[] Params;
     public CiWriteStatus WriteStatus;
     // C only
+    public CiDelegate(CodePosition p, string name) : base(p, name) {
+    }
+
     public override CiType Accept(ICiTypeVisitor v) {
       return v.Visit(this);
     }
@@ -970,10 +1117,9 @@ namespace Foxoft.Ci {
     public readonly HashSet<CiMethod> Calls = new HashSet<CiMethod>();
     public bool IsMutator;
 
-    public CiMethod(CiType returnType, string name, params CiParam[] paramz) {
-      this.Name = name;
+    public CiMethod(CodePosition p, CiType returnType, string name, params CiParam[] paramz) : base(p, name) {
       this.CallType = CiCallType.Normal;
-      this.Signature = new CiDelegate { Name = name, ReturnType = returnType, Params = paramz };
+      this.Signature = new CiDelegate(null, name) { ReturnType = returnType, Params = paramz };
     }
 
     public override void Accept(ICiSymbolVisitor v) {
@@ -1004,12 +1150,17 @@ namespace Foxoft.Ci {
     // C only
     public bool IsAllocated;
     // C only
+    public CiClass(CodePosition p, string name) : base(p, name) {
+    }
+
     public override void Accept(ICiSymbolVisitor v) {
       v.Visit(this);
     }
   }
 
   public class CiUnknownClass : CiClass {
+    public CiUnknownClass(CodePosition p, string name) : base(p, name) {
+    }
   }
 
   public class CiProgram {

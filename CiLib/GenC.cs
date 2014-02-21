@@ -223,7 +223,7 @@ namespace Foxoft.Ci {
         return;
       }
       if (del.WriteStatus == CiWriteStatus.InProgress) {
-        throw new ResolveException("Circular dependency for delegate {0}", del.Name);
+        throw new ResolveException(symbol, "Circular dependency for delegate {0}");
       }
       del.WriteStatus = CiWriteStatus.InProgress;
       foreach (CiParam param in del.Params) {
@@ -853,7 +853,6 @@ namespace Foxoft.Ci {
       foreach (CiSymbol member in klass.Members) {
         CiField field = member as CiField;
         if (field != null) {
-          CiType type = field.Type;
           CiClass storageClass = field.Type.StorageClass;
           if (storageClass != null) {
             action(field, storageClass);
@@ -1118,7 +1117,7 @@ namespace Foxoft.Ci {
       OpenBlock();
       bool first = true;
       foreach (CiMethod method in EnumVirtualMethods(structClass)) {
-        CiMethod impl = (CiMethod)klass.Members.Lookup(method.Name);
+        CiMethod impl = (CiMethod)klass.Members.Lookup(method);
         if (first) {
           first = false;
         }
@@ -1178,7 +1177,7 @@ namespace Foxoft.Ci {
         return;
       }
       if (klass.WriteStatus == CiWriteStatus.InProgress) {
-        throw new ResolveException("Circular dependency for class {0}", klass.Name);
+        throw new ResolveException(klass, "Circular dependency for class {0}");
       }
       klass.WriteStatus = CiWriteStatus.InProgress;
       klass.Constructs = klass.Constructor != null || HasVirtualMethods(klass);
@@ -1304,6 +1303,5 @@ namespace Foxoft.Ci {
       WriteClearArray(expr.Obj);
     }
     #endregion
-
   }
 }

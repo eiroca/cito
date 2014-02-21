@@ -217,7 +217,7 @@ namespace Foxoft.Ci {
 
     public override void EmitProgram(CiProgram prog) {
       CreateFile(this.OutputFile);
-        foreach (CiSymbol symbol in prog.Globals) {
+      foreach (CiSymbol symbol in prog.Globals) {
         if (symbol is CiClass) {
           ((CiClass)symbol).WriteStatus = CiWriteStatus.NotYet;
         }
@@ -303,7 +303,7 @@ namespace Foxoft.Ci {
         return;
       }
       if (klass.WriteStatus == CiWriteStatus.InProgress) {
-        throw new ResolveException("Circular dependency for class {0}", klass.Name);
+        throw new ResolveException(klass, "Circular dependency for class {0}");
       }
       klass.WriteStatus = CiWriteStatus.InProgress;
       if (klass.BaseClass != null) {
@@ -473,6 +473,5 @@ namespace Foxoft.Ci {
       UseFunction("ClearArrayMethod");
     }
     #endregion
-
   }
 }
