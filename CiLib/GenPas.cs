@@ -93,81 +93,7 @@ namespace Foxoft.Ci {
     }
 
     public override string[] GetReservedWords() {
-      return new String[] {
-        "absolute",
-        "and",
-        "array",
-        "as",
-        "asm",
-        "begin",
-        "case",
-        "class",
-        "const",
-        "constructor",
-        "destructor",
-        "dispinterface",
-        "div",
-        "do",
-        "downto",
-        "else",
-        "end",
-        "except",
-        "exports",
-        "file",
-        "finalization",
-        "finally",
-        "for",
-        "function",
-        "goto",
-        "if",
-        "implementation",
-        "in",
-        "inherited",
-        "initialization",
-        "inline",
-        "inline",
-        "interface",
-        "is",
-        "label",
-        "library",
-        "mod",
-        "nil",
-        "not",
-        "object",
-        "of",
-        "on",
-        "operator",
-        "or",
-        "out",
-        "packed",
-        "procedure",
-        "program",
-        "property",
-        "raise",
-        "record",
-        "reintroduce",
-        "repeat",
-        "resourcestring",
-        "result",
-        "self",
-        "set",
-        "shl",
-        "shr",
-        "string",
-        "then",
-        "threadvar",
-        "to",
-        "try",
-        "type",
-        "unit",
-        "until",
-        "uses",
-        "var",
-        "while",
-        "with",
-        "xor",
-        "length"
-      };
+      return new String[] { "absolute", "and", "array", "as", "asm", "begin", "case", "class", "const", "constructor", "destructor", "dispinterface", "div", "do", "downto", "else", "end", "except", "exports", "file", "finalization", "finally", "for", "function", "goto", "if", "implementation", "in", "inherited", "initialization", "inline", "inline", "interface", "is", "label", "library", "mod", "nil", "not", "object", "of", "on", "operator", "or", "out", "packed", "procedure", "program", "property", "raise", "record", "reintroduce", "repeat", "resourcestring", "result", "self", "set", "shl", "shr", "string", "then", "threadvar", "to", "try", "type", "unit", "until", "uses", "var", "while", "with", "xor", "length" };
     }
 
     protected override void WriteBanner() {
@@ -2060,10 +1986,8 @@ namespace Foxoft.Ci {
     }
 
     void WriteInline(CiMaybeAssign expr) {
-      if (expr is CiExpr)
-        Translate((CiExpr)expr);
-      else
-        Statement_CiAssign((CiAssign)expr);
+      if (expr is CiExpr) Translate((CiExpr)expr);
+      else Statement_CiAssign((CiAssign)expr);
     }
 
     #region BreakTracker

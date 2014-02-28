@@ -462,11 +462,7 @@ namespace Foxoft.Ci {
         }
         else {
           WriteLine(";");
-          Translate(new CiAssign {
-            Target = new CiVarAccess { Var = stmt },
-            Op = CiToken.Assign,
-            Source = stmt.InitialValue
-          });
+          Translate(new CiAssign { Target = new CiVarAccess { Var = stmt }, Op = CiToken.Assign, Source = stmt.InitialValue });
         }
       }
     }

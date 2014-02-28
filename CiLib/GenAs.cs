@@ -355,8 +355,7 @@ namespace Foxoft.Ci {
           qual = "static";
           break;
         case CiCallType.Normal:
-          if (method.Visibility != CiVisibility.Private)
-            qual = "final";
+          if (method.Visibility != CiVisibility.Private) qual = "final";
           break;
         case CiCallType.Override:
           qual = "override";

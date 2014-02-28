@@ -72,8 +72,7 @@ namespace Foxoft.Ci {
     }
 
     protected override void WriteDocCode(CiCodeDoc doc) {
-      if (doc == null)
-        return;
+      if (doc == null) return;
       // TODO
     }
 
@@ -163,33 +162,16 @@ namespace Foxoft.Ci {
     void WriteBuiltins() {
       List<string[]> code = new List<string[]>();
       if (IsUsedFunction("SubstringMethod")) {
-        code.Add(new string[] {
-          "substring : function(s, offset, length)",
-          "return s.substring(offset, offset + length);"
-        });
+        code.Add(new string[] { "substring : function(s, offset, length)", "return s.substring(offset, offset + length);" });
       }
       if (IsUsedFunction("CopyArrayMethod")) {
-        code.Add(new string[] {
-          "copyArray : function(sa, soffset, da, doffset, length)",
-          "for (var i = 0; i < length; i++)",
-          "\tda[doffset + i] = sa[soffset + i];"
-        });
+        code.Add(new string[] { "copyArray : function(sa, soffset, da, doffset, length)", "for (var i = 0; i < length; i++)", "\tda[doffset + i] = sa[soffset + i];" });
       }
       if (IsUsedFunction("BytesToStringMethod")) {
-        code.Add(new string[] {
-          "bytesToString : function(a, offset, length)",
-          "var s = \"\";",
-          "for (var i = 0; i < length; i++)",
-          "\ts += String.fromCharCode(a[offset + i]);",
-          "return s;"
-        });
+        code.Add(new string[] { "bytesToString : function(a, offset, length)", "var s = \"\";", "for (var i = 0; i < length; i++)", "\ts += String.fromCharCode(a[offset + i]);", "return s;" });
       }
       if (IsUsedFunction("ClearArrayMethod")) {
-        code.Add(new string[] {
-          "clearArray : function(a, value)",
-          "for (var i = 0; i < a.length; i++)",
-          "\ta[i] = value;"
-        });
+        code.Add(new string[] { "clearArray : function(a, value)", "for (var i = 0; i < a.length; i++)", "\ta[i] = value;" });
       }
       if (code.Count > 0) {
         WriteLine("var Ci = {");
@@ -365,8 +347,7 @@ namespace Foxoft.Ci {
       Write(stmt.Name);
       WriteInit(stmt.Type);
       if (stmt.InitialValue != null) {
-        if (stmt.Type is CiArrayStorageType)
-          WriteInitArrayStorageVar(stmt);
+        if (stmt.Type is CiArrayStorageType) WriteInitArrayStorageVar(stmt);
         else {
           Write(" = ");
           Translate(stmt.InitialValue);

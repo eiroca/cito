@@ -68,7 +68,7 @@ public partial class MainWindow: Gtk.Window {
       btLocate.Visible = (pos != null);
       OldPos = pos;
       if (pos != null) {
-        txt.AppendFormat(" @{0}:{1}", pos.SourceID, pos.Offset);
+        txt.AppendFormat(" @{0}:{1}", pos.SourceFilename, pos.Offset);
       }
       lbMsg.Text = txt.ToString();
     }
@@ -76,14 +76,14 @@ public partial class MainWindow: Gtk.Window {
 
   protected void btLocateClick(object sender, EventArgs e) {
     bool found = true;
-    if (!cbSource.ActiveText.Equals(OldPos.SourceID)) {
+    if (!cbSource.ActiveText.Equals(OldPos.SourceFilename)) {
       Gtk.TreeIter iter;
       cbSource.Model.GetIterFirst(out iter);
       found = false;
       do {
         GLib.Value thisRow = new GLib.Value();
         cbSource.Model.GetValue(iter, 0, ref thisRow);
-        if ((thisRow.Val as string).Equals(OldPos.SourceID)) {
+        if ((thisRow.Val as string).Equals(OldPos.SourceFilename)) {
           cbSource.SetActiveIter(iter);
           found = true;
           break;

@@ -28,7 +28,6 @@ using System.Runtime.InteropServices;
 namespace Foxoft.Ci {
 
   public sealed class CiTo {
-
     CiTo() {
     }
 

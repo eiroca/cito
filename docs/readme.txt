@@ -77,11 +77,12 @@ Any comments are welcome!
 History
 -------
 
-cito 0.5.0 (2013-10-31)::
+cito 0.5.1 (2014-02-20)::
 
 - Object Pascal back-end.
 - PHP back-end.
 - CiViewer side-by-side cross translation tool
+- Translation messages show where errors are
 
 cito 0.4.0 (2013-05-18)::
 

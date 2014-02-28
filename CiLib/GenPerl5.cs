@@ -207,8 +207,7 @@ namespace Foxoft.Ci {
         WriteLine();
       }
       WriteConstructor(klass);
-      foreach (CiSymbol member in klass.Members)
-        if (member is CiMethod) {
+      foreach (CiSymbol member in klass.Members) if (member is CiMethod) {
           Translate(member);
         }
     }
@@ -597,8 +596,7 @@ namespace Foxoft.Ci {
       if (classType != null) {
         WriteFormat("{0}{1}->new()", this.Package, DecodeSymbol(classType.Class));
       }
-      else
-        Write("[]"); // new array reference
+      else Write("[]"); // new array reference
     }
 
     protected override void WriteChild(ICiStatement stmt) {
@@ -757,22 +755,14 @@ namespace Foxoft.Ci {
     }
 
     public override void Library_CopyTo(CiMethodCall expr) {
-      CiExpr lenMinus1 = new CiBinaryExpr {
-        Left = expr.Arguments[3],
-        Op = CiToken.Minus,
-        Right = new CiConstExpr(1)
-      };
+      CiExpr lenMinus1 = new CiBinaryExpr { Left = expr.Arguments[3], Op = CiToken.Minus, Right = new CiConstExpr(1) };
       WriteSlice(expr.Arguments[1], expr.Arguments[2], lenMinus1);
       Write(" = ");
       WriteSlice(expr.Obj, expr.Arguments[0], lenMinus1);
     }
 
     public override void Library_ToString(CiMethodCall expr) {
-      CiExpr lenMinus1 = new CiBinaryExpr {
-        Left = expr.Arguments[1],
-        Op = CiToken.Minus,
-        Right = new CiConstExpr(1)
-      };
+      CiExpr lenMinus1 = new CiBinaryExpr { Left = expr.Arguments[1], Op = CiToken.Minus, Right = new CiConstExpr(1) };
       Write("pack('U*', ");
       WriteSlice(expr.Obj, expr.Arguments[0], lenMinus1);
       Write(')');
@@ -780,8 +770,7 @@ namespace Foxoft.Ci {
 
     public override void Library_Clear(CiMethodCall expr) {
       Write('@');
-      if (expr.Obj is CiVarAccess)
-        Write(((CiVarAccess)expr.Obj).Var.Name);
+      if (expr.Obj is CiVarAccess) Write(((CiVarAccess)expr.Obj).Var.Name);
       else {
         Write('{');
         Translate(expr.Obj);

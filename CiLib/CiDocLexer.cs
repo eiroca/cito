@@ -47,8 +47,7 @@ namespace Foxoft.Ci {
 
     int ReadChar() {
       int c = this.CiLexer.ReadChar();
-      if (c == '\n' && this.CiLexer.NextToken() != CiToken.DocComment)
-        return -1;
+      if (c == '\n' && this.CiLexer.NextToken() != CiToken.DocComment) return -1;
       return c;
     }
 
@@ -75,8 +74,7 @@ namespace Foxoft.Ci {
               this.CheckPeriod = false;
               return CiDocToken.Period;
             }
-            if (lastChar == '\n')
-              return CiDocToken.Para;
+            if (lastChar == '\n') return CiDocToken.Para;
             return CiDocToken.Char;
           default:
             return CiDocToken.Char;

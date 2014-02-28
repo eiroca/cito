@@ -54,11 +54,7 @@ namespace Foxoft.Ci {
     }
 
     void Menu_Open(object sender, EventArgs e) {
-      OpenFileDialog dlg = new OpenFileDialog {
-        DefaultExt = "ci",
-        Filter = "Æ Source Code (*.ci)|*.ci",
-        Multiselect = true
-      };
+      OpenFileDialog dlg = new OpenFileDialog { DefaultExt = "ci", Filter = "Æ Source Code (*.ci)|*.ci", Multiselect = true };
       if (dlg.ShowDialog() == DialogResult.OK) {
         // Directory for BinaryResources. Let's assume all sources and resources are in the same directory.
         this.SearchDirs = new string[1] { Path.GetDirectoryName(dlg.FileNames[0]) };
@@ -74,8 +70,7 @@ namespace Foxoft.Ci {
 
     void Menu_Font(object sender, EventArgs e) {
       FontDialog dlg = new FontDialog { Font = this.Font, ShowEffects = false };
-      if (dlg.ShowDialog() == DialogResult.OK)
-        this.Font = dlg.Font;
+      if (dlg.ShowDialog() == DialogResult.OK) this.Font = dlg.Font;
     }
 
     void InitializeComponent() {
@@ -88,10 +83,7 @@ namespace Foxoft.Ci {
       this.Messages.ScrollBars = ScrollBars.Both;
       this.Messages.WordWrap = false;
       this.Controls.Add(this.Messages);
-      this.Menu = new MainMenu(new MenuItem[] {
-        new MenuItem("&Open", Menu_Open),
-        new MenuItem("&Font", Menu_Font)
-      });
+      this.Menu = new MainMenu(new MenuItem[] { new MenuItem("&Open", Menu_Open), new MenuItem("&Font", Menu_Font) });
     }
 
     public CiPad() {
@@ -166,20 +158,20 @@ namespace Foxoft.Ci {
         CiResolver resolver = new CiResolver();
         resolver.SearchDirs = this.SearchDirs;
         resolver.Resolve(program);
-        this.C89Group.Load(program, new GenC89()       { OutputFile = "hello.c" });
-        this.C99Group.Load(program, new GenC()         { OutputFile = "hello99.c" });
-        this.CsGroup.Load(program, new GenCs()        { OutputFile = "hello.cs" });
-        this.JavaGroup.Load(program, new GenJava()      { OutputFile = "." });
+        this.C89Group.Load(program, new GenC89() { OutputFile = "hello.c" });
+        this.C99Group.Load(program, new GenC() { OutputFile = "hello99.c" });
+        this.CsGroup.Load(program, new GenCs() { OutputFile = "hello.cs" });
+        this.JavaGroup.Load(program, new GenJava() { OutputFile = "." });
 
-        this.PasGroup.Load(program, new GenPas()      { OutputFile = "hello.pas", Namespace = "Hello" });
-        this.DGroup.Load(program, new GenD()        { OutputFile = "hello.d" });
-        this.Perl1Group.Load(program, new GenPerl58()   { OutputFile = "hello.pm" });
-        this.Perl2Group.Load(program, new GenPerl510()  { OutputFile = "hello-5.10.pm" });
+        this.PasGroup.Load(program, new GenPas() { OutputFile = "hello.pas", Namespace = "Hello" });
+        this.DGroup.Load(program, new GenD() { OutputFile = "hello.d" });
+        this.Perl1Group.Load(program, new GenPerl58() { OutputFile = "hello.pm" });
+        this.Perl2Group.Load(program, new GenPerl510() { OutputFile = "hello-5.10.pm" });
 
-        this.PHPGroup.Load(program, new GenPHP()        { OutputFile = "hello.php", Namespace = "Hello" });
-        this.Js1Group.Load(program, new GenJs()         { OutputFile = "hello.js" });
+        this.PHPGroup.Load(program, new GenPHP() { OutputFile = "hello.php", Namespace = "Hello" });
+        this.Js1Group.Load(program, new GenJs() { OutputFile = "hello.js" });
         this.Js2Group.Load(program, new GenJsWithTypedArrays() { OutputFile = "hello-Typed-Arrays.js" });
-        this.AsGroup.Load(program, new GenAs()         { OutputFile = "." });
+        this.AsGroup.Load(program, new GenAs() { OutputFile = "." });
 
         this.Messages.BackColor = SystemColors.Window;
         this.Messages.Text = "OK";
@@ -270,13 +262,11 @@ namespace Foxoft.Ci {
         text.ScrollBars = ScrollBars.Both;
         text.TabStop = false;
         text.WordWrap = false;
-        if (Type.GetType("Mono.Runtime") == null)
-          SetNarrowTabs(text);
+        if (Type.GetType("Mono.Runtime") == null) SetNarrowTabs(text);
         page.Controls.Add(text);
         this.TabControl.TabPages.Add(page);
       }
-      else if (this.TabsToRemove != null)
-        this.TabsToRemove.Remove(page);
+      else if (this.TabsToRemove != null) this.TabsToRemove.Remove(page);
       page.Controls[0].Text = content;
     }
 
@@ -294,12 +284,10 @@ namespace Foxoft.Ci {
         gen.WriteProgram(program);
       }
       foreach (TabPage page in this.TabsToRemove) {
-        if (page == this.TabControl.SelectedTab)
-          this.TabControl.SelectedIndex = -1; // WORKAROUND Mono 2.10.9 BUG: Java/AS translations disappear when changing class name
+        if (page == this.TabControl.SelectedTab) this.TabControl.SelectedIndex = -1; // WORKAROUND Mono 2.10.9 BUG: Java/AS translations disappear when changing class name
         this.TabControl.TabPages.Remove(page);
       }
-      if (this.TabControl.SelectedIndex == -1)
-        this.TabControl.SelectedIndex = 0; // WORKAROUND continued
+      if (this.TabControl.SelectedIndex == -1) this.TabControl.SelectedIndex = 0; // WORKAROUND continued
     }
   }
 }

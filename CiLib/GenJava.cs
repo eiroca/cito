@@ -188,8 +188,7 @@ namespace Foxoft.Ci {
           qual = "static ";
           break;
         case CiCallType.Normal:
-          if (method.Visibility != CiVisibility.Private)
-            qual = "final ";
+          if (method.Visibility != CiVisibility.Private) qual = "final ";
           break;
         case CiCallType.Abstract:
           qual = "abstract ";
@@ -439,8 +438,7 @@ namespace Foxoft.Ci {
       if (type == CiByteType.Value) {
         UseFunction("ClearBytesMethod");
       }
-      else if (type == CiIntType.Value)
-        UseFunction("ClearIntsMethod");
+      else if (type == CiIntType.Value) UseFunction("ClearIntsMethod");
       else {
         throw new ArgumentException(type.Name);
       }

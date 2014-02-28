@@ -40,22 +40,7 @@ namespace Foxoft.Ci {
     }
 
     public override string[] GetReservedWords() {
-      String[] result = new String[] {
-        "delete",
-        "break",
-        "continue",
-        "do",
-        "while",
-        "for",
-        "if",
-        "native",
-        "return",
-        "switch",
-        "case",
-        "default",
-        "throw",
-        "module"
-      };
+      String[] result = new String[] { "delete", "break", "continue", "do", "while", "for", "if", "native", "return", "switch", "case", "default", "throw", "module" };
       return result;
     }
 
@@ -163,8 +148,7 @@ namespace Foxoft.Ci {
                   break;
               }
             }
-            else
-              Write(c);
+            else Write(c);
             break;
         }
       }
@@ -388,8 +372,7 @@ namespace Foxoft.Ci {
           Write("static ");
           break;
         case CiCallType.Normal:
-          if (method.Visibility != CiVisibility.Private)
-            Write("final ");
+          if (method.Visibility != CiVisibility.Private) Write("final ");
           break;
         case CiCallType.Abstract:
           Write("abstract ");

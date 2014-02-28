@@ -98,13 +98,22 @@ namespace Foxoft.Ci {
       return res.ToString();
     }
 
-    public string OutputFile { get; set; }
+    public string OutputFile {
+      get;
+      set;
+    }
 
-    public string Namespace { get; set; }
+    public string Namespace {
+      get;
+      set;
+    }
 
     public Dictionary<string, object> Options = new Dictionary<string, object>();
 
-    public TextWriterFactory CreateTextWriter { get; set; }
+    public TextWriterFactory CreateTextWriter {
+      get;
+      set;
+    }
 
     public BaseGenerator(string aNamespace) : this() {
       SetNamespace(aNamespace);
@@ -243,7 +252,11 @@ namespace Foxoft.Ci {
     public class PositionMark {
       private int FPos;
 
-      public int Position { get { return FPos; } }
+      public int Position {
+        get {
+          return FPos;
+        }
+      }
 
       public PositionMark(int Position) {
         FPos = Position;

@@ -21,15 +21,13 @@ namespace IgeMacIntegration {
         // This is a hacktastic way of getting sysname from uname ()
         if (uname(buf) == 0) {
           string os = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(buf);
-          if (os == "Darwin")
-            return true;
+          if (os == "Darwin") return true;
         }
       }
       catch {
       }
       finally {
-        if (buf != IntPtr.Zero)
-          System.Runtime.InteropServices.Marshal.FreeHGlobal(buf);
+        if (buf != IntPtr.Zero) System.Runtime.InteropServices.Marshal.FreeHGlobal(buf);
       }
       return false;
     }

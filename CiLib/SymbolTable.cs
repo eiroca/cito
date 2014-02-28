@@ -27,6 +27,10 @@ namespace Foxoft.Ci {
     public SymbolTable Parent;
     readonly SortedDictionary<string, CiSymbol> Dict = new SortedDictionary<string, CiSymbol>(StringComparer.Ordinal);
 
+    public SymbolTable(SymbolTable Parent) {
+      this.Parent = Parent;
+    }
+
     IEnumerator IEnumerable.GetEnumerator() {
       return this.Dict.Values.GetEnumerator();
     }
@@ -37,27 +41,22 @@ namespace Foxoft.Ci {
 
     public void Add(CiSymbol symbol) {
       string name = symbol.Name;
-      for (SymbolTable t = this; t != null; t = t.Parent)
-        if (t.Dict.ContainsKey(name))
-          throw new ParseException(symbol.Position, "Symbol {0} already defined", name);
+      for (SymbolTable t = this; t != null; t = t.Parent) if (t.Dict.ContainsKey(name)) throw new ParseException(symbol.Position, "Symbol {0} already defined", name);
       this.Dict.Add(name, symbol);
     }
 
     public CiSymbol TryLookup(string name) {
       for (SymbolTable t = this; t != null; t = t.Parent) {
         CiSymbol result;
-        if (t.Dict.TryGetValue(name, out result))
-          return result;
+        if (t.Dict.TryGetValue(name, out result)) return result;
       }
       return null;
     }
 
     void Dump() {
-      foreach (CiSymbol symbol in this)
-        Console.Error.Write("{0} {1}, ", symbol.GetType().Name, symbol.Name);
+      foreach (CiSymbol symbol in this) Console.Error.Write("{0} {1}, ", symbol.GetType().Name, symbol.Name);
       Console.Error.WriteLine();
-      if (Parent != null)
-        Parent.Dump();
+      if (Parent != null) Parent.Dump();
     }
 
     public CiSymbol Lookup(CiSymbol symbol) {

@@ -31,8 +31,8 @@ namespace Foxoft.Ci {
   public delegate void WriteSymbolDelegate(CiSymbol statement);
   public delegate void WriteStatementDelegate(ICiStatement statement);
   public delegate void WriteExprDelegate(CiExpr expr);
-  public delegate void WriteUnaryOperatorDelegate(CiUnaryExpr expr,UnaryOperatorInfo token);
-  public delegate void WriteBinaryOperatorDelegate(CiBinaryExpr expr,BinaryOperatorInfo token);
+  public delegate void WriteUnaryOperatorDelegate(CiUnaryExpr expr, UnaryOperatorInfo token);
+  public delegate void WriteBinaryOperatorDelegate(CiBinaryExpr expr, BinaryOperatorInfo token);
   //
   public delegate void WritePropertyAccessDelegate(CiPropertyAccess expr);
   public delegate void WriteMethodDelegate(CiMethodCall method);
@@ -789,7 +789,10 @@ namespace Foxoft.Ci {
 
     #region Symbol Mapper
     //
-    public TranslateSymbolNameDelegate TranslateSymbolName { get; set; }
+    public TranslateSymbolNameDelegate TranslateSymbolName {
+      get;
+      set;
+    }
 
     protected HashSet<string> ReservedWords = null;
     protected Dictionary<CiSymbol, SymbolMapping> varMap = new  Dictionary<CiSymbol, SymbolMapping>();

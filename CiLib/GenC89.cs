@@ -119,11 +119,7 @@ namespace Foxoft.Ci {
             WriteClearArray(new CiVarAccess { Var = stmt });
           }
           else {
-            Translate(new CiAssign {
-              Target = new CiVarAccess { Var = stmt },
-              Op = CiToken.Assign,
-              Source = stmt.InitialValue
-            });
+            Translate(new CiAssign { Target = new CiVarAccess { Var = stmt }, Op = CiToken.Assign, Source = stmt.InitialValue });
           }
         }
         else if (stmt.Type is CiClassStorageType) {

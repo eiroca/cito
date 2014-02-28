@@ -53,21 +53,7 @@ namespace Foxoft.Ci {
     }
 
     public override string[] GetReservedWords() {
-      String[] result = new String[] {
-        "delete",
-        "break",
-        "continue",
-        "do",
-        "while",
-        "for",
-        "if",
-        "native",
-        "return",
-        "switch",
-        "case",
-        "default",
-        "throw"
-      };
+      String[] result = new String[] { "delete", "break", "continue", "do", "while", "for", "if", "native", "return", "switch", "case", "default", "throw" };
       return result;
     }
 
