@@ -30,24 +30,24 @@ namespace Foxoft.Ci {
   }
 
   public class CiDocLexer {
-    readonly protected CiLexer CiLexer;
+    readonly protected CiLexer ciLexer;
     bool CheckPeriod;
     public CiDocToken CurrentToken;
-    public int CurrentChar = '\n';
+    public int CurrentChar = CiLexer.SPECIAL_CR;
 
-    public CiDocLexer(CiLexer ciLexer) {
-      this.CiLexer = ciLexer;
+    public CiDocLexer(CiLexer lexer) {
+      this.ciLexer = lexer;
       this.CheckPeriod = true;
       NextToken();
     }
 
     int PeekChar() {
-      return this.CiLexer.PeekChar();
+      return this.ciLexer.PeekChar();
     }
 
     int ReadChar() {
-      int c = this.CiLexer.ReadChar();
-      if (c == '\n' && this.CiLexer.NextToken() != CiToken.DocComment) return -1;
+      int c = this.ciLexer.ReadChar();
+      if (c == CiLexer.SPECIAL_CR && this.ciLexer.NextToken() != CiToken.DocComment) return -1;
       return c;
     }
 
@@ -62,19 +62,17 @@ namespace Foxoft.Ci {
           case '`':
             return CiDocToken.CodeDelimiter;
           case '*':
-            if (lastChar == '\n' && PeekChar() == ' ') {
+            if (lastChar == CiLexer.SPECIAL_CR && PeekChar() == CiLexer.SPECIAL_SPACE) {
               ReadChar();
               return CiDocToken.Bullet;
             }
             return CiDocToken.Char;
-          case '\r':
-            continue;
-          case '\n':
+          case CiLexer.SPECIAL_CR:
             if (this.CheckPeriod && lastChar == '.') {
               this.CheckPeriod = false;
               return CiDocToken.Period;
             }
-            if (lastChar == '\n') return CiDocToken.Para;
+            if (lastChar == CiLexer.SPECIAL_CR) return CiDocToken.Para;
             return CiDocToken.Char;
           default:
             return CiDocToken.Char;

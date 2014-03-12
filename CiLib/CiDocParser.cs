@@ -40,7 +40,7 @@ namespace Foxoft.Ci {
     }
 
     void Expect(CiDocToken expected) {
-      if (!See(expected)) throw new ParseException(this.CiLexer.Here(), "Expected {0}, got {1}", expected, this.CurrentToken);
+      if (!See(expected)) throw new ParseException(this.ciLexer.Here(), "Expected {0}, got {1}", expected, this.CurrentToken);
       NextToken();
     }
 
@@ -50,7 +50,7 @@ namespace Foxoft.Ci {
         sb.Append((char)this.CurrentChar);
         NextToken();
       }
-      if (sb.Length > 0 && sb[sb.Length - 1] == '\n') sb.Length--;
+      if (sb.Length > 0 && sb[sb.Length - 1] == CiLexer.SPECIAL_CR) sb.Length--;
       return sb.ToString();
     }
 

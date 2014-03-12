@@ -135,6 +135,10 @@ namespace Foxoft.Ci {
   }
 
   public class CiLexer {
+    private const char SPECIAL_TAB = '\t';
+    private const char SPECIAL_LF = '\r';
+    public const char SPECIAL_SPACE = ' ';
+    public const char SPECIAL_CR = '\n';
     TextReader Reader;
     protected string SourceFilename;
     public int InputLineNo;
@@ -195,10 +199,20 @@ namespace Foxoft.Ci {
     StringReader IdReader = null;
 
     public int PeekChar() {
+      int c;
       if (this.IdReader != null) {
-        return this.IdReader.Peek();
+        c = this.IdReader.Peek();
       }
-      return Peek();
+      else {
+        c = Peek();
+        if (c == SPECIAL_TAB) {
+          c = SPECIAL_SPACE;
+        }
+        else if (c == SPECIAL_LF) {
+          c = SPECIAL_CR;
+        }
+      }
+      return c;
     }
 
     private int Peek() {
@@ -218,7 +232,9 @@ namespace Foxoft.Ci {
       int c;
       if (this.IdReader != null) {
         c = this.IdReader.Read();
-        if (this.IdReader.Peek() < 0) this.IdReader = null;
+        if (this.IdReader.Peek() < 0) {
+          this.IdReader = null;
+        }
       }
       else {
         c = Read();
@@ -244,7 +260,26 @@ namespace Foxoft.Ci {
           }
           return ReadChar();
         }
-        if (c == '\n' && !this.IsExpandingMacro) {
+        int nxt;
+        switch (c) {
+          case SPECIAL_TAB:
+            c = SPECIAL_SPACE;
+            break;
+          case SPECIAL_LF: 
+            nxt = Peek();
+            if (nxt == SPECIAL_CR) {
+              Read();
+            }
+            c = SPECIAL_CR;
+            break;
+          case SPECIAL_CR: 
+            nxt = Peek();
+            if (nxt == SPECIAL_LF) {
+              Read();
+            }
+            break;
+        }
+        if (c == SPECIAL_CR && !this.IsExpandingMacro) {
           this.InputLineNo++;
           this.AtLineStart = true;
         }
@@ -254,10 +289,8 @@ namespace Foxoft.Ci {
           this.CopyTo.Append((char)c);
         }
         switch (c) {
-          case '\t':
-          case '\r':
-          case ' ':
-          case '\n':
+          case SPECIAL_SPACE:
+          case SPECIAL_CR:
             break;
           default:
             this.AtLineStart = false;
@@ -292,11 +325,11 @@ namespace Foxoft.Ci {
       if (c != '\\') return (char)c;
       switch (ReadChar()) {
         case 't':
-          return '\t';
+          return SPECIAL_TAB;
         case 'r':
-          return '\r';
+          return SPECIAL_LF;
         case 'n':
-          return '\n';
+          return SPECIAL_CR;
         case '\\':
           return '\\';
         case '\'':
@@ -325,12 +358,12 @@ namespace Foxoft.Ci {
         switch (c) {
           case -1:
             return CiToken.EndOfFile;
-          case '\t':
-          case '\r':
-          case ' ':
+          case SPECIAL_SPACE:
             continue;
-          case '\n':
-            if (this.LineMode) return CiToken.EndOfLine;
+          case SPECIAL_CR:
+            if (this.LineMode) {
+              return CiToken.EndOfLine;
+            }
             continue;
           case '#':
             c = ReadChar();
@@ -384,11 +417,11 @@ namespace Foxoft.Ci {
             if (EatChar('/')) {
               c = ReadChar();
               if (c == '/') {
-                while (EatChar(' ')) ;
+                while (EatChar(SPECIAL_SPACE)) ;
                 return CiToken.DocComment;
               }
-              while (c != '\n' && c >= 0) c = ReadChar();
-              if (c == '\n' && this.LineMode) return CiToken.EndOfLine;
+              while (c != SPECIAL_CR && c >= 0) c = ReadChar();
+              if (c == SPECIAL_CR && this.LineMode) return CiToken.EndOfLine;
               continue;
             }
             if (EatChar('=')) return CiToken.DivAssign;
