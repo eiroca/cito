@@ -96,10 +96,6 @@ namespace Foxoft.Ci {
       return new String[] { "absolute", "and", "array", "as", "asm", "begin", "case", "class", "const", "constructor", "destructor", "dispinterface", "div", "do", "downto", "else", "end", "except", "exports", "file", "finalization", "finally", "for", "function", "goto", "if", "implementation", "in", "inherited", "initialization", "inline", "inline", "interface", "is", "label", "library", "mod", "nil", "not", "object", "of", "on", "operator", "or", "out", "packed", "procedure", "program", "property", "raise", "record", "reintroduce", "repeat", "resourcestring", "result", "self", "set", "shl", "shr", "string", "then", "threadvar", "to", "try", "type", "unit", "until", "uses", "var", "while", "with", "xor", "length" };
     }
 
-    protected override void WriteBanner() {
-      WriteLine("(* Generated automatically with \"cito\". Do not edit. *)");
-    }
-
     public override CiPriority GetPriority(CiExpr expr) {
       if (expr is CiPropertyAccess) {
         CiProperty prop = ((CiPropertyAccess)expr).Property;

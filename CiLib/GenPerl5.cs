@@ -60,6 +60,7 @@ namespace Foxoft.Ci {
       Decode_NULLVALUE = "undef";
       Decode_SPECIALCHAR.Add('$', "\\$");
       Decode_SPECIALCHAR.Add('@', "\\@");
+      SimpleCommentFormat = "#{0}";
       TranslateSymbolName = Perl_SymbolNameTranslator;
       ForceBraceForSingleStatement = true;
     }
@@ -127,10 +128,6 @@ namespace Foxoft.Ci {
       }
       WriteLine("1;");
       CloseFile();
-    }
-
-    protected override void WriteBanner() {
-      WriteLine("# Generated automatically with \"cito\". Do not edit.");
     }
 
     public override CiPriority GetPriority(CiExpr expr) {
@@ -755,14 +752,14 @@ namespace Foxoft.Ci {
     }
 
     public override void Library_CopyTo(CiMethodCall expr) {
-      CiExpr lenMinus1 = new CiBinaryExpr { Left = expr.Arguments[3], Op = CiToken.Minus, Right = new CiConstExpr(1) };
+      CiExpr lenMinus1 = new CiBinaryExpr(expr.Arguments[3], CiToken.Minus, new CiConstExpr(1));
       WriteSlice(expr.Arguments[1], expr.Arguments[2], lenMinus1);
       Write(" = ");
       WriteSlice(expr.Obj, expr.Arguments[0], lenMinus1);
     }
 
     public override void Library_ToString(CiMethodCall expr) {
-      CiExpr lenMinus1 = new CiBinaryExpr { Left = expr.Arguments[1], Op = CiToken.Minus, Right = new CiConstExpr(1) };
+      CiExpr lenMinus1 = new CiBinaryExpr(expr.Arguments[1], CiToken.Minus, new CiConstExpr(1));
       Write("pack('U*', ");
       WriteSlice(expr.Obj, expr.Arguments[0], lenMinus1);
       Write(')');

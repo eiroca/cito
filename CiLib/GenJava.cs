@@ -401,7 +401,7 @@ namespace Foxoft.Ci {
         Write(".substring(");
         Translate(expr.Arguments[0]);
         Write(", ");
-        Translate(new CiBinaryExpr { Left = expr.Arguments[0], Op = CiToken.Plus, Right = expr.Arguments[1] });
+        Translate(new CiBinaryExpr(expr.Arguments[0], CiToken.Plus, expr.Arguments[1]));
         Write(')');
       }
     }

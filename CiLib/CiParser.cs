@@ -238,7 +238,7 @@ namespace Foxoft.Ci {
       while (See(CiToken.Asterisk) || See(CiToken.Slash) || See(CiToken.Mod)) {
         CiToken op = this.CurrentToken;
         NextToken();
-        left = new CiBinaryExpr { Left = left, Op = op, Right = ParsePrimaryExpr() };
+        left = new CiBinaryExpr(left, op, ParsePrimaryExpr());
       }
       return left;
     }
@@ -248,7 +248,7 @@ namespace Foxoft.Ci {
       while (See(CiToken.Plus) || See(CiToken.Minus)) {
         CiToken op = this.CurrentToken;
         NextToken();
-        left = new CiBinaryExpr { Left = left, Op = op, Right = ParseMulExpr() };
+        left = new CiBinaryExpr(left, op, ParseMulExpr());
       }
       return left;
     }
@@ -258,7 +258,7 @@ namespace Foxoft.Ci {
       while (See(CiToken.ShiftLeft) || See(CiToken.ShiftRight)) {
         CiToken op = this.CurrentToken;
         NextToken();
-        left = new CiBinaryExpr { Left = left, Op = op, Right = ParseAddExpr() };
+        left = new CiBinaryExpr(left, op, ParseAddExpr());
       }
       return left;
     }
@@ -268,7 +268,7 @@ namespace Foxoft.Ci {
       while (See(CiToken.Less) || See(CiToken.LessOrEqual) || See(CiToken.Greater) || See(CiToken.GreaterOrEqual)) {
         CiToken op = this.CurrentToken;
         NextToken();
-        left = new CiBoolBinaryExpr { Left = left, Op = op, Right = ParseShiftExpr() };
+        left = new CiBoolBinaryExpr(left, op, ParseShiftExpr());
       }
       return left;
     }
@@ -278,38 +278,38 @@ namespace Foxoft.Ci {
       while (See(CiToken.Equal) || See(CiToken.NotEqual)) {
         CiToken op = this.CurrentToken;
         NextToken();
-        left = new CiBoolBinaryExpr { Left = left, Op = op, Right = ParseRelExpr() };
+        left = new CiBoolBinaryExpr(left, op, ParseRelExpr());
       }
       return left;
     }
 
     CiExpr ParseAndExpr() {
       CiExpr left = ParseEqualityExpr();
-      while (Eat(CiToken.And)) left = new CiBinaryExpr { Left = left, Op = CiToken.And, Right = ParseEqualityExpr() };
+      while (Eat(CiToken.And)) left = new CiBinaryExpr(left, CiToken.And, ParseEqualityExpr());
       return left;
     }
 
     CiExpr ParseXorExpr() {
       CiExpr left = ParseAndExpr();
-      while (Eat(CiToken.Xor)) left = new CiBinaryExpr { Left = left, Op = CiToken.Xor, Right = ParseAndExpr() };
+      while (Eat(CiToken.Xor)) left = new CiBinaryExpr(left, CiToken.Xor, ParseAndExpr());
       return left;
     }
 
     CiExpr ParseOrExpr() {
       CiExpr left = ParseXorExpr();
-      while (Eat(CiToken.Or)) left = new CiBinaryExpr { Left = left, Op = CiToken.Or, Right = ParseXorExpr() };
+      while (Eat(CiToken.Or)) left = new CiBinaryExpr(left, CiToken.Or, ParseXorExpr());
       return left;
     }
 
     CiExpr ParseCondAndExpr() {
       CiExpr left = ParseOrExpr();
-      while (Eat(CiToken.CondAnd)) left = new CiBoolBinaryExpr { Left = left, Op = CiToken.CondAnd, Right = ParseOrExpr() };
+      while (Eat(CiToken.CondAnd)) left = new CiBoolBinaryExpr(left, CiToken.CondAnd, ParseOrExpr());
       return left;
     }
 
     CiExpr ParseCondOrExpr() {
       CiExpr left = ParseCondAndExpr();
-      while (Eat(CiToken.CondOr)) left = new CiBoolBinaryExpr { Left = left, Op = CiToken.CondOr, Right = ParseCondAndExpr() };
+      while (Eat(CiToken.CondOr)) left = new CiBoolBinaryExpr(left, CiToken.CondOr, ParseCondAndExpr());
       return left;
     }
 
@@ -555,8 +555,10 @@ namespace Foxoft.Ci {
     CiBlock ParseBlock() {
       Expect(CiToken.LeftBrace);
       List<ICiStatement> statements = new List<ICiStatement>();
-      while (!Eat(CiToken.RightBrace)) statements.Add(ParseStatement());
-      return new CiBlock { Statements = statements.ToArray() };
+      while (!Eat(CiToken.RightBrace)) {
+        statements.Add(ParseStatement());
+      }
+      return new CiBlock(statements.ToArray());
     }
 
     CiParam CreateThis() {
@@ -702,9 +704,34 @@ namespace Foxoft.Ci {
       return del;
     }
 
+    CiComment CurrentComment = null;
+
+    public override CiToken NextToken() {
+      CiToken token = ReadToken();
+      while (token == CiToken.Comment) {
+        if (CurrentComment == null) {
+          CurrentComment = new CiComment();
+        }
+        CurrentComment.Add(CurrentString);
+        token = ReadToken();
+      }
+      this.CurrentToken = token;
+      return token;
+    }
+
+    public bool HasComments() {
+      return CurrentComment != null ? CurrentComment.Comments.Count > 0 : false;
+    }
+
+    public CiComment GlobalComment = null;
+
     public void Parse(string filename, TextReader reader) {
       Open(filename, reader);
       while (!See(CiToken.EndOfFile)) {
+        if ((GlobalComment == null) && HasComments()) {
+          GlobalComment = CurrentComment;
+          CurrentComment = null;
+        }
         CiCodeDoc doc = ParseDoc();
         bool pub = Eat(CiToken.Public);
         CiSymbol symbol;
@@ -724,11 +751,17 @@ namespace Foxoft.Ci {
         symbol.Visibility = pub ? CiVisibility.Public : CiVisibility.Internal;
         this.Symbols.Add(symbol);
       }
+      /* To handle correctly empty Ci program the follow code must be added 
+      if ((GlobalComment == null) && HasComments()) {
+        GlobalComment = CurrentComment;
+        CurrentComment = null;
+      }
+      */
     }
 
     public CiProgram Program {
       get {
-        return new CiProgram(this.Symbols);
+        return new CiProgram(this.GlobalComment, this.Symbols);
       }
     }
   }

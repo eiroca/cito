@@ -412,7 +412,7 @@ namespace Foxoft.Ci {
 
     protected override void WriteBanner() {
       WriteLine("<?php");
-      WriteLine("// Generated automatically with \"cito\". Do not edit.");
+      base.WriteBanner();
     }
 
     protected override void  WriteFooter() {

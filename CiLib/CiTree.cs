@@ -188,6 +188,27 @@ namespace Foxoft.Ci {
     public static readonly CiMethod ArrayStorageClearMethod = new CiMethod("Clear", CiType.Void) { IsMutator = true };
   }
 
+  public class CiComment {
+    public List<string> Comments;
+
+    public CiComment() {
+      this.Comments = new List<string>();
+    }
+
+    public CiComment(List<string> comments, bool clone = true) {
+      if (clone) {
+        this.Comments = new List<string>(comments);
+      }
+      else {
+        this.Comments = comments;
+      }
+    }
+
+    public void Add(string comment) {
+      Comments.Add(comment ?? "");
+    }
+  }
+
   public abstract class CiDocInline {
   }
 
@@ -1061,6 +1082,12 @@ namespace Foxoft.Ci {
     public CiToken Op;
     public CiExpr Right;
 
+    public CiBinaryExpr(CiExpr Left, CiToken Op, CiExpr Right) {
+      this.Left = Left;
+      this.Op = Op;
+      this.Right = Right;
+    }
+
     public override CiType Type {
       get {
         return CiIntType.Value;
@@ -1079,6 +1106,9 @@ namespace Foxoft.Ci {
   }
 
   public class CiBoolBinaryExpr : CiBinaryExpr {
+    public CiBoolBinaryExpr(CiExpr Left, CiToken Op, CiExpr Right) : base(Left, Op, Right) {
+    }
+
     public override CiType Type {
       get {
         return CiBoolType.Value;
@@ -1224,6 +1254,10 @@ namespace Foxoft.Ci {
 
   public class CiBlock : CiCondCompletionStatement {
     public ICiStatement[] Statements;
+
+    public CiBlock(ICiStatement[] Statements) {
+      this.Statements = Statements;
+    }
 
     public override void Accept(ICiStatementVisitor v) {
       v.Visit(this);
@@ -1420,9 +1454,11 @@ namespace Foxoft.Ci {
   }
 
   public class CiProgram {
+    public CiComment GlobalComment;
     public SymbolTable Globals;
 
-    public CiProgram(SymbolTable globals) {
+    public CiProgram(CiComment globalComment, SymbolTable globals) {
+      this.GlobalComment = globalComment;
       this.Globals = globals;
     }
   }

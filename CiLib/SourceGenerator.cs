@@ -57,10 +57,6 @@ namespace Foxoft.Ci {
       return result;
     }
 
-    protected override void WriteBanner() {
-      WriteLine("// Generated automatically with \"cito\". Do not edit.");
-    }
-
     public override void InitOperators() {
       BinaryOperators.Declare(CiToken.Plus, CiPriority.Additive, true, ConvertOperator, " + ");
       BinaryOperators.Declare(CiToken.Minus, CiPriority.Additive, false, ConvertOperator, " - ");
@@ -327,7 +323,7 @@ namespace Foxoft.Ci {
 
     public virtual void Symbol_CiMacro(CiSymbol symbol) {
       CiMacro macro = (CiMacro)symbol;
-      WriteLine("// Macro: " + macro.Name);
+      WriteComment("Macro: " + macro.Name);
     }
 
     public virtual void Symbol_CiMethod(CiSymbol symbol) {
@@ -851,7 +847,7 @@ namespace Foxoft.Ci {
     }
 
     protected void WriteSum(CiExpr left, CiExpr right) {
-      Translate(new CiBinaryExpr { Left = left, Op = CiToken.Plus, Right = right });
+      Translate(new CiBinaryExpr(left, CiToken.Plus, right));
     }
   }
 }

@@ -47,10 +47,7 @@ namespace Foxoft.Ci {
       CommentListEnd = "</ul>";
       CommentItemListBegin = "<li>";
       CommentItemListEnd = "</li>";
-    }
-
-    protected override void WriteBanner() {
-      WriteLine("/* Generated automatically with \"cito\". Do not edit. */");
+      SimpleCommentFormat = "/*{0} */";
     }
 
     public string C_SymbolNameTranslator(CiSymbol aSymbol) {

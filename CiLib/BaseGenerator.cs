@@ -151,7 +151,11 @@ namespace Foxoft.Ci {
       return result;
     }
 
-    public abstract void WriteProgram(CiProgram program);
+    protected CiProgram CurrentProgram;
+
+    public virtual void WriteProgram(CiProgram program) {
+      this.CurrentProgram = program;
+    }
     #endregion
 
     #region TextWriterFactory
@@ -167,6 +171,11 @@ namespace Foxoft.Ci {
     }
 
     protected virtual void WriteBanner() {
+      WriteComment(" Generated automatically with \"cito\". Do not edit.");
+      if (CurrentProgram != null) {
+        WriteComment(CurrentProgram.GlobalComment);
+      }
+
     }
 
     protected virtual void WriteFooter() {
@@ -318,6 +327,21 @@ namespace Foxoft.Ci {
         if (BlockCloseCR) {
           WriteLine();
         }
+      }
+    }
+
+    protected string SimpleCommentFormat = "//{0}";
+
+    public void WriteComment(string comment) {
+      WriteLine(SimpleCommentFormat, comment ?? "");
+    }
+
+    public void WriteComment(CiComment comments) {
+      if (comments != null) {
+        foreach (string comment in comments.Comments) {
+          WriteLine(SimpleCommentFormat, comment ?? "");
+        }
+        WriteLine();
       }
     }
     #endregion

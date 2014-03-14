@@ -393,6 +393,7 @@ namespace Foxoft.Ci {
     }
 
     public override void WriteProgram(CiProgram prog) {
+      base.WriteProgram(prog);
       ClearUsedFunction();
       PreProcess(prog);
       EmitProgram(prog);

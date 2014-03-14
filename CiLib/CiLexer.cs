@@ -108,7 +108,8 @@ namespace Foxoft.Ci {
     PreIf,
     PreElIf,
     PreElse,
-    PreEndIf
+    PreEndIf,
+    Comment
   }
 
   public class CodePosition {
@@ -301,6 +302,12 @@ namespace Foxoft.Ci {
       return c;
     }
 
+    void Skip(int c) {
+      while (PeekChar() == c) {
+        ReadChar();
+      }
+    }
+
     bool EatChar(int c) {
       if (PeekChar() == c) {
         ReadChar();
@@ -415,14 +422,21 @@ namespace Foxoft.Ci {
             return CiToken.Asterisk;
           case '/':
             if (EatChar('/')) {
-              c = ReadChar();
+              c = PeekChar();
               if (c == '/') {
-                while (EatChar(SPECIAL_SPACE)) ;
+                ReadChar();
+                Skip(SPECIAL_SPACE);
                 return CiToken.DocComment;
               }
-              while (c != SPECIAL_CR && c >= 0) c = ReadChar();
-              if (c == SPECIAL_CR && this.LineMode) return CiToken.EndOfLine;
-              continue;
+              StringBuilder sb = new StringBuilder();
+              c = PeekChar();
+              while (c != SPECIAL_CR && c >= 0) {
+                sb.Append((char)c);
+                ReadChar();
+                c = PeekChar();
+              }
+              this.CurrentString = sb.ToString();
+              return CiToken.Comment;
             }
             if (EatChar('=')) return CiToken.DivAssign;
             return CiToken.Slash;
@@ -468,7 +482,9 @@ namespace Foxoft.Ci {
             return CiToken.Colon;
           case '\'':
             this.CurrentInt = ReadCharLiteral();
-            if (ReadChar() != '\'') throw new ParseException(Here(), "Unterminated character literal");
+            if (ReadChar() != '\'') {
+              throw new ParseException(Here(), "Unterminated character literal");
+            }
             return CiToken.IntConstant;
           case '"':
             {
@@ -766,7 +782,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    CiToken ReadToken() {
+    protected CiToken ReadToken() {
       for (;;) {
         // we are in no conditionals or in all met
         CiToken token = ReadPreToken();
@@ -801,7 +817,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    public CiToken NextToken() {
+    public virtual CiToken NextToken() {
       CiToken token = ReadToken();
       this.CurrentToken = token;
       return token;
@@ -820,7 +836,9 @@ namespace Foxoft.Ci {
     }
 
     public void Check(CiToken expected) {
-      if (!See(expected)) throw new ParseException(Here(), "Expected {0}, got {1}", expected, this.CurrentToken);
+      if (!See(expected)) {
+        throw new ParseException(Here(), "Expected {0}, got {1}", expected, this.CurrentToken);
+      }
     }
 
     public void Expect(CiToken expected) {
