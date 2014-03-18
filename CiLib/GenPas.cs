@@ -1097,20 +1097,20 @@ namespace Foxoft.Ci {
     }
 
     protected PositionMark HelperMark;
+    protected PositionMark ImplementationMark;
+    bool hasHelper = false;
 
     public void EmitImplementationHeader() {
       WriteLine();
       WriteLine("implementation");
-      WriteLine();
-      bool first = true;
+      ImplementationMark = GetMark();
+      hasHelper = false;
       HashSet<string> types = new HashSet<string>();
       foreach (CiType t in GetTypeList()) {
         TypeInfo info = GetTypeInfo(t);
         if (!info.IsNative) {
-          if (first) {
-            first = false;
-          }
           if (!types.Contains(info.NewType)) {
+            hasHelper = true;
             types.Add(info.NewType);
             WriteLine("var {0}: {1};", info.Null, info.NewType);
             WriteLine("procedure __CCLEAR(var x: {0}); overload; var i: integer; begin for i:= low(x) to high(x) do x[i]:= {1}; end;", info.NewType, info.ItemDefault);
@@ -1127,27 +1127,38 @@ namespace Foxoft.Ci {
       if (IsUsedFunction("__CDEC_Pre")) {
         WriteLine("function  __CDEC_Pre (var x: integer): integer; overload; inline; begin dec(x); Result:= x; end;");
         WriteLine("function  __CDEC_Pre (var x: byte): byte; overload; inline; begin dec(x); Result:= x; end;");
+        hasHelper = true;
       }
       if (IsUsedFunction("__CDEC_Post")) {
         WriteLine("function  __CDEC_Post(var x: integer): integer; overload; inline; begin Result:= x; dec(x); end;");
         WriteLine("function  __CDEC_Post(var x: byte): byte; overload; inline; begin Result:= x; dec(x); end;");
+        hasHelper = true;
       }
       if (IsUsedFunction("__CINC_Pre")) {
         WriteLine("function  __CINC_Pre (var x: integer): integer; overload; inline; begin inc(x); Result:= x; end;");
         WriteLine("function  __CINC_Pre (var x: byte): byte; overload; inline; begin inc(x); Result:= x; end;");
+        hasHelper = true;
       }
       if (IsUsedFunction("__CINC_Post")) {
         WriteLine("function  __CINC_Post(var x: integer): integer; overload; inline; begin Result:= x; inc(x); end;");
         WriteLine("function  __CINC_Post(var x: byte): byte; overload; inline; begin Result:= x; inc(x); end;");
+        hasHelper = true;
       }
       if (IsUsedFunction("__getMagic")) {
         WriteLine("function  __getMagic(const cond: array of boolean): integer; var i: integer; var o: integer; begin Result:= 0; for i:= low(cond) to high(cond) do begin if (cond[i]) then o:= 1 else o:= 0; Result:= Result shl 1 + o; end; end;");
+        hasHelper = true;
       }
       if (IsUsedFunction("__getBinaryResource")) {
         WriteLine("function  __getBinaryResource(const aName: string): ArrayOf_byte; var myfile: TFileStream; begin myFile:= TFileStream.Create(aName, fmOpenRead); SetLength(Result, myFile.Size); try myFile.seek(0, soFromBeginning); myFile.ReadBuffer(Result, myFile.Size); finally myFile.free; end; end;");
+        hasHelper = true;
       }
       if (IsUsedFunction("__TOSTR")) {
         WriteLine("function  __TOSTR (const x: ArrayOf_byte; sourceIndex: integer; len: integer): string; var i: integer; begin Result:= ''; for i:= sourceIndex to sourceIndex+len do Result:= Result + chr(x[i]); end;");
+        hasHelper = true;
+      }
+      if (hasHelper) {
+        SetMark(ImplementationMark);
+        WriteLine();
       }
       SetMark(null);
     }
@@ -1254,6 +1265,9 @@ namespace Foxoft.Ci {
         WriteLine();
         WriteLine("initialization");
         SetMark(null);
+      }
+      else {
+        WriteLine();
       }
     }
 
