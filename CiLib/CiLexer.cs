@@ -358,6 +358,24 @@ namespace Foxoft.Ci {
       return sb.ToString();
     }
 
+    void ReadHexNumber() {
+      int i = ReadDigit(true);
+      if (i < 0) {
+        throw new ParseException(Here(), "Invalid hex number");
+      }
+      for (;;) {
+        int d = ReadDigit(true);
+        if (d < 0) {
+          this.CurrentInt = i;
+          return;
+        }
+        if (i > 0x7ffffff) {
+          throw new ParseException(Here(), "Hex number too big");
+        }
+        i = (i << 4) + d;
+      }
+    }
+
     CiToken ReadPreToken() {
       for (;;) {
         bool atLineStart = this.AtLineStart;
@@ -494,19 +512,13 @@ namespace Foxoft.Ci {
               this.CurrentString = sb.ToString();
               return CiToken.StringConstant;
             }
+          case '$':
+            ReadHexNumber();
+            return CiToken.IntConstant;
           case '0':
             if (EatChar('x')) {
-              int i = ReadDigit(true);
-              if (i < 0) throw new ParseException(Here(), "Invalid hex number");
-              for (;;) {
-                int d = ReadDigit(true);
-                if (d < 0) {
-                  this.CurrentInt = i;
-                  return CiToken.IntConstant;
-                }
-                if (i > 0x7ffffff) throw new ParseException(Here(), "Hex number too big");
-                i = (i << 4) + d;
-              }
+              ReadHexNumber();
+              return CiToken.IntConstant;
             }
             goto case '1';
           case '1':
@@ -520,16 +532,29 @@ namespace Foxoft.Ci {
           case '9':
             {
               int i = c - '0';
+              int numBase;
+              if (i == 0) {
+                numBase = 8;
+              }
+              else {
+                numBase = 10;
+              }
               for (;;) {
                 int d = ReadDigit(false);
                 if (d < 0) {
                   this.CurrentInt = i;
                   return CiToken.IntConstant;
                 }
-                if (i == 0) throw new ParseException(Here(), "Octal numbers not supported");
-                if (i > 214748364) throw new ParseException(Here(), "Integer too big");
-                i = 10 * i + d;
-                if (i < 0) throw new ParseException(Here(), "Integer too big");
+                if (d >= numBase) {
+                  throw new ParseException(Here(), "Invalid octal number");
+                }
+                if (i > 214748364) {
+                  throw new ParseException(Here(), "Integer too big");
+                }
+                i = numBase * i + d;
+                if (i < 0) {
+                  throw new ParseException(Here(), "Integer too big");
+                }
               }
             }
           case 'A':
