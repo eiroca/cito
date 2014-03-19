@@ -42,7 +42,7 @@ Data types
 Integer types
 ~~~~~~~~~~~~~
 
-`int` is 32-bit signed integer (what else would you expect?). Literals may be written in decimal or hexadecimal (`0x12ab`). I don't want octal numbers (`0123`) in Ć. I may change my mind later.
+`int` is 32-bit signed integer (what else would you expect?). Literals may be written in decimal, hexadecimal (`0x12ab`), octal (`0o1273`) or binary (`0b10101`). C octal representation (0123) and Pascal hexadecimal ($FFFF) currently work, but should not be used.
 
 Character literals (such as `'a'`) represent the Unicode codepoint of the character, as an `int` (not `char` because there's no such type in Ć). You may also use the following escape sequences:
 

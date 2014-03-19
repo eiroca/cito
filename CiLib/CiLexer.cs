@@ -316,14 +316,19 @@ namespace Foxoft.Ci {
       return false;
     }
 
-    int ReadDigit(bool hex) {
+    int ReadDigit(int numBase) {
       int c = PeekChar();
-      if (c >= '0' && c <= '9') return ReadChar() - '0';
-      if (hex) {
-        if (c >= 'a' && c <= 'f') return ReadChar() - 'a' + 10;
-        if (c >= 'A' && c <= 'F') return ReadChar() - 'A' + 10;
+      int val = 999;
+      if (c >= '0' && c <= '9') {
+        val = ReadChar() - '0';
       }
-      return -1;
+      else if (c >= 'a' && c <= 'z') {
+        val = ReadChar() - 'a' + 10;
+      }
+      else if (c >= 'A' && c <= 'Z') {
+        val = ReadChar() - 'A' + 10;
+      }
+      return (val <= numBase) ? val : -1;
     }
 
     char ReadCharLiteral() {
@@ -358,21 +363,24 @@ namespace Foxoft.Ci {
       return sb.ToString();
     }
 
-    void ReadHexNumber() {
-      int i = ReadDigit(true);
+    void ReadNumber(int firstDigit, int numBase) {
+      int i = (firstDigit == -1) ? ReadDigit(numBase) : firstDigit;
       if (i < 0) {
-        throw new ParseException(Here(), "Invalid hex number");
+        throw new ParseException(Here(), "Invalid number");
       }
       for (;;) {
-        int d = ReadDigit(true);
+        int d = ReadDigit(numBase);
         if (d < 0) {
           this.CurrentInt = i;
           return;
         }
         if (i > 0x7ffffff) {
-          throw new ParseException(Here(), "Hex number too big");
+          throw new ParseException(Here(), "Number too big");
         }
-        i = (i << 4) + d;
+        i = i * numBase + d;
+        if (i < 0) {
+          throw new ParseException(Here(), "Number too big");
+        }
       }
     }
 
@@ -513,14 +521,23 @@ namespace Foxoft.Ci {
               return CiToken.StringConstant;
             }
           case '$':
-            ReadHexNumber();
+            ReadNumber(-1, 16);
             return CiToken.IntConstant;
           case '0':
             if (EatChar('x')) {
-              ReadHexNumber();
+              ReadNumber(-1, 16);
               return CiToken.IntConstant;
             }
-            goto case '1';
+            if (EatChar('b')) {
+              ReadNumber(-1, 2);
+              return CiToken.IntConstant;
+            }
+            if (EatChar('o')) {
+              ReadNumber(-1, 8);
+              return CiToken.IntConstant;
+            }
+            ReadNumber(0, 8);
+            return CiToken.IntConstant;
           case '1':
           case '2':
           case '3':
@@ -530,33 +547,8 @@ namespace Foxoft.Ci {
           case '7':
           case '8':
           case '9':
-            {
-              int i = c - '0';
-              int numBase;
-              if (i == 0) {
-                numBase = 8;
-              }
-              else {
-                numBase = 10;
-              }
-              for (;;) {
-                int d = ReadDigit(false);
-                if (d < 0) {
-                  this.CurrentInt = i;
-                  return CiToken.IntConstant;
-                }
-                if (d >= numBase) {
-                  throw new ParseException(Here(), "Invalid octal number");
-                }
-                if (i > 214748364) {
-                  throw new ParseException(Here(), "Integer too big");
-                }
-                i = numBase * i + d;
-                if (i < 0) {
-                  throw new ParseException(Here(), "Integer too big");
-                }
-              }
-            }
+            ReadNumber(c - '0', 10);
+            return CiToken.IntConstant;
           case 'A':
           case 'B':
           case 'C':
