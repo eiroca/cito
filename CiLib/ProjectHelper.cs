@@ -108,7 +108,7 @@ namespace Foxoft.Ci {
       ProjectFile file = new ProjectFile();
       file.Path = "." + System.IO.Path.DirectorySeparatorChar + "noname.ci";
       file.Name = "noname.ci";
-      file.Code = "//CiTo Source code";
+      file.Code = "// CiTo Source code";
       file.Changed = false;
       Source.Add(file.Name, file);
     }

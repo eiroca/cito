@@ -725,12 +725,41 @@ namespace Foxoft.Ci {
 
     public CiComment GlobalComment = null;
 
+    void MergeComments(ref CiComment master, CiComment newComments) {
+      if (master == null) {
+        master = new CiComment(newComments.Comments, true);
+      }
+      else {
+        bool equal = false;
+        if (newComments.Comments.Count == master.Comments.Count) {
+          for (int i = 0; i < newComments.Comments.Count - 1; i++) {
+            string c1 = newComments.Comments[i];
+            string c2 = master.Comments[i];
+            if (!(String.IsNullOrEmpty(c1) && String.IsNullOrEmpty(c2))) {
+              break;
+            }
+            if (!c1.Equals(c2)) {
+              break;
+            }
+          }
+          equal = true;
+        }
+        if (!equal) {
+          master.Comments.AddRange(newComments.Comments);
+        }
+      }
+    }
+
     public void Parse(string filename, TextReader reader) {
       Open(filename, reader);
+      bool hasComment = false;
       while (!See(CiToken.EndOfFile)) {
-        if ((GlobalComment == null) && HasComments()) {
-          GlobalComment = CurrentComment;
-          CurrentComment = null;
+        if (!hasComment) {
+          if (HasComments()) {
+            hasComment = true;
+            MergeComments(ref GlobalComment, CurrentComment);
+            CurrentComment = null;
+          }
         }
         CiCodeDoc doc = ParseDoc();
         bool pub = Eat(CiToken.Public);
@@ -751,12 +780,10 @@ namespace Foxoft.Ci {
         symbol.Visibility = pub ? CiVisibility.Public : CiVisibility.Internal;
         this.Symbols.Add(symbol);
       }
-      /* To handle correctly empty Ci program the follow code must be added 
-      if ((GlobalComment == null) && HasComments()) {
+      if (!hasComment && HasComments()) {
         GlobalComment = CurrentComment;
-        CurrentComment = null;
       }
-      */
+      CurrentComment = null;
     }
 
     public CiProgram Program {
