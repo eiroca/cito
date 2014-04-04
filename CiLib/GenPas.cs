@@ -123,7 +123,10 @@ namespace Foxoft.Ci {
         return;
       }
       string oldTxt = oldLine.ToString();
-      if (newTxt.StartsWith("else")) {
+      if (newTxt.StartsWith("(**)else")) {
+        newTxt = newTxt.Remove(0, 4);
+      }
+      else if (newTxt.StartsWith("else")) {
         for (int i = oldTxt.Length - 1; i >= 0; i--) {
           if (trimmedString.IndexOf(oldTxt[i]) < 0) {
             if (oldTxt[i] == ';') {
@@ -532,21 +535,32 @@ namespace Foxoft.Ci {
       WriteLine();
       WriteDocCode(enu.Documentation);
       Write(DecodeSymbol(enu));
-      WriteLine(" = (");
-      OpenBlock(false);
+      Write(" = (");
+      bool hasDocs = enu.Values.Any(v => v.Documentation != null); 
+      if (hasDocs) {
+        WriteLine();
+        OpenBlock(false);
+      }
       bool first = true;
       foreach (CiEnumValue value in enu.Values) {
         if (first) {
           first = false;
         }
         else {
-          WriteLine(",");
+          if (hasDocs) {
+            WriteLine(",");
+          }
+          else {
+            Write(", ");
+          }
         }
         WriteDocCode(value.Documentation);
         Write(DecodeSymbol(value));
       }
-      WriteLine();
-      CloseBlock(false);
+      if (hasDocs) {
+        WriteLine();
+        CloseBlock(false);
+      }
       WriteLine(");");
     }
 
@@ -567,7 +581,8 @@ namespace Foxoft.Ci {
     public void Symbol_CiField(CiSymbol symbol) {
       var field = (CiField)symbol;
       WriteDocCode(field.Documentation);
-      WriteLine("{0} {1}: {2};", DecodeVisibility(field.Visibility), DecodeSymbol(field), DecodeType(field.Type));
+      //      WriteLine("{0} {1}: {2};", DecodeVisibility(field.Visibility), DecodeSymbol(field), DecodeType(field.Type));
+      WriteLine("{0}: {1};", DecodeSymbol(field), DecodeType(field.Type));
     }
     #endregion
 
@@ -842,10 +857,11 @@ namespace Foxoft.Ci {
           Write(DecodeValue(null, value));
         }
         Write(": ");
-        WriteCaseInternal(swich, kase, kase.Body, null);
-        WriteLine(";");
+        if (WriteCaseInternal(swich, kase, kase.Body, null)) {
+          WriteLine(";");
+        }
       }
-      if (WriteCaseInternal(swich, null, swich.DefaultBody, "else ")) {
+      if (WriteCaseInternal(swich, null, swich.DefaultBody, "(**)else ")) {
         WriteLine(";");
       }
       CloseBlock(false);
@@ -1060,21 +1076,58 @@ namespace Foxoft.Ci {
       }
     }
 
+    List<CiVisibility> GetVisibilityList() {
+      List<CiVisibility> result = new List<CiVisibility>();
+      result.Add(CiVisibility.Dead);
+      result.Add(CiVisibility.Private);
+      result.Add(CiVisibility.Internal);
+      result.Add(CiVisibility.Public);
+      return result;
+    }
+
+    void WriteListOf<T>(List<T> symbols, Func<CiVisibility,bool> initializer, Action<CiVisibility> header, Action<T> writer, Action<CiVisibility> footer) where T:CiSymbol {
+      bool first;
+      foreach (CiVisibility vis in GetVisibilityList()) {
+        first = initializer(vis);
+        foreach (T current in symbols) {
+          if (current.Visibility == vis) {
+            if (first) {
+              header(vis);
+              first = false;
+            }
+            writer(current);
+          }
+        }
+        if (!first) {
+          footer(vis);
+        }
+      }
+    }
+
     public void EmitClassInterface(CiClass klass) {
       WriteLine();
       WriteDocCode(klass.Documentation);
       string baseType = (klass.BaseClass != null) ? DecodeSymbol(klass.BaseClass) : "TInterfacedObject";
       WriteLine("{0} = class({1})", DecodeSymbol(klass), baseType);
       OpenBlock(false);
+      List<CiMethod> methods = new List<CiMethod>();
+      List<CiSymbol> symbols = new List<CiSymbol>();
+      List<CiConst> consts = new List<CiConst>();
       foreach (CiSymbol member in klass.Members) {
-        if (!(member is CiMethod)) {
-          if ((member is CiConst) && promoteClassConst) {
-            continue;
-          } 
-          Translate(member);
+        if (member is CiMethod) {
+          methods.Add((CiMethod)member);
+        }
+        else if (member is CiConst) {
+          consts.Add((CiConst)member);
+        }
+        else {
+          symbols.Add(member);
         }
       }
       if (!promoteClassConst) {
+        foreach (CiConst konst in consts) {
+          Symbol_CiConst(konst);
+        }
         foreach (CiSymbol member in klass.Members) {
           if ((member is CiMethod)) {
             Execute(((CiMethod)member).Body, s => {
@@ -1086,12 +1139,32 @@ namespace Foxoft.Ci {
           }
         }
       }
-      WriteLine("public constructor Create;");
-      foreach (CiSymbol member in klass.Members) {
-        if ((member is CiMethod)) {
-          WriteMethodIntf((CiMethod)member);
+      WriteListOf(symbols, (vis) => {
+        return true;
+      }, (vis) => {
+        WriteLine(DecodeVisibility(vis));
+        OpenBlock(false);
+      }, (symbol) => {
+        Translate(symbol);
+      }, (vis) => {
+        CloseBlock(false);
+      });
+      WriteListOf(methods, (vis) => {
+        if (vis == CiVisibility.Public) {
+          WriteLine(DecodeVisibility(vis));
+          OpenBlock(false);
+          WriteLine("constructor Create;");
+          return false;
         }
-      }
+        return true;
+      }, (vis) => {
+        WriteLine(DecodeVisibility(vis));
+        OpenBlock(false);
+      }, (symbol) => {
+        WriteMethodIntf((CiMethod)symbol, false);
+      }, (vis) => {
+        CloseBlock(false);
+      });
       CloseBlock(false);
       WriteLine("end;");
     }
@@ -1279,13 +1352,13 @@ namespace Foxoft.Ci {
       string res;
       switch (visibility) {
         case CiVisibility.Dead:
-          res = "private";
+          res = "strict private";
           break;
         case CiVisibility.Private:
           res = "private";
           break;
         case CiVisibility.Internal:
-          res = "private";
+          res = "protected";
           break;
         case CiVisibility.Public:
           res = "public";
@@ -1410,7 +1483,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    void WriteMethodIntf(CiMethod method) {
+    void WriteMethodIntf(CiMethod method, bool WriteVisibility) {
       WriteDocCode(method.Documentation);
       foreach (CiParam param in method.Signature.Params) {
         if (param.Documentation != null) {
@@ -1419,7 +1492,9 @@ namespace Foxoft.Ci {
           WriteLine();
         }
       }
-      WriteFormat("{0} ", DecodeVisibility(method.Visibility));
+      if (WriteVisibility) {
+        WriteFormat("{0} ", DecodeVisibility(method.Visibility));
+      }
       if (method.CallType == CiCallType.Static) {
         Write("class ");
       }
@@ -1721,13 +1796,17 @@ namespace Foxoft.Ci {
         return false;
       }
       bool hasStmt = body.Any(s => !(s is CiBreak));
+      bool hasBrk = body.Any(s => s is CiBreak);
       if (!hasStmt) {
         return false;
       }
       if (!String.IsNullOrEmpty(prefix)) {
         Write(prefix);
       }
-      OpenBlock();
+      bool needBlock = body.Length > (hasBrk ? 2 : 1);
+      if (needBlock) {
+        OpenBlock();
+      }
       CiBreak breakFound = null;
       foreach (ICiStatement bodyStmt in body) {
         if (breakFound != null) {
@@ -1743,7 +1822,9 @@ namespace Foxoft.Ci {
       }
       if ((kase != null) && (kase.Fallthrough)) {
         if (kase.FallthroughTo == null) {
-          WriteCaseInternal(swich, null, swich.DefaultBody, null);
+          if (WriteCaseInternal(swich, null, swich.DefaultBody, null)) {
+            WriteLine(";");
+          }
         }
         else {
           if (kase.FallthroughTo is CiConstExpr) {
@@ -1753,8 +1834,9 @@ namespace Foxoft.Ci {
               foreach (var val in kkase.Values) {
                 if (val.ToString().Equals(e)) {
                   WriteLine("// include case " + val);
-                  WriteCaseInternal(swich, kkase, kkase.Body, null);
-                  WriteLine(";");
+                  if (WriteCaseInternal(swich, kkase, kkase.Body, null)) {
+                    WriteLine(";");
+                  }
                   stop = true;
                   break;
                 }
@@ -1769,8 +1851,10 @@ namespace Foxoft.Ci {
           }
         }
       }
-      CloseBlock();
-      return true;
+      if (needBlock) {
+        CloseBlock();
+      }
+      return needBlock;
     }
 
     void WriteArguments(CiMethodCall expr, bool[] conds) {

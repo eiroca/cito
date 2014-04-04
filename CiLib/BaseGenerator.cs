@@ -175,7 +175,6 @@ namespace Foxoft.Ci {
       if (CurrentProgram != null) {
         WriteComment(CurrentProgram.GlobalComment);
       }
-
     }
 
     protected virtual void WriteFooter() {
@@ -341,7 +340,6 @@ namespace Foxoft.Ci {
         foreach (string comment in comments.Comments) {
           WriteLine(SimpleCommentFormat, comment ?? "");
         }
-        WriteLine();
       }
     }
     #endregion
