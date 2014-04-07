@@ -1,7 +1,7 @@
 // GenD.cs - D code generator
 //
-// Copyright (C) 2011-2013  Adrian Matoga
-// Copyright (C) 2013  Enrico Croce
+// Copyright (C) 2011-2014  Adrian Matoga
+// Copyright (C) 2013-2014  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -262,8 +262,13 @@ namespace Foxoft.Ci {
       }
     }
 
-    void WriteSignature(CiDelegate del, string name) {
-      WriteFormat("{0} {1}(", DecodeType(del.ReturnType), name);
+    void WriteSignature(CiDelegate del) {
+      WriteFormat("{0} {1}", DecodeType(del.ReturnType), DecodeSymbol(del));
+      WriteArgumentList(del);
+    }
+
+    void WriteArgumentList(CiDelegate del) {
+      Write("(");
       bool first = true;
       foreach (CiParam param in del.Params) {
         if (first) {
@@ -383,7 +388,7 @@ namespace Foxoft.Ci {
           Write("override ");
           break;
       }
-      WriteSignature(method.Signature, DecodeSymbol(method));
+      WriteSignature(method.Signature);
       if (method.CallType == CiCallType.Abstract) {
         WriteLine(";");
       }
@@ -443,11 +448,11 @@ namespace Foxoft.Ci {
 
     public override void Symbol_CiDelegate(CiSymbol symbol) {
       CiDelegate del = (CiDelegate)symbol;
-      // TODO: test this
       WriteDocCode(del.Documentation);
       Write(DecodeVisibility(del.Visibility));
-      WriteSignature(del, "delegate");
-      WriteLine(" {0};", DecodeSymbol(del));
+      WriteLine("alias {0} = {1} delegate", DecodeSymbol(del), DecodeType(del.ReturnType));
+      WriteArgumentList(del);
+      WriteLine(";");
     }
 
     public override void Symbol_CiEnum(CiSymbol symbol) {
