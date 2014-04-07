@@ -1,7 +1,7 @@
 // CiParser.cs - Ci parser
 //
-// Copyright (C) 2011-2013  Piotr Fusik
-// Copyright (C) 2014  Enrico Croce
+// Copyright (C) 2011-2014  Piotr Fusik
+// Copyright (C) 2013-2014  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -603,9 +603,6 @@ namespace Foxoft.Ci {
     }
 
     CiMethod ParseConstructor() {
-      NextToken();
-      Expect(CiToken.LeftParenthesis);
-      Expect(CiToken.RightParenthesis);
       OpenScope();
       CiMethod method = new CiMethod(Here(), "<constructor>", CiType.Void) { Class = this.CurrentClass, CallType = CiCallType.Normal, This = CreateThis() };
       this.CurrentMethod = method;
@@ -645,11 +642,6 @@ namespace Foxoft.Ci {
           symbol = ParseMacro();
         }
         else {
-          if (See(CiToken.Id) && this.CurrentString == klass.Name) {
-            if (klass.Constructor != null) throw new ParseException(Here(), "Duplicate constructor");
-            klass.Constructor = ParseConstructor();
-            continue;
-          }
           CiCallType callType;
           if (Eat(CiToken.Static)) callType = CiCallType.Static;
           else if (Eat(CiToken.Abstract)) {
@@ -667,6 +659,19 @@ namespace Foxoft.Ci {
           }
           else callType = CiCallType.Normal;
           CiType type = ParseReturnType();
+          if (type is CiClassStorageType && See(CiToken.LeftBrace)) {
+            if (type.Name != klass.Name) {
+              throw  new ParseException(Here(), "{0}() looks like a constructor, but it is in a different class {1}", type.Name, klass.Name);
+            }
+            if (callType != CiCallType.Normal) {
+              throw new ParseException(Here(), "Constructor cannot be static, virtual or override");
+            }
+            if (klass.Constructor != null) {
+              throw new ParseException(Here(), "Duplicate constructor");
+            }
+            klass.Constructor = ParseConstructor();
+            continue;
+          }
           string name = ParseId();
           if (See(CiToken.LeftParenthesis)) {
             CiMethod method = new CiMethod(Here(), name, type) { Class = klass, CallType = callType };
