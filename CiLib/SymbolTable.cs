@@ -1,6 +1,7 @@
 // SymbolTable.cs - symbol table
 //
 // Copyright (C) 2011  Piotr Fusik
+// Copyright (C) 2013-2014  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //

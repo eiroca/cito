@@ -1,6 +1,6 @@
 // Generator.cs - base class for code generators
 //
-// Copyright (C) 2013  Enrico Croce
+// Copyright (C) 2013-2014  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //

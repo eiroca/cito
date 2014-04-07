@@ -262,7 +262,7 @@ namespace Foxoft.Ci {
       }
     }
 
-    void WriteSignature(CiDelegate del) {
+    public override void WriteSignature(CiDelegate del) {
       WriteFormat("{0} {1}", DecodeType(del.ReturnType), DecodeSymbol(del));
       WriteArgumentList(del);
     }

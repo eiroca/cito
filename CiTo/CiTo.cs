@@ -1,6 +1,7 @@
 // CiTo.cs - Ci translator
 //
 // Copyright (C) 2011-2013  Piotr Fusik
+// Copyright (C) 2013-2014  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //

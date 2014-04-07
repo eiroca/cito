@@ -1,6 +1,6 @@
 // ProjectHelper.cs - Helper classes for project translation
 //
-// Copyright (C) 2014  Enrico Croce
+// Copyright (C) 2013-2014  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //

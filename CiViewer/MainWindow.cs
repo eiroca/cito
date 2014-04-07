@@ -1,6 +1,6 @@
-// MainWindow.cs - CiToViewer main window
+// MainWindow.cs - CiViewer main window
 //
-// Copyright (C) 2013  Enrico Croce
+// Copyright (C) 2013-2014  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //

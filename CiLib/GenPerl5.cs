@@ -1,7 +1,7 @@
 // GenPerl5.cs - Perl 5 code generator
 //
 // Copyright (C) 2013  Piotr Fusik
-// Copyright (C) 2013  Enrico Croce
+// Copyright (C) 2013-2014  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
