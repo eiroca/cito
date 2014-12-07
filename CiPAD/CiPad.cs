@@ -54,24 +54,40 @@ namespace Foxoft.Ci {
       ciBox.Select(); // focus
     }
 
-    void Menu_Open(object sender, EventArgs e) {
-      OpenFileDialog dlg = new OpenFileDialog { DefaultExt = "ci", Filter = "Æ Source Code (*.ci)|*.ci", Multiselect = true };
-      if (dlg.ShowDialog() == DialogResult.OK) {
-        // Directory for BinaryResources. Let's assume all sources and resources are in the same directory.
-        this.SearchDirs = new string[1] { Path.GetDirectoryName(dlg.FileNames[0]) };
+    void Open(string[] filenames) {
+      // Directories for BinaryResources. Let's assume resources are in the directories of sources.
+      this.SearchDirs = filenames.Select(filename => Path.GetDirectoryName(filename)).Distinct().ToArray();
+      this.CiGroup.Clear();
+      foreach (string filename in filenames) {
+        string content = File.ReadAllText(filename).Replace("\r", "").Replace("\n", "\r\n");
+        this.CiGroup.Set(Path.GetFileName(filename), content, false);
+      }
+      FocusCi();
+    }
 
-        this.CiGroup.Clear();
-        foreach (string filename in dlg.FileNames) {
-          string content = File.ReadAllText(filename).Replace("\r", "").Replace("\n", "\r\n");
-          this.CiGroup.Set(Path.GetFileName(filename), content, false);
-        }
-        FocusCi();
+    void Menu_Open(object sender, EventArgs e) {
+      OpenFileDialog dlg = new OpenFileDialog { DefaultExt = "ci", Filter = "? Source Code (*.ci)|*.ci", Multiselect = true };
+      if (dlg.ShowDialog() == DialogResult.OK) {
+        Open(dlg.FileNames);
       }
     }
 
     void Menu_Font(object sender, EventArgs e) {
       FontDialog dlg = new FontDialog { Font = this.Font, ShowEffects = false };
       if (dlg.ShowDialog() == DialogResult.OK) this.Font = dlg.Font;
+    }
+
+    void Form_DragEnter(object sender, DragEventArgs e) {
+      if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
+        e.Effect = DragDropEffects.Copy;
+      }
+    }
+
+    void Form_DragDrop(object sender, DragEventArgs e) {
+      object o = e.Data.GetData(DataFormats.FileDrop, false);
+      if (o != null) {
+        Open((string[])o);
+      }
     }
 
     void InitializeComponent() {
@@ -84,7 +100,10 @@ namespace Foxoft.Ci {
       this.Messages.ScrollBars = ScrollBars.Both;
       this.Messages.WordWrap = false;
       this.Controls.Add(this.Messages);
-      this.Menu = new MainMenu(new MenuItem[] { new MenuItem("&Open", Menu_Open), new MenuItem("&Font", Menu_Font) });
+      this.Menu = new MainMenu(new MenuItem[] { new MenuItem("&Open", Menu_Open) { Shortcut = Shortcut.CtrlO }, new MenuItem("&Font", Menu_Font) });
+      this.DragEnter += Form_DragEnter;
+      this.DragDrop += Form_DragDrop;
+      this.AllowDrop = true;
     }
 
     public CiPad() {
@@ -263,11 +282,15 @@ namespace Foxoft.Ci {
         text.ScrollBars = ScrollBars.Both;
         text.TabStop = false;
         text.WordWrap = false;
-        if (Type.GetType("Mono.Runtime") == null) SetNarrowTabs(text);
+        if (Type.GetType("Mono.Runtime") == null) {
+          SetNarrowTabs(text);
+        }
         page.Controls.Add(text);
         this.TabControl.TabPages.Add(page);
       }
-      else if (this.TabsToRemove != null) this.TabsToRemove.Remove(page);
+      else if (this.TabsToRemove != null) {
+        this.TabsToRemove.Remove(page);
+      }
       page.Controls[0].Text = content;
     }
 
