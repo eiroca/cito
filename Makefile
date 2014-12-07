@@ -93,8 +93,8 @@ uninstall:
 res: $(CIPNG) $(CIICO)
 
 $(CIPNG): $(CISVG)
-	convert -background none $< -gravity Center -resize "52x64!" -extent 64x64 -quality 95 $@
-
+  convert -background none $< -gravity Center -resize "52x64!" -extent 64x64 -quality 95 -strip $@
+  
 $(CIICO): $(CISVG)
 	convert -background none $< -gravity Center -resize "26x32!" -extent 32x32 $@
 
