@@ -124,6 +124,7 @@ $(DOCS)/ci.pdf: $(DOCS)/ci.txt
 
 clean:
 	$(RM) $(DIST_BIN) $(DIST_SRC)
+	$(RM) MANIFEST
 	$(RM) cito.exe cipad.exe civiewer.exe
 	$(RM) $(SAMPLE_DIR)/hello.c $(SAMPLE_DIR)/hello.h $(SAMPLE_DIR)/hello99.c $(SAMPLE_DIR)/hello99.h $(SAMPLE_DIR)/HelloCi.java $(SAMPLE_DIR)/hello.cs $(SAMPLE_DIR)/hello.js $(SAMPLE_DIR)/HelloCi.as $(SAMPLE_DIR)/hello.d $(SAMPLE_DIR)/hello.pm $(SAMPLE_DIR)/hello5.10.pm $(SAMPLE_DIR)/hello.pas $(SAMPLE_DIR)/hello.php 
 	$(RM) $(CIICO) $(CIPNG)
