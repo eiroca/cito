@@ -739,6 +739,23 @@ namespace Foxoft.Ci {
     }
 
     protected void WriteInitializer(CiArrayType type) {
+      if (type.ElementType is CiClassStorageType) {
+        CiArrayStorageType storageType = type as CiArrayStorageType;
+        if (storageType != null) {
+          int len = storageType.Length;
+          if (len > 0) {
+            Write("[] { ");
+            for (int i = 0; i < len; i++) {
+              if (i > 0) {
+                Write(", ");
+              }
+              WriteNew(type.ElementType);
+            }
+            Write(" }");
+            return;
+          }
+        }
+      }
       for (; type != null; type = type.ElementType as CiArrayType) {
         Write('[');
         CiArrayStorageType storageType = type as CiArrayStorageType;
