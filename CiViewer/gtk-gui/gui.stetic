@@ -40,12 +40,14 @@
       </action>
       <action id="OpenFileSAction">
         <property name="Type">Action</property>
+        <property name="Accelerator">&lt;Control&gt;o</property>
         <property name="Label" translatable="yes">_Open file(s)</property>
         <property name="ShortLabel" translatable="yes">_Open</property>
         <signal name="Activated" handler="OnOpen" />
       </action>
       <action id="ExitAction">
         <property name="Type">Action</property>
+        <property name="Accelerator">&lt;Control&gt;q</property>
         <property name="Label" translatable="yes">E_xit</property>
         <property name="ShortLabel" translatable="yes">E_xit</property>
         <signal name="Activated" handler="OnExit" />
@@ -63,12 +65,14 @@
       </action>
       <action id="SaveTargetSAction">
         <property name="Type">Action</property>
+        <property name="Accelerator">&lt;Control&gt;t</property>
         <property name="Label" translatable="yes">Save target(s)</property>
         <property name="ShortLabel" translatable="yes">Save targets</property>
         <signal name="Activated" handler="OnSaveTarget" />
       </action>
       <action id="TranslateAction">
         <property name="Type">Action</property>
+        <property name="Accelerator">&lt;Control&gt;a</property>
         <property name="Label" translatable="yes">Translate</property>
         <property name="ShortLabel" translatable="yes">Translate</property>
         <signal name="Activated" handler="OnTranslate" />
@@ -83,6 +87,7 @@
       </action>
       <action id="SaveSourceSAction">
         <property name="Type">Action</property>
+        <property name="Accelerator">&lt;Control&gt;s</property>
         <property name="Label" translatable="yes">Save source(s)</property>
         <property name="ShortLabel" translatable="yes">Save source(s)</property>
         <signal name="Activated" handler="OnSaveSource" />
@@ -99,6 +104,7 @@
       </action>
       <action id="CopyTargetToClipboardAction">
         <property name="Type">Action</property>
+        <property name="Accelerator">&lt;Control&gt;c</property>
         <property name="Label" translatable="yes">Copy target To Clipboard</property>
         <property name="ShortLabel" translatable="yes">Copy target To Clipboard</property>
         <signal name="Activated" handler="OnCopyTargetToClipboardActionActivated" />

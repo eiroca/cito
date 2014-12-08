@@ -28,6 +28,7 @@ using CiToViewer;
 using IgeMacIntegration;
 using Foxoft.Ci;
 using Pango;
+using System.Text.RegularExpressions;
 
 public partial class MainWindow: Gtk.Window {
   protected ProjectFiles Project = new ProjectFiles();
@@ -35,6 +36,7 @@ public partial class MainWindow: Gtk.Window {
   private static Gdk.Atom _atom = Gdk.Atom.Intern("CLIPBOARD", false);
   private Gtk.Clipboard _clipBoard = Gtk.Clipboard.Get(_atom);
   private bool InUpdate = false;
+  private static Gtk.TargetEntry[] target_table = new TargetEntry [] { new TargetEntry("text/uri-list", 0, 0) };
 
   public MainWindow() : base(Gtk.WindowType.Toplevel) {
     Build();
@@ -52,6 +54,16 @@ public partial class MainWindow: Gtk.Window {
     SetTabs(tvTarget, font, 2);
     InUpdate = false;
     TranslateCode();
+    Gtk.Drag.DestSet(tvSource, DestDefaults.All, target_table, Gdk.DragAction.Copy);
+    tvSource.DragDataReceived += Data_Received;
+  }
+
+  void Data_Received(object o, DragDataReceivedArgs args) {
+    string data = System.Text.Encoding.UTF8.GetString(args.SelectionData.Data);
+    List<string> paths = new List<string>(Regex.Split(data, "\r\n"));
+    paths.RemoveAll(string.IsNullOrEmpty);
+    LoadSourceFiles(paths.ToArray());
+    Gtk.Drag.Finish(args.Context, true, true, args.Time);
   }
 
   private CodePosition OldPos = null;
@@ -159,7 +171,7 @@ public partial class MainWindow: Gtk.Window {
   }
 
   protected void OnOpen(object sender, EventArgs e) {
-    FileChooserDialog chooser = new FileChooserDialog("Please select a Ci file to view ...", this, FileChooserAction.Open, "Cancel", ResponseType.Cancel, "Open", ResponseType.Accept);
+    FileChooserDialog chooser = new FileChooserDialog("Please select a Ć file to view ...", this, FileChooserAction.Open, "Cancel", ResponseType.Cancel, "Open", ResponseType.Accept);
     FileFilter filter_1 = new FileFilter();
     filter_1.Name = "Ć files";
     filter_1.AddPattern("*.ci");

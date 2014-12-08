@@ -4,37 +4,69 @@
 public partial class MainWindow
 {
 	private global::Gtk.UIManager UIManager;
+	
 	private global::Gtk.Action FileAction;
+	
 	private global::Gtk.Action TargetAction;
+	
 	private global::Gtk.RadioAction ObjectPascalAction;
+	
 	private global::Gtk.RadioAction PHPAction;
+	
 	private global::Gtk.Action OpenFileSAction;
+	
 	private global::Gtk.Action ExitAction;
+	
 	private global::Gtk.Action FontAction;
+	
 	private global::Gtk.Action SettingsAction;
+	
 	private global::Gtk.Action SaveTargetSAction;
+	
 	private global::Gtk.Action TranslateAction;
+	
 	private global::Gtk.ToggleAction AutoTranslateAction;
+	
 	private global::Gtk.Action SaveSourceSAction;
+	
 	private global::Gtk.Action Action;
+	
 	private global::Gtk.Action ActionsAction;
+	
 	private global::Gtk.Action CopyTargetToClipboardAction;
+	
 	private global::Gtk.VBox vbox1;
+	
 	private global::Gtk.MenuBar mnMain;
+	
 	private global::Gtk.HBox hbox2;
+	
 	private global::Gtk.Entry iNameSpace;
+	
 	private global::Gtk.ComboBox cbLanguage;
+	
 	private global::Gtk.HBox hbox1;
+	
 	private global::Gtk.VBox vbSource;
+	
 	private global::Gtk.ComboBox cbSource;
+	
 	private global::Gtk.ScrolledWindow GtkScrolledWindow;
+	
 	private global::Gtk.TextView tvSource;
+	
 	private global::Gtk.VBox vbTarget;
+	
 	private global::Gtk.ComboBox cbTarget;
+	
 	private global::Gtk.ScrolledWindow GtkScrolledWindow1;
+	
 	private global::Gtk.TextView tvTarget;
+	
 	private global::Gtk.HBox hbox3;
+	
 	private global::Gtk.Label lbMsg;
+	
 	private global::Gtk.Button btLocate;
 
 	protected virtual void Build ()
@@ -59,10 +91,10 @@ public partial class MainWindow
 		w1.Add (this.PHPAction, null);
 		this.OpenFileSAction = new global::Gtk.Action ("OpenFileSAction", global::Mono.Unix.Catalog.GetString ("_Open file(s)"), null, null);
 		this.OpenFileSAction.ShortLabel = global::Mono.Unix.Catalog.GetString ("_Open");
-		w1.Add (this.OpenFileSAction, null);
+		w1.Add (this.OpenFileSAction, "<Control>o");
 		this.ExitAction = new global::Gtk.Action ("ExitAction", global::Mono.Unix.Catalog.GetString ("E_xit"), null, null);
 		this.ExitAction.ShortLabel = global::Mono.Unix.Catalog.GetString ("E_xit");
-		w1.Add (this.ExitAction, null);
+		w1.Add (this.ExitAction, "<Control>q");
 		this.FontAction = new global::Gtk.Action ("FontAction", global::Mono.Unix.Catalog.GetString ("F_ont"), null, null);
 		this.FontAction.ShortLabel = global::Mono.Unix.Catalog.GetString ("F_ont");
 		w1.Add (this.FontAction, null);
@@ -71,17 +103,17 @@ public partial class MainWindow
 		w1.Add (this.SettingsAction, null);
 		this.SaveTargetSAction = new global::Gtk.Action ("SaveTargetSAction", global::Mono.Unix.Catalog.GetString ("Save target(s)"), null, null);
 		this.SaveTargetSAction.ShortLabel = global::Mono.Unix.Catalog.GetString ("Save targets");
-		w1.Add (this.SaveTargetSAction, null);
+		w1.Add (this.SaveTargetSAction, "<Control>t");
 		this.TranslateAction = new global::Gtk.Action ("TranslateAction", global::Mono.Unix.Catalog.GetString ("Translate"), null, null);
 		this.TranslateAction.ShortLabel = global::Mono.Unix.Catalog.GetString ("Translate");
-		w1.Add (this.TranslateAction, null);
+		w1.Add (this.TranslateAction, "<Control>a");
 		this.AutoTranslateAction = new global::Gtk.ToggleAction ("AutoTranslateAction", global::Mono.Unix.Catalog.GetString ("Auto translate"), null, null);
 		this.AutoTranslateAction.Active = true;
 		this.AutoTranslateAction.ShortLabel = global::Mono.Unix.Catalog.GetString ("Auto translate");
 		w1.Add (this.AutoTranslateAction, null);
 		this.SaveSourceSAction = new global::Gtk.Action ("SaveSourceSAction", global::Mono.Unix.Catalog.GetString ("Save source(s)"), null, null);
 		this.SaveSourceSAction.ShortLabel = global::Mono.Unix.Catalog.GetString ("Save source(s)");
-		w1.Add (this.SaveSourceSAction, null);
+		w1.Add (this.SaveSourceSAction, "<Control>s");
 		this.Action = new global::Gtk.Action ("Action", global::Mono.Unix.Catalog.GetString ("---"), null, null);
 		this.Action.ShortLabel = global::Mono.Unix.Catalog.GetString ("---");
 		w1.Add (this.Action, null);
@@ -90,7 +122,7 @@ public partial class MainWindow
 		w1.Add (this.ActionsAction, null);
 		this.CopyTargetToClipboardAction = new global::Gtk.Action ("CopyTargetToClipboardAction", global::Mono.Unix.Catalog.GetString ("Copy target To Clipboard"), null, null);
 		this.CopyTargetToClipboardAction.ShortLabel = global::Mono.Unix.Catalog.GetString ("Copy target To Clipboard");
-		w1.Add (this.CopyTargetToClipboardAction, null);
+		w1.Add (this.CopyTargetToClipboardAction, "<Control>c");
 		this.UIManager.InsertActionGroup (w1, 0);
 		this.AddAccelGroup (this.UIManager.AccelGroup);
 		this.Name = "MainWindow";

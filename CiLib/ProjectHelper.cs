@@ -129,6 +129,8 @@ namespace Foxoft.Ci {
       return new CiTargetWriter(this, filename);
     }
 
+    private static string URI_FILE = "file://";
+
     public void LoadFiles(string[] Filenames) {
       int len = Filenames.Length;
       if (len < 1) {
@@ -138,12 +140,28 @@ namespace Foxoft.Ci {
         Source.Clear();
         Target.Clear();
         for (int i = 0; i < len; i++) {
-          ProjectFile file = new ProjectFile();
-          file.Path = Filenames[i];
-          file.Name = System.IO.Path.GetFileName(file.Path);
-          file.Code = System.IO.File.ReadAllText(file.Path);
-          file.Changed = false;
-          Source.Add(file.Name, file);
+          string path = Filenames[i];
+          if (!String.IsNullOrEmpty(path)) {
+            if (path.StartsWith(URI_FILE)) {
+              path = path.Substring(URI_FILE.Length);
+              if (String.IsNullOrEmpty(path)) {
+                continue;
+              }
+            }
+            ProjectFile file = new ProjectFile();
+            file.Changed = false;
+            file.Path = path; 
+            file.Name = System.IO.Path.GetFileName(file.Path);
+            try {
+              file.Code = System.IO.File.ReadAllText(file.Path);
+            }
+            catch {
+              file.Code = null;
+            }
+            if (file.Code != null) {
+              Source.Add(file.Name, file);
+            }
+          }
         }
       }
     }
