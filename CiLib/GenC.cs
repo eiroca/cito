@@ -199,16 +199,22 @@ namespace Foxoft.Ci {
       WriteSignature(method);
       WriteLine();
       OpenBlock();
-      ICiStatement[] statements = method.Body.Statements;
-      StartBlock(statements);
-      if (method.Throws && method.Signature.ReturnType == CiType.Void && method.Body.CompletesNormally) {
-        if (!TryWriteCallAndReturn(statements, statements.Length - 1, null)) {
+      CiBlock block = method.Body as CiBlock;
+      if (block != null) {
+        ICiStatement[] statements = block.Statements;
+        StartBlock(statements);
+        if (method.Throws && method.Signature.ReturnType == CiType.Void && method.Body.CompletesNormally) {
+          if (!TryWriteCallAndReturn(statements, statements.Length - 1, null)) {
+            WriteCode(statements);
+            WriteReturnTrue();
+          }
+        }
+        else {
           WriteCode(statements);
-          WriteReturnTrue();
         }
       }
       else {
-        WriteCode(statements);
+        Translate(method.Body);
       }
       CloseBlock();
       ExitMethod();
@@ -885,7 +891,7 @@ namespace Foxoft.Ci {
         WriteLine();
         OpenBlock();
         if (klass.Constructor != null) {
-          StartBlock(klass.Constructor.Body.Statements);
+          StartBlock(((CiBlock)klass.Constructor.Body).Statements);
         }
         CiClass ptrClass = GetVtblPtrClass(klass);
         if (HasVtblValue(klass)) {
@@ -919,7 +925,7 @@ namespace Foxoft.Ci {
           }
         });
         if (klass.Constructor != null) {
-          WriteCode(klass.Constructor.Body.Statements);
+          WriteCode(((CiBlock)klass.Constructor.Body).Statements);
         }
         CloseBlock();
         ExitMethod();

@@ -1,6 +1,6 @@
 // GenAs.cs - ActionScript code generator
 //
-// Copyright (C) 2011-2013  Piotr Fusik
+// Copyright (C) 2011-2014  Piotr Fusik
 // Copyright (C) 2013-2014  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
@@ -380,13 +380,19 @@ namespace Foxoft.Ci {
         WriteLine("throw \"Abstract method called\";");
       }
       else {
-        ICiStatement[] statements = method.Body.Statements;
-        WriteCode(statements);
-        if (method.Signature.ReturnType != CiType.Void && statements.Length > 0) {
-          CiFor lastLoop = statements[statements.Length - 1] as CiFor;
-          if (lastLoop != null && lastLoop.Cond == null) {
-            WriteLine("throw \"Unreachable\";");
+        CiBlock block = method.Body as CiBlock;
+        if (block != null) {
+          ICiStatement[] statements = block.Statements;
+          WriteCode(statements);
+          if (method.Signature.ReturnType != CiType.Void && statements.Length > 0) {
+            CiFor lastLoop = statements[statements.Length - 1] as CiFor;
+            if (lastLoop != null && lastLoop.Cond == null) {
+              WriteLine("throw \"Unreachable\";");
+            }
           }
+        }
+        else {
+          Translate(method.Body);
         }
       }
       CloseBlock();

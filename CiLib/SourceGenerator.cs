@@ -849,6 +849,23 @@ namespace Foxoft.Ci {
       }
     }
 
+    protected void WriteBody(CiMethod method) {
+      if (method.CallType == CiCallType.Abstract) {
+        WriteLine(";");
+      }
+      else {
+        WriteLine();
+        if (method.Body is CiBlock) {
+          Translate(method.Body);
+        }
+        else {
+          OpenBlock();
+          WriteCode(method.Body);
+          CloseBlock();
+        }
+      }
+    }
+
     protected virtual void OpenClass(bool isAbstract, CiClass klass, string extendsClause) {
       if (isAbstract) {
         Write("abstract ");

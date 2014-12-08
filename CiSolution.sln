@@ -125,7 +125,7 @@ Global
 		{706860A9-7545-4F7C-9A67-CF4DA81DDE03}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = CiPAD\CiPad.csproj
+		StartupItem = CiViewer\CiViewer.csproj
 		Policies = $0
 		$0.TextStylePolicy = $1
 		$1.FileWidth = 200

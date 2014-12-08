@@ -1,6 +1,6 @@
 // GenPerl5.cs - Perl 5 code generator
 //
-// Copyright (C) 2013  Piotr Fusik
+// Copyright (C) 2013-2014  Piotr Fusik
 // Copyright (C) 2013-2014  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
@@ -522,7 +522,13 @@ namespace Foxoft.Ci {
         }
         WriteLine(") = @_;");
       }
-      WriteCode(method.Body.Statements);
+      CiBlock block = method.Body as CiBlock;
+      if (block != null) {
+        WriteCode(block.Statements);
+      }
+      else {
+        WriteCode(method.Body);
+      }
       CloseBlock();
       WriteLine();
       ExitMethod();
@@ -688,7 +694,7 @@ namespace Foxoft.Ci {
       }
       if (klass.Constructor != null) {
         EnterMethod(klass.Constructor);
-        WriteCode(klass.Constructor.Body.Statements);
+        WriteCode(((CiBlock)klass.Constructor.Body).Statements);
         ExitMethod();
       }
       WriteLine("return $self;"); // TODO: premature returns

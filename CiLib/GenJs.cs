@@ -1,6 +1,6 @@
 // GenJs.cs - JavaScript code generator
 //
-// Copyright (C) 2011-2013  Piotr Fusik
+// Copyright (C) 2011-2014  Piotr Fusik
 // Copyright (C) 2013-2014  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
@@ -270,7 +270,13 @@ namespace Foxoft.Ci {
         Write(DecodeSymbol(param));
       }
       Write(") ");
-      Translate(method.Body);
+      if (method.Body is CiBlock)
+        Translate(method.Body);
+      else {
+        OpenBlock();
+        Translate(method.Body);
+        CloseBlock();
+      }
     }
 
     public override void Symbol_CiConst(CiSymbol symbol) {
@@ -303,7 +309,7 @@ namespace Foxoft.Ci {
         }
       }
       if (klass.Constructor != null) {
-        WriteCode(klass.Constructor.Body.Statements);
+        WriteCode(((CiBlock) klass.Constructor.Body).Statements);
       }
       CloseBlock();
       if (klass.BaseClass != null) {

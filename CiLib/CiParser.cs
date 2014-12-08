@@ -424,6 +424,15 @@ namespace Foxoft.Ci {
       return new CiNativeBlock { Content = sb.ToString() };
     }
 
+    CiReturn ParseReturn() {
+      CiReturn result = new CiReturn();
+      if (this.CurrentMethod.Signature.ReturnType != CiType.Void) {
+        result.Value = ParseExpr();
+      }
+      Expect(CiToken.Semicolon);
+      return result;
+    }
+
     CiSwitch ParseSwitch() {
       Expect(CiToken.LeftParenthesis);
       CiSwitch result = new CiSwitch();
@@ -472,8 +481,12 @@ namespace Foxoft.Ci {
     }
 
     ICiStatement ParseStatement() {
-      while (Eat(CiToken.Macro)) this.Symbols.Add(ParseMacro());
-      if (See(CiToken.Id)) return ParseVarOrExpr();
+      while (Eat(CiToken.Macro)) {
+        this.Symbols.Add(ParseMacro());
+      }
+      if (See(CiToken.Id)) {
+        return ParseVarOrExpr();
+      }
       if (See(CiToken.LeftBrace)) {
         OpenScope();
         CiBlock result = ParseBlock();
@@ -510,11 +523,17 @@ namespace Foxoft.Ci {
         Expect(CiToken.LeftParenthesis);
         OpenScope();
         CiFor result = new CiFor();
-        if (See(CiToken.Id)) result.Init = ParseVarOrExpr();
+        if (See(CiToken.Id)) {
+          result.Init = ParseVarOrExpr();
+        }
         else Expect(CiToken.Semicolon);
-        if (!See(CiToken.Semicolon)) result.Cond = ParseExpr();
+        if (!See(CiToken.Semicolon)) {
+          result.Cond = ParseExpr();
+        }
         Expect(CiToken.Semicolon);
-        if (!See(CiToken.RightParenthesis)) result.Advance = ParseExprWithSideEffect();
+        if (!See(CiToken.RightParenthesis)) {
+          result.Advance = ParseExprWithSideEffect();
+        }
         Expect(CiToken.RightParenthesis);
         result.Body = ParseStatement();
         CloseScope();
@@ -524,19 +543,20 @@ namespace Foxoft.Ci {
         CiIf result = new CiIf();
         result.Cond = ParseCond();
         result.OnTrue = ParseStatement();
-        if (Eat(CiToken.Else)) result.OnFalse = ParseStatement();
-        return result;
-      }
-      if (Eat(CiToken.Native)) return ParseNativeBlock();
-      if (Eat(CiToken.Return)) {
-        CiReturn result = new CiReturn();
-        if (this.CurrentMethod.Signature.ReturnType != CiType.Void) {
-          result.Value = ParseExpr();
+        if (Eat(CiToken.Else)) {
+          result.OnFalse = ParseStatement();
         }
-        Expect(CiToken.Semicolon);
         return result;
       }
-      if (Eat(CiToken.Switch)) return ParseSwitch();
+      if (Eat(CiToken.Native)) {
+        return ParseNativeBlock();
+      }
+      if (Eat(CiToken.Return)) {
+        return ParseReturn();
+      }
+      if (Eat(CiToken.Switch)) {
+        return ParseSwitch();
+      }
       if (Eat(CiToken.Throw)) {
         CiThrow result = new CiThrow();
         result.Message = ParseExpr();
@@ -594,10 +614,19 @@ namespace Foxoft.Ci {
     void ParseMethod(CiMethod method) {
       this.CurrentMethod = method;
       OpenScope();
-      if (method.CallType != CiCallType.Static) method.This = CreateThis();
+      if (method.CallType != CiCallType.Static) {
+        method.This = CreateThis();
+      }
       method.Signature.Params = ParseParams();
-      if (method.CallType == CiCallType.Abstract) Expect(CiToken.Semicolon);
-      else method.Body = ParseBlock();
+      if (method.CallType == CiCallType.Abstract) {
+        Expect(CiToken.Semicolon);
+      }
+      else if (method.Signature.ReturnType != CiType.Void && Eat(CiToken.Return)) {
+        method.Body = ParseReturn();
+      }
+      else {
+        method.Body = ParseBlock();
+      }
       CloseScope();
       this.CurrentMethod = null;
     }

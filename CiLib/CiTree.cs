@@ -1402,7 +1402,7 @@ namespace Foxoft.Ci {
     public CiCallType CallType;
     public CiDelegate Signature;
     public CiParam This;
-    public CiBlock Body;
+    public ICiStatement Body;
     public bool Throws;
     public object ErrorReturnValue;
     public readonly HashSet<CiMethod> CalledBy = new HashSet<CiMethod>();

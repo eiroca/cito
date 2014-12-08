@@ -199,13 +199,7 @@ namespace Foxoft.Ci {
       }
       WriteFormat("{0} {1}", DecodeVisibility(method.Visibility), qual);
       WriteSignature(method.Signature);
-      if (method.CallType == CiCallType.Abstract) {
-        WriteLine(";");
-      }
-      else {
-        WriteLine();
-        Translate(method.Body);
-      }
+      WriteBody(method);
     }
 
     public override void Symbol_CiClass(CiSymbol symbol) {

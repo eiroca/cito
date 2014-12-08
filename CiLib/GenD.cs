@@ -389,13 +389,7 @@ namespace Foxoft.Ci {
           break;
       }
       WriteSignature(method.Signature);
-      if (method.CallType == CiCallType.Abstract) {
-        WriteLine(";");
-      }
-      else {
-        WriteLine();
-        Translate(method.Body);
-      }
+      WriteBody(method);
     }
 
     public override void Symbol_CiClass(CiSymbol symbol) {
@@ -438,7 +432,7 @@ namespace Foxoft.Ci {
           }
         } 
         if (klass.Constructor != null) {
-          WriteCode(klass.Constructor.Body.Statements);
+          WriteCode(((CiBlock)klass.Constructor.Body).Statements);
         }
         CloseBlock();
       }
