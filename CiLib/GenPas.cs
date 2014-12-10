@@ -155,8 +155,10 @@ namespace Foxoft.Ci {
       fullCode.Insert(Position, oldTxt);
       Position += fullCode.Length - oldLength;
       oldLine = new StringBuilder();
-      AppendIndentStr(oldLine);
-      oldLine.Append(newTxt);
+      if (!String.IsNullOrEmpty(newTxt)) {
+        AppendIndentStr(oldLine);
+        oldLine.Append(newTxt);
+      }
       oldLine.Append(NewLineStr);
       curLine = new StringBuilder();
     }
