@@ -338,6 +338,22 @@ namespace Foxoft.Ci {
       return expr;
     }
 
+    CiExpr ICiExprVisitor.Visit(CiPropertyAccess expr) {
+      CiConstExpr konst = Resolve(expr.Obj) as CiConstExpr;
+      if (konst != null) {
+        if (expr.Property == CiLibrary.LowByteProperty) {
+          return new CiConstExpr((byte)(int)konst.Value);
+        }
+        if (expr.Property == CiLibrary.SByteProperty) {
+          return new CiConstExpr((int)(sbyte)(int)konst.Value);
+        }
+        if (expr.Property == CiLibrary.StringLengthProperty) {
+          return new CiConstExpr(((string)konst.Value).Length);
+        }
+      }
+      return expr;
+    }
+
     CiExpr ICiExprVisitor.Visit(CiUnknownMemberAccess expr) {
       if (expr.Parent is CiSymbolAccess) {
         CiSymbol symbol = Lookup((CiSymbolAccess)expr.Parent);
@@ -355,15 +371,12 @@ namespace Foxoft.Ci {
       CiExpr parent = Resolve(expr.Parent);
       CiSymbol member = parent.Type.LookupMember(expr.Name);
       member.Accept(this);
-      if (member is CiField) return CreateFieldAccess(parent, (CiField)member);
-      if (member is CiProperty) {
-        CiProperty prop = (CiProperty)member;
-        if (parent is CiConstExpr) {
-          if (prop == CiLibrary.LowByteProperty) return new CiConstExpr((byte)GetConstInt(parent));
-          if (prop == CiLibrary.SByteProperty) return new CiConstExpr((int)(sbyte)GetConstInt(parent));
-          if (prop == CiLibrary.StringLengthProperty) return new CiConstExpr(((string)((CiConstExpr)parent).Value).Length);
-        }
-        return new CiPropertyAccess { Obj = parent, Property = prop };
+      if (member is CiField) {
+        return CreateFieldAccess(parent, (CiField)member);
+      }
+      CiProperty prop = member as CiProperty;
+      if (prop != null) {
+        return new CiPropertyAccess(parent, prop).Accept(this);
       }
       if (member is CiConst) {
         return new CiConstExpr(((CiConst)member).Value);
@@ -486,6 +499,16 @@ namespace Foxoft.Ci {
           CurrentPureMethods.Remove(expr.Method);
           if (constFold != null) {
             return constFold;
+          }
+        }
+        if (expr.Method == CiLibrary.CharAtMethod && expr.Arguments[0] is CiConstExpr) {
+          CiConstExpr stringExpr = Resolve(expr.Obj) as CiConstExpr;
+          if (stringExpr != null) {
+            string s = (string)stringExpr.Value;
+            int i = GetConstInt(expr.Arguments[0]);
+            if (i < s.Length) {
+              return new CiConstExpr((int)s[i]);
+            }
           }
         }
         if (expr.Method.IsMutator) {

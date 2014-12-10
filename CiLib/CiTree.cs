@@ -136,6 +136,8 @@ namespace Foxoft.Ci {
 
     CiExpr Visit(CiVarAccess expr);
 
+    CiExpr Visit(CiPropertyAccess expr);
+
     CiExpr Visit(CiUnknownMemberAccess expr);
 
     CiExpr Visit(CiIndexAccess expr);
@@ -939,6 +941,11 @@ namespace Foxoft.Ci {
     public CiExpr Obj;
     public CiProperty Property;
 
+    public CiPropertyAccess(CiExpr Obj, CiProperty Property) {
+      this.Obj = Obj;
+      this.Property = Property;
+    }
+
     public override CiType Type {
       get {
         return this.Property.Type;
@@ -949,6 +956,10 @@ namespace Foxoft.Ci {
       get {
         return this.Obj.HasSideEffect;
       }
+    }
+
+    public override CiExpr Accept(ICiExprVisitor v) {
+      return v.Visit(this);
     }
   }
 
