@@ -60,6 +60,8 @@ namespace Foxoft.Ci {
     public CiMethod CurrentMethod = null;
     CiLoop CurrentLoop = null;
     CiCondCompletionStatement CurrentLoopOrSwitch = null;
+    readonly HashSet<CiMethod> CurrentPureMethods = new HashSet<CiMethod>();
+    readonly Dictionary<CiVar, CiExpr> CurrentPureArguments = new Dictionary<CiVar, CiExpr>();
 
     public CiResolver() {
       this.WritablePtrTypes.Add(CiArrayPtrType.WritableByteArray);
@@ -307,8 +309,13 @@ namespace Foxoft.Ci {
 
     CiExpr ICiExprVisitor.Visit(CiSymbolAccess expr) {
       CiSymbol symbol = Lookup(expr);
-      if (symbol is CiVar) {
-        return new CiVarAccess { Var = (CiVar)symbol };
+      CiVar v = symbol as CiVar;
+      if (v != null) {
+        CiExpr arg;
+        if (CurrentPureArguments.TryGetValue(v, out arg)) {
+          return arg;
+        }
+        return new CiVarAccess { Var = v };
       }
       if (symbol is CiConst) {
         return GetValue((CiConst)symbol);
@@ -321,6 +328,14 @@ namespace Foxoft.Ci {
         return CreateFieldAccess(new CiVarAccess { Var = this.CurrentMethod.This }, (CiField)symbol);
       }
       throw new ResolveException(expr, "Invalid expression");
+    }
+
+    CiExpr ICiExprVisitor.Visit(CiVarAccess expr) {
+      CiExpr arg;
+      if (CurrentPureArguments.TryGetValue(expr.Var, out arg)) {
+        return arg;
+      }
+      return expr;
     }
 
     CiExpr ICiExprVisitor.Visit(CiUnknownMemberAccess expr) {
@@ -382,6 +397,9 @@ namespace Foxoft.Ci {
     }
 
     void ResolveObj(CiMethodCall expr) {
+      if (expr.Method != null) {
+        return; // already resolved
+      }
       if (expr.Obj is CiSymbolAccess) {
         // Foo(...)
         CiMethod method = Lookup((CiSymbolAccess)expr.Obj) as CiMethod;
@@ -455,7 +473,24 @@ namespace Foxoft.Ci {
       ResolveObj(expr);
       CoerceArguments(expr);
       if (expr.Method != null && expr.Method != this.CurrentMethod) {
-        if (expr.Method.IsMutator) MarkWritable(expr.Obj);
+        CiReturn ret = expr.Method.Body as CiReturn;
+        if (ret != null && expr.Method.CallType == CiCallType.Static && expr.Arguments.All(arg => arg is CiConstExpr) && CurrentPureMethods.Add(expr.Method)) {
+          CiParam[] paramz = expr.Signature.Params;
+          for (int i = 0; i < paramz.Length; i++) {
+            CurrentPureArguments.Add(paramz[i], expr.Arguments[i]);
+          }
+          CiConstExpr constFold = Resolve(ret.Value) as CiConstExpr;
+          foreach (CiParam param in paramz) {
+            CurrentPureArguments.Remove(param);
+          }
+          CurrentPureMethods.Remove(expr.Method);
+          if (constFold != null) {
+            return constFold;
+          }
+        }
+        if (expr.Method.IsMutator) {
+          MarkWritable(expr.Obj);
+        }
         expr.Method.CalledBy.Add(this.CurrentMethod);
         this.CurrentMethod.Calls.Add(expr.Method);
       }
@@ -464,10 +499,17 @@ namespace Foxoft.Ci {
 
     CiExpr ICiExprVisitor.Visit(CiUnaryExpr expr) {
       CiExpr resolved;
-      if (expr.Op == CiToken.Increment || expr.Op == CiToken.Decrement) resolved = ResolveLValue(expr.Inner);
-      else resolved = Resolve(expr.Inner);
-      expr.Inner = Coerce(resolved, CiIntType.Value);
-      if (expr.Op == CiToken.Minus && expr.Inner is CiConstExpr) return new CiConstExpr(-GetConstInt(expr.Inner));
+      if (expr.Op == CiToken.Increment || expr.Op == CiToken.Decrement) {
+        resolved = ResolveLValue(expr.Inner);
+      }
+      else {
+        resolved = Resolve(expr.Inner);
+      }
+      CiExpr inner = Coerce(resolved, CiIntType.Value);
+      if (expr.Op == CiToken.Minus && inner is CiConstExpr) {
+        return new CiConstExpr(-GetConstInt(inner));
+      }
+      expr.Inner = inner;
       return expr;
     }
 
@@ -534,12 +576,12 @@ namespace Foxoft.Ci {
         }
         if (expr.Op == CiToken.And && (b & ~0xff) == 0) {
           CiCoercion c = left as CiCoercion;
-          if (c != null && c.Inner.Type == CiByteType.Value) left = (CiExpr)c.Inner;
+          if (c != null && c.Inner.Type == CiByteType.Value) {
+            left = (CiExpr)c.Inner;
+          }
         }
       }
-      expr.Left = left;
-      expr.Right = right;
-      return expr;
+      return new CiBinaryExpr(left, expr.Op, right);
     }
 
     static CiType FindCommonType(CiExpr expr1, CiExpr expr2) {
@@ -574,27 +616,27 @@ namespace Foxoft.Ci {
           type = CiIntType.Value;
           break;
       }
-      expr.Left = Coerce(left, type);
-      expr.Right = Coerce(right, type);
-      CiConstExpr cleft = expr.Left as CiConstExpr;
+      left = Coerce(left, type);
+      right = Coerce(right, type);
+      CiConstExpr cleft = left as CiConstExpr;
       if (cleft != null) {
         switch (expr.Op) {
           case CiToken.CondAnd:
-            return (bool)cleft.Value ? expr.Right : new CiConstExpr(false);
+            return (bool)cleft.Value ? right : new CiConstExpr(false);
           case CiToken.CondOr:
-            return (bool)cleft.Value ? new CiConstExpr(true) : expr.Right;
+            return (bool)cleft.Value ? new CiConstExpr(true) : right;
           case CiToken.Equal:
           case CiToken.NotEqual:
-            CiConstExpr cright = expr.Right as CiConstExpr;
+            CiConstExpr cright = right as CiConstExpr;
             if (cright != null) {
               bool eq = object.Equals(cleft.Value, cright.Value);
               return new CiConstExpr(expr.Op == CiToken.Equal ? eq : !eq);
             }
             break;
           default:
-            if (expr.Right is CiConstExpr) {
+            if (right is CiConstExpr) {
               int a = GetConstInt(cleft);
-              int b = GetConstInt(expr.Right);
+              int b = GetConstInt(right);
               bool result;
               switch (expr.Op) {
                 case CiToken.Less:
@@ -610,6 +652,8 @@ namespace Foxoft.Ci {
                   result = a >= b;
                   break;
                 default:
+                  expr.Left = left;
+                  expr.Right = right;
                   return expr;
               }
               return new CiConstExpr(result);
@@ -617,19 +661,23 @@ namespace Foxoft.Ci {
             break;
         }
       }
+      expr.Left = left;
+      expr.Right = right;
       return expr;
     }
 
     CiExpr ICiExprVisitor.Visit(CiCondExpr expr) {
-      expr.Cond = Coerce(Resolve(expr.Cond), CiBoolType.Value);
+      CiExpr cond = Coerce(Resolve(expr.Cond), CiBoolType.Value);
       CiExpr expr1 = Resolve(expr.OnTrue);
       CiExpr expr2 = Resolve(expr.OnFalse);
-      expr.ResultType = FindCommonType(expr1, expr2);
-      expr.OnTrue = Coerce(expr1, expr.ResultType);
-      expr.OnFalse = Coerce(expr2, expr.ResultType);
-      CiConstExpr konst = expr.Cond as CiConstExpr;
-      if (konst != null) return (bool)konst.Value ? expr.OnTrue : expr.OnFalse;
-      return expr;
+      CiType type = FindCommonType(expr1, expr2);
+      expr1 = Coerce(expr1, type);
+      expr2 = Coerce(expr2, type);
+      CiConstExpr konst = cond as CiConstExpr;
+      if (konst != null) {
+        return (bool)konst.Value ? expr1 : expr2;
+      }
+      return new CiCondExpr { Cond = cond, ResultType = type, OnTrue = expr1, OnFalse = expr2 };
     }
 
     CiExpr ICiExprVisitor.Visit(CiBinaryResourceExpr expr) {

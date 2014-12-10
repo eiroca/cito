@@ -134,6 +134,8 @@ namespace Foxoft.Ci {
   public interface ICiExprVisitor {
     CiExpr Visit(CiSymbolAccess expr);
 
+    CiExpr Visit(CiVarAccess expr);
+
     CiExpr Visit(CiUnknownMemberAccess expr);
 
     CiExpr Visit(CiIndexAccess expr);
@@ -817,6 +819,10 @@ namespace Foxoft.Ci {
         return false;
       }
     }
+
+    public override string ToString() {
+      return this.Value == null ? "null" : this.Value.ToString();
+    }
   }
 
   public abstract class CiLValue : CiExpr {
@@ -840,6 +846,11 @@ namespace Foxoft.Ci {
     public override CiExpr Accept(ICiExprVisitor v) {
       return v.Visit(this);
     }
+
+    public override string ToString() {
+      return this.Symbol.Name;
+    }
+
   }
 
   public class CiConstAccess : CiExpr {
@@ -856,6 +867,7 @@ namespace Foxoft.Ci {
         return false;
       }
     }
+
   }
 
   public class CiVarAccess : CiLValue {
@@ -871,6 +883,10 @@ namespace Foxoft.Ci {
       get {
         return false;
       }
+    }
+
+    public override CiExpr Accept(ICiExprVisitor v) {
+      return v.Visit(this);
     }
   }
 
@@ -893,6 +909,11 @@ namespace Foxoft.Ci {
     public override CiExpr Accept(ICiExprVisitor v) {
       return v.Visit(this);
     }
+
+    public override string ToString() {
+      return this.Parent + "." + this.Name;
+    }
+
   }
 
   public class CiFieldAccess : CiLValue {
@@ -910,6 +931,8 @@ namespace Foxoft.Ci {
         return this.Obj.HasSideEffect;
       }
     }
+
+
   }
 
   public class CiPropertyAccess : CiExpr {
@@ -947,6 +970,10 @@ namespace Foxoft.Ci {
 
     public override CiExpr Accept(ICiExprVisitor v) {
       return v.Visit(this);
+    }
+
+    public override string ToString() {
+      return this.Parent + "[" + this.Index + "]";
     }
   }
 
@@ -1082,6 +1109,51 @@ namespace Foxoft.Ci {
     public CiToken Op;
     public CiExpr Right;
 
+    public string OpString {
+      get {
+        switch (this.Op) {
+          case CiToken.Plus:
+            return "+";
+          case CiToken.Minus:
+            return "-";
+          case CiToken.Asterisk:
+            return "*";
+          case CiToken.Slash:
+            return "/";
+          case CiToken.Mod:
+            return "%";
+          case CiToken.ShiftLeft:
+            return "<<";
+          case CiToken.ShiftRight:
+            return ">>";
+          case CiToken.Less:
+            return "<";
+          case CiToken.LessOrEqual:
+            return "<=";
+          case CiToken.Greater:
+            return ">";
+          case CiToken.GreaterOrEqual:
+            return ">=";
+          case CiToken.Equal:
+            return "==";
+          case CiToken.NotEqual:
+            return "!=";
+          case CiToken.And:
+            return "&";
+          case CiToken.Or:
+            return "|";
+          case CiToken.Xor:
+            return "^";
+          case CiToken.CondAnd:
+            return "&&";
+          case CiToken.CondOr:
+            return "||";
+          default:
+            throw new ArgumentException(this.Op.ToString());
+        }
+      }
+    }
+
     public CiBinaryExpr(CiExpr Left, CiToken Op, CiExpr Right) {
       this.Left = Left;
       this.Op = Op;
@@ -1102,6 +1174,10 @@ namespace Foxoft.Ci {
 
     public override CiExpr Accept(ICiExprVisitor v) {
       return v.Visit(this);
+    }
+
+    public override string ToString() {
+      return "(" + this.Left + " " + this.OpString + " " + this.Right + ")";
     }
   }
 
@@ -1141,6 +1217,11 @@ namespace Foxoft.Ci {
     public override CiExpr Accept(ICiExprVisitor v) {
       return v.Visit(this);
     }
+
+    public override string ToString() {
+      return "(" + this.Cond + " ? " + this.OnTrue + " : " + this.OnFalse + ")";
+    }
+
   }
 
   public class CiBinaryResourceExpr : CiExpr {
