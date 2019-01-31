@@ -1,0 +1,141 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>CiPad</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <ProjectGuid>{706860A9-7545-4F7C-9A67-CF4DA81DDE03}</ProjectGuid>
+    <ApplicationIcon>..\res\ci-logo.ico</ApplicationIcon>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ReleaseVersion>0.5</ReleaseVersion>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <NoWin32Manifest>False</NoWin32Manifest>
+    <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
+    <NoStdLib>False</NoStdLib>
+    <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+    <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>Full</DebugType>
+    <Optimize>False</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+    <BaseIntermediateOutputPath>obj\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Platform)' == 'AnyCPU' ">
+    <BaseAddress>4194304</BaseAddress>
+    <PlatformTarget>x86</PlatformTarget>
+    <RegisterForComInterop>False</RegisterForComInterop>
+    <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
+    <FileAlignment>4096</FileAlignment>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\CiLib\CiDocLexer.cs">
+      <Link>CiDocLexer.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\CiDocParser.cs">
+      <Link>CiDocParser.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\CiLexer.cs">
+      <Link>CiLexer.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\CiMacroProcessor.cs">
+      <Link>CiMacroProcessor.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\CiParser.cs">
+      <Link>CiParser.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\CiResolver.cs">
+      <Link>CiResolver.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\CiTree.cs">
+      <Link>CiTree.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\SymbolTable.cs">
+      <Link>SymbolTable.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenAs.cs">
+      <Link>GenAs.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenC.cs">
+      <Link>GenC.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenC89.cs">
+      <Link>GenC89.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenCs.cs">
+      <Link>GenCs.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenD.cs">
+      <Link>GenD.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenJava.cs">
+      <Link>GenJava.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenJs.cs">
+      <Link>GenJs.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenJsWithTypedArrays.cs">
+      <Link>GenJsWithTypedArrays.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenPas.cs">
+      <Link>GenPas.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenPerl5.cs">
+      <Link>GenPerl5.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenPerl510.cs">
+      <Link>GenPerl510.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenPerl58.cs">
+      <Link>GenPerl58.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenPHP.cs">
+      <Link>GenPHP.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\SourceGenerator.cs">
+      <Link>SourceGenerator.cs</Link>
+    </Compile>
+    <Compile Include="CiPad.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="..\CiLib\DelegatedGenerator.cs">
+      <Link>DelegatedGenerator.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\BaseGenerator.cs">
+      <Link>BaseGenerator.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\ProjectHelper.cs">
+      <Link>ProjectHelper.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <None Include="..\res\ci-logo.ico">
+      <Link>ci-logo.ico</Link>
+    </None>
+  </ItemGroup>
+</Project>

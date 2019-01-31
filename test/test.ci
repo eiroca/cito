@@ -1,0 +1,279 @@
+public class SampleClass {
+}
+
+public class ComplexClass : SampleClass {
+}
+
+///Test base types - Integer
+public class Test_Type_int {
+
+	int Field;
+	int[] ArrPtr;
+	int[5] ArrStore;
+
+	Test_Type_int() {
+		int field = 0;
+		Field = field;
+	}
+
+	public int Get(int p) {
+		return p + Field;
+	}
+	
+	public const int SIZE = 5;
+	public int[] GetArr(int s) {
+		int[SIZE] store = 0;
+		int[] ptr = new int[s];
+		if (s>SIZE) s=SIZE;
+		for (int i=0; i<s; i++) {
+			ptr[i] = store[i];
+		}
+		store.Clear();
+		return ptr;
+	}
+
+	public int[] copy(int[] s) {
+		return s;
+	}
+
+}
+	
+///Test base types - Byte
+public class Test_Type_byte {
+
+	byte Field01;
+	byte[] Field02;
+	byte[5] Field03;
+
+	Test_Type_byte() {
+		byte field = 0;
+		Field01 = field;
+	}
+
+	public byte Get(byte p) {
+		return p + Field01;
+	}
+	
+	public const byte SIZE = 5;
+	public byte[] GetArr(byte s) {
+		byte[SIZE] store = 0;
+		byte[] ptr = new byte[s];
+		if (s>SIZE) s=SIZE;
+		for (int i=0; i<s; i++) {
+			ptr[i] = store[i];
+		}
+		store.Clear();
+		return ptr;
+	}
+
+	public byte[] copy(byte[] s) {
+		return s;
+	}
+
+}
+	
+///Test base types - String
+public class Test_Type_string {
+
+	string Field01;
+	string[] Field02;
+	string[5] Field03;
+
+	Test_Type_string() {
+		string field =null;
+		Field01 = field;
+	}
+
+	public string Get(string p) {
+		return Field01;
+	}
+	
+	public const int SIZE = 5;
+	public string[] GetArr(int s) {
+		string[SIZE] store;
+		string[] ptr = new string[s];
+		if (s>SIZE) s=SIZE;
+		for (int i=0; i<s; i++) {
+			ptr[i] = store[i];
+		}
+		return ptr;
+	}
+
+	public string[] copy(string[] s) {
+		return s;
+	}
+
+}
+
+
+
+public delegate void DelegateToProcedure(int i);
+public delegate int  DelegateToFunction();
+
+public enum MyEnum {
+	a,
+	b,
+	c
+}
+
+
+public class AA_TestType {
+	
+	MyEnum Field1;
+	SampleClass Field2;
+	ComplexClass Field3;
+
+	MyEnum[] Field10;
+	SampleClass[] Field20;
+	ComplexClass[] Field30;
+
+	SampleClass() FieldA;
+	ComplexClass() FieldB;
+
+	public const int SIZE = 5;
+	public AA_TestType() {
+		Field1 = MyEnum.a;
+		Field2 = new SampleClass();
+		Field3 = new ComplexClass();
+
+		Field10 = new MyEnum[SIZE];
+		Field20 = new SampleClass[SIZE];
+		Field30 = new ComplexClass[SIZE];
+
+		for (int i=0; i<SIZE; i++) {
+			Field10[i] = Field1;
+			Field20[i] = Field2;
+			Field30[i] = Field3;
+		}
+
+		FieldA = FieldB;
+
+		delete Field10;
+		delete Field20;
+		delete Field30;
+	}
+
+	public void Clear() {
+		Field1 = MyEnum.b;
+		Field2 = null;
+		Field3 = null;
+		FieldA = null;
+		FieldB = null;
+	}
+
+	public void Locals() {
+		int aField01;
+		byte aField02;
+		string aField03;
+		byte[] aField04;
+		int[] aField05;
+		string[] aField06;
+		MyEnum aField07;
+		MyEnum[] aField08;
+		SampleClass aField09;
+		SampleClass[] aField10;
+		SampleClass() aField11;
+		ComplexClass aField12;
+		ComplexClass[] aField13;
+		ComplexClass() aField14;
+
+		aField01 = 10;
+		aField02 = aField01;
+		aField03 = "eIrOcA";
+		aField04 = new byte[10];
+		aField05 = new int[10];
+		aField06 = new string[10];
+		aField08 = new MyEnum[10];
+		aField07 = MyEnum.a;
+		aField09 = new SampleClass();
+		aField10 = new SampleClass[10];
+		for (int i=0; i<10; i++) {
+			aField04[i] = 1;
+			aField05[i] = 2;
+			aField06[i] = "";
+			aField08[i] = MyEnum.c;
+			aField10[i] = aField09;
+		}
+
+		aField01 = 0;
+		aField02 = 0;
+		aField03 = null;
+		aField04 = null;
+		aField05 = null;
+		aField06 = null;
+		aField07 = MyEnum.b;
+		aField08 = null;
+		aField09 = null;
+		aField10 = null;
+	}
+	
+
+}
+
+public class AB_TestClass {
+	int Field1;
+	int Field2;
+	
+	public static void StaticProcedure() {
+	}
+
+	public static int StaticFunction(){
+		return 1; 
+	}
+	
+	public byte[] TestArray() {
+		byte[5] res = 0;
+		for (int i = 0; i < 5; i++) {
+			res[i] = i;
+		}
+		return res;
+	}
+	
+	public void TestFor() {
+		for (int i = 0; i < 10; i++) {
+			i++;
+		}
+	}
+
+	public int TestAssign(int i) {
+		int a;
+		int b;
+		int c;
+		a = b = c = i;
+		b = (c == 1) ? (a == 2) ? 1 : 2 : 3;
+		return (a == 0) ? 1 : 2;
+	}
+}
+
+public class AC_TestString {
+	string S1;
+	string S2;
+	string S3;
+
+	public AC_TestString() {
+		S1 = "Test";
+		S2 = null;
+		S3 = (S1 != null) ? S1 : S2;
+	}
+
+	public bool TestIF() {
+		if (S1 == null) return true;
+		if (S2 == S1) return true;
+		if (S1.Length == 5) return true;
+		return false;
+	}
+
+}
+
+public class AD_TestClass {
+	SampleClass   C1;
+	SampleClass[] C2;
+	SampleClass() C3;
+
+	public AD_TestClass() {
+		SampleClass C4 = new ComplexClass();
+		delete C4;
+	}
+	
+}
+

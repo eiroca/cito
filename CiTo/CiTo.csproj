@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{25A49704-6805-4792-B445-DF8F08414AE5}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>CiToCLI</RootNamespace>
+    <AssemblyName>CiTo</AssemblyName>
+    <ReleaseVersion>0.5</ReleaseVersion>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Externalconsole>true</Externalconsole>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <DebugType>full</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Externalconsole>true</Externalconsole>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="..\CiLib\CiDocLexer.cs">
+      <Link>CiDocLexer.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\CiDocParser.cs">
+      <Link>CiDocParser.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\CiLexer.cs">
+      <Link>CiLexer.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\CiMacroProcessor.cs">
+      <Link>CiMacroProcessor.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\CiParser.cs">
+      <Link>CiParser.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\CiResolver.cs">
+      <Link>CiResolver.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\CiTree.cs">
+      <Link>CiTree.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\SymbolTable.cs">
+      <Link>SymbolTable.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenAs.cs">
+      <Link>GenAs.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenC.cs">
+      <Link>GenC.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenC89.cs">
+      <Link>GenC89.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenCs.cs">
+      <Link>GenCs.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenD.cs">
+      <Link>GenD.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenJava.cs">
+      <Link>GenJava.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenJs.cs">
+      <Link>GenJs.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenJsWithTypedArrays.cs">
+      <Link>GenJsWithTypedArrays.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenPas.cs">
+      <Link>GenPas.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenPerl5.cs">
+      <Link>GenPerl5.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenPerl58.cs">
+      <Link>GenPerl58.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenPerl510.cs">
+      <Link>GenPerl510.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\GenPHP.cs">
+      <Link>GenPHP.cs</Link>
+    </Compile>
+    <Compile Include="CiTo.cs" />
+    <Compile Include="..\CiLib\SourceGenerator.cs">
+      <Link>SourceGenerator.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\DelegatedGenerator.cs">
+      <Link>DelegatedGenerator.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\BaseGenerator.cs">
+      <Link>BaseGenerator.cs</Link>
+    </Compile>
+    <Compile Include="..\CiLib\ProjectHelper.cs">
+      <Link>ProjectHelper.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+</Project>
