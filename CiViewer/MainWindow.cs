@@ -25,7 +25,6 @@ using System.Collections;
 using System.Collections.Generic;
 using Gtk;
 using CiToViewer;
-using IgeMacIntegration;
 using Foxoft.Ci;
 using Pango;
 using System.Text.RegularExpressions;
@@ -111,14 +110,14 @@ public partial class MainWindow: Gtk.Window {
     }
   }
 
-  private void SetTabs(TextView textview, Pango.FontDescription font, int numSpaces) {                  
+  private void SetTabs(TextView textview, Pango.FontDescription font, int numSpaces) {
     int charWidth = 0;
-    int charHeight = 0;                                 
-    var layout = textview.CreatePangoLayout("A");      
-    var tabs = new TabArray(30, true);                         
-    layout.FontDescription = font;         
-    layout.GetPixelSize(out charWidth, out charHeight);        
-    for (int i = 0; i < tabs.Size; i++) {                              
+    int charHeight = 0;
+    var layout = textview.CreatePangoLayout("A");
+    var tabs = new TabArray(30, true);
+    layout.FontDescription = font;
+    layout.GetPixelSize(out charWidth, out charHeight);
+    for (int i = 0; i < tabs.Size; i++) {
       tabs.SetTab(i, TabAlign.Left, i * charWidth * numSpaces);
     }
     textview.Tabs = tabs;
@@ -184,7 +183,7 @@ public partial class MainWindow: Gtk.Window {
     if (chooser.Run() == (int)ResponseType.Accept) {
       lbMsg.Text = "File(s) loaded.";
       LoadSourceFiles(chooser.Filenames);
-    } 
+    }
     chooser.Destroy();
   }
 
@@ -283,11 +282,6 @@ public partial class MainWindow: Gtk.Window {
   }
 
   private void FixMac() {
-    if (PlatformDetection.IsMac) {
-      IgeMacMenu.GlobalKeyHandlerEnabled = true;
-      IgeMacMenu.MenuBar = mnMain;
-      mnMain.Hide();
-    }
   }
 
   protected void OnCopyTargetToClipboardActionActivated(object sender, EventArgs e) {

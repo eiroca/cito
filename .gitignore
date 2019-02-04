@@ -6,8 +6,8 @@ tags
 *.pdb
 *.html
 *.suo
-res/ci-logo.ico
-res/ci-logo.png
+#res/ci-logo.ico
+#res/ci-logo.png
 /MANIFEST
 prettify.*
 /CiSolution.userprefs
