@@ -18,16 +18,12 @@
 // along with CiTo.  If not, see http://www.gnu.org/licenses/
 
 using System;
-using System.Linq;
-using System.Text;
-using System.IO;
-using System.Collections;
 using System.Collections.Generic;
-using Gtk;
-using CiToViewer;
-using Foxoft.Ci;
-using Pango;
+using System.Text;
 using System.Text.RegularExpressions;
+using Gtk;
+using Pango;
+using Foxoft.Ci;
 
 public partial class MainWindow: Gtk.Window {
   protected ProjectFiles Project = new ProjectFiles();

@@ -11,7 +11,7 @@
     <AssemblyName>CiViewer</AssemblyName>
     <ReleaseVersion>0.5</ReleaseVersion>
     <ApplicationIcon>..\res\ci-logo.ico</ApplicationIcon>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>
@@ -132,7 +132,6 @@
     <Compile Include="..\CiLib\SourceGenerator.cs">
       <Link>SourceGenerator.cs</Link>
     </Compile>
-    <Compile Include="IgeMacMenuGlobal.cs" />
     <Compile Include="..\CiLib\DelegatedGenerator.cs" />
     <Compile Include="..\CiLib\BaseGenerator.cs">
       <Link>BaseGenerator.cs</Link>
