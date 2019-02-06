@@ -72,8 +72,13 @@ namespace Foxoft.Ci {
     }
 
     protected override void WriteDocCode(CiCodeDoc doc) {
-      if (doc == null) return;
+      if (doc == null)
+        return;
       // TODO
+    }
+
+    public override String FormatFloat(float f) {
+      return f.ToString();
     }
 
     public override void WriteNew(CiType type) {
@@ -222,11 +227,16 @@ namespace Foxoft.Ci {
     }
 
     public void ConvertOperatorSlash(CiBinaryExpr expr, BinaryOperatorInfo token) {
-      Write("Math.floor(");
-      WriteChild(CiPriority.Multiplicative, expr.Left);
-      Write(token.Symbol);
-      WriteChild(CiPriority.Multiplicative, expr.Right, true);
-      Write(')');
+      if (expr.Type != CiFloatType.Value) {
+        Write("Math.floor(");
+        WriteChild(CiPriority.Multiplicative, expr.Left);
+        Write(token.Symbol);
+        WriteChild(CiPriority.Multiplicative, expr.Right, true);
+        Write(')');
+      }
+      else {
+        ConvertOperator(expr, token);
+      }
     }
 
     #region Converter Symbols
@@ -309,7 +319,7 @@ namespace Foxoft.Ci {
         }
       }
       if (klass.Constructor != null) {
-        WriteCode(((CiBlock) klass.Constructor.Body).Statements);
+        WriteCode(((CiBlock)klass.Constructor.Body).Statements);
       }
       CloseBlock();
       if (klass.BaseClass != null) {
@@ -353,7 +363,8 @@ namespace Foxoft.Ci {
       Write(stmt.Name);
       WriteInit(stmt.Type);
       if (stmt.InitialValue != null) {
-        if (stmt.Type is CiArrayStorageType) WriteInitArrayStorageVar(stmt);
+        if (stmt.Type is CiArrayStorageType)
+          WriteInitArrayStorageVar(stmt);
         else {
           Write(" = ");
           Translate(stmt.InitialValue);

@@ -1,7 +1,7 @@
 // DelegatedGenerator.cs - Base class for delegate-approach generators
 //
 // Copyright (C) 2013  Enrico Croce
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -24,6 +24,7 @@ using System.Text;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Globalization;
 
 namespace Foxoft.Ci {
 
@@ -45,7 +46,7 @@ namespace Foxoft.Ci {
     public CiPriority Priority;
   }
 
-  public class UnaryOperatorInfo: OperatorInfo {
+  public class UnaryOperatorInfo : OperatorInfo {
     public string Prefix;
     public string Suffix;
     public WriteUnaryOperatorDelegate WriteDelegate;
@@ -59,7 +60,7 @@ namespace Foxoft.Ci {
     }
   }
 
-  public class BinaryOperatorInfo: OperatorInfo {
+  public class BinaryOperatorInfo : OperatorInfo {
     public string Symbol;
     public bool Associative;
     public WriteBinaryOperatorDelegate WriteDelegate;
@@ -163,7 +164,7 @@ namespace Foxoft.Ci {
     }
   }
 
-  public class MappingMetadata<TYPE, DATA, INFO, RTYPE> where TYPE: class where DATA: class {
+  public class MappingMetadata<TYPE, DATA, INFO, RTYPE> where TYPE : class where DATA : class {
     //TODO merge the two delegate
     public delegate void ProcDelegate(DATA context);
 
@@ -197,7 +198,7 @@ namespace Foxoft.Ci {
     }
 
     public void Declare(TYPE typ, INFO info, ProcDelegate proc, FuncDelegate func) {
-      if (!Metadata.ContainsKey(typ)) { 
+      if (!Metadata.ContainsKey(typ)) {
         MappingData map = new MappingData();
         map.Info = info;
         map.delegatedProc = proc;
@@ -276,7 +277,7 @@ namespace Foxoft.Ci {
     }
   }
 
-  public class GenericMetadata<TYPE> : MappingMetadata<Type, TYPE, CiPriority, object> where TYPE: class {
+  public class GenericMetadata<TYPE> : MappingMetadata<Type, TYPE, CiPriority, object> where TYPE : class {
     public MappingData GetMetadata(TYPE obj) {
       Type type = obj.GetType();
       Type baseType = type;
@@ -564,8 +565,8 @@ namespace Foxoft.Ci {
     #endregion
 
     #region Library Translation
-    protected MappingMetadata<CiProperty, CiPropertyAccess, CiPriority, object> Properties = new MappingMetadata<CiProperty, CiPropertyAccess, CiPriority,object>();
-    protected MappingMetadata<CiMethod, CiMethodCall, CiPriority, object> Methods = new MappingMetadata<CiMethod, CiMethodCall, CiPriority,object>();
+    protected MappingMetadata<CiProperty, CiPropertyAccess, CiPriority, object> Properties = new MappingMetadata<CiProperty, CiPropertyAccess, CiPriority, object>();
+    protected MappingMetadata<CiMethod, CiMethodCall, CiPriority, object> Methods = new MappingMetadata<CiMethod, CiMethodCall, CiPriority, object>();
 
     public virtual void InitLibrary() {
       // Properties
@@ -586,7 +587,7 @@ namespace Foxoft.Ci {
       SetPropertyTranslator(prop, Properties.FindProcedure(name, this));
     }
 
-    public void SetPropertyTranslator(CiProperty prop, MappingMetadata<CiProperty, CiPropertyAccess, CiPriority,object>.ProcDelegate del) {
+    public void SetPropertyTranslator(CiProperty prop, MappingMetadata<CiProperty, CiPropertyAccess, CiPriority, object>.ProcDelegate del) {
       if (del == null) {
         throw new ArgumentNullException();
       }
@@ -598,7 +599,7 @@ namespace Foxoft.Ci {
       SetMethodTranslator(met, Methods.FindProcedure(name, this));
     }
 
-    public void SetMethodTranslator(CiMethod met, MappingMetadata<CiMethod, CiMethodCall, CiPriority,object>.ProcDelegate del) {
+    public void SetMethodTranslator(CiMethod met, MappingMetadata<CiMethod, CiMethodCall, CiPriority, object>.ProcDelegate del) {
       if (del == null) {
         throw new ArgumentNullException();
       }
@@ -797,7 +798,7 @@ namespace Foxoft.Ci {
     }
 
     protected HashSet<string> ReservedWords = null;
-    protected Dictionary<CiSymbol, SymbolMapping> varMap = new  Dictionary<CiSymbol, SymbolMapping>();
+    protected Dictionary<CiSymbol, SymbolMapping> varMap = new Dictionary<CiSymbol, SymbolMapping>();
     //
     public abstract string[] GetReservedWords();
 
@@ -873,7 +874,7 @@ namespace Foxoft.Ci {
       classOrder.Clear();
     }
 
-    public List<CiClass>GetOrderedClassList() {
+    public List<CiClass> GetOrderedClassList() {
       return classOrder;
     }
 
@@ -894,11 +895,11 @@ namespace Foxoft.Ci {
     protected HashSet<CiType> refType = new HashSet<CiType>();
     protected Dictionary<CiType, TypeInfo> TypeCache = new Dictionary<CiType, TypeInfo>();
 
-    public HashSet<CiClass>GetClassTypeList() {
+    public HashSet<CiClass> GetClassTypeList() {
       return refClass;
     }
 
-    public HashSet<CiType>GetTypeList() {
+    public HashSet<CiType> GetTypeList() {
       return refType;
     }
 
@@ -1023,6 +1024,10 @@ namespace Foxoft.Ci {
     protected string Decode_NONANSICHAR = "{0}";
     protected Dictionary<char, string> Decode_SPECIALCHAR = new Dictionary<char, string>();
 
+    public virtual String FormatFloat(float f) {
+      return f.ToString(CultureInfo.InvariantCulture);
+    }
+
     public virtual string DecodeValue(CiType type, object value) {
       StringBuilder res = new StringBuilder();
       if (value is bool) {
@@ -1034,9 +1039,12 @@ namespace Foxoft.Ci {
       else if (value is int) {
         res.Append((int)value);
       }
+      else if (value is int) {
+        res.Append(FormatFloat((float)value));
+      }
       else if (value is string) {
         res.Append(Decode_STRINGBEGIN);
-        foreach (char c in (string) value) {
+        foreach (char c in (string)value) {
           if (Decode_SPECIALCHAR.ContainsKey(c)) {
             res.Append(Decode_SPECIALCHAR[c]);
           }
@@ -1182,7 +1190,7 @@ namespace Foxoft.Ci {
     #endregion
 
     #region ExprType
-    private Dictionary<CiExpr, CiType> exprMap = new  Dictionary<CiExpr, CiType>();
+    private Dictionary<CiExpr, CiType> exprMap = new Dictionary<CiExpr, CiType>();
 
     public void ResetExprType() {
       exprMap.Clear();

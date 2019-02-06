@@ -339,6 +339,10 @@ namespace Foxoft.Ci {
     }
     #endregion
 
+    public override String FormatFloat(float f) {
+      return f.ToString();
+    }
+
     public override void InitOperators() {
       BinaryOperators.Declare(CiToken.Plus, CiPriority.Additive, true, ConvertOperator, " + ");
       BinaryOperators.Declare(CiToken.Minus, CiPriority.Additive, false, ConvertOperator, " - ");
@@ -360,7 +364,7 @@ namespace Foxoft.Ci {
       BinaryOperators.Declare(CiToken.And, CiPriority.Multiplicative, true, ConvertOperator, " and ");
       BinaryOperators.Declare(CiToken.Or, CiPriority.Additive, true, ConvertOperator, " or ");
       BinaryOperators.Declare(CiToken.Xor, CiPriority.Additive, true, ConvertOperator, " xor ");
-//
+      //
       UnaryOperators.Declare(CiToken.Increment, CiPriority.Prefix, ConvertOperatorInc, "__CINC_Pre(", ")");
       UnaryOperators.Declare(CiToken.Decrement, CiPriority.Prefix, ConvertOperatorDec, "__CDEC_Pre(", ")");
       UnaryOperators.Declare(CiToken.Minus, CiPriority.Prefix, ConvertOperatorUnary, "-(", ")");
@@ -524,7 +528,7 @@ namespace Foxoft.Ci {
       CiCoercion expr = (CiCoercion)expression;
       if (expr.ResultType == CiByteType.Value && expr.Inner.Type == CiIntType.Value) {
         //      Write("byte(");
-        WriteChild(expr, (CiExpr)expr.Inner); 
+        WriteChild(expr, (CiExpr)expr.Inner);
         //      Write(")");
       }
       else {
@@ -540,7 +544,7 @@ namespace Foxoft.Ci {
       WriteDocCode(enu.Documentation);
       Write(DecodeSymbol(enu));
       Write(" = (");
-      bool hasDocs = enu.Values.Any(v => v.Documentation != null); 
+      bool hasDocs = enu.Values.Any(v => v.Documentation != null);
       if (hasDocs) {
         WriteLine();
         OpenBlock(false);
@@ -1089,7 +1093,7 @@ namespace Foxoft.Ci {
       return result;
     }
 
-    void WriteListOf<T>(List<T> symbols, Func<CiVisibility,bool> initializer, Action<CiVisibility> header, Action<T> writer, Action<CiVisibility> footer) where T:CiSymbol {
+    void WriteListOf<T>(List<T> symbols, Func<CiVisibility, bool> initializer, Action<CiVisibility> header, Action<T> writer, Action<CiVisibility> footer) where T : CiSymbol {
       bool first;
       foreach (CiVisibility vis in GetVisibilityList()) {
         first = initializer(vis);
@@ -1990,7 +1994,7 @@ namespace Foxoft.Ci {
         WriteInline(Target.Type, Source);
         ExitContext();
       }
-			
+
     }
 
     void WriteAssign(CiExpr Target, CiToken Op, CiMaybeAssign Source) {
@@ -2074,9 +2078,9 @@ namespace Foxoft.Ci {
 
     void WriteCondChild(CiCondExpr condExpr, CiExpr expr) {
       if (condExpr.ResultType == CiByteType.Value && expr is CiConstExpr) {
-//        Write("byte(");
+        //        Write("byte(");
         WriteChild(condExpr, expr);
-//        Write(")");
+        //        Write(")");
       }
       else {
         WriteChild(condExpr, expr);
@@ -2084,12 +2088,14 @@ namespace Foxoft.Ci {
     }
 
     void WriteInline(CiMaybeAssign expr) {
-      if (expr is CiExpr) Translate((CiExpr)expr);
-      else Statement_CiAssign((CiAssign)expr);
+      if (expr is CiExpr)
+        Translate((CiExpr)expr);
+      else
+        Statement_CiAssign((CiAssign)expr);
     }
 
     #region BreakTracker
-    private Dictionary<ICiStatement, BeakInfo> mapping = new  Dictionary<ICiStatement, BeakInfo>();
+    private Dictionary<ICiStatement, BeakInfo> mapping = new Dictionary<ICiStatement, BeakInfo>();
     private Dictionary<CiMethod, List<BeakInfo>> methods = new Dictionary<CiMethod, List<BeakInfo>>();
     private Stack<BeakInfo> exitPoints = new Stack<BeakInfo>();
     //

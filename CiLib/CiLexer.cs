@@ -20,6 +20,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
 
@@ -28,7 +29,7 @@ namespace Foxoft.Ci {
   public enum CiToken {
     EndOfFile,
     Id,
-    IntConstant,
+    NumericConstant,
     StringConstant,
     Semicolon,
     Dot,
@@ -146,7 +147,7 @@ namespace Foxoft.Ci {
     public int Position;
     protected CiToken CurrentToken;
     protected string CurrentString;
-    protected int CurrentInt;
+    protected object CurrentNumeric;
     protected StringBuilder CopyTo;
     public HashSet<string> PreSymbols;
     bool AtLineStart = true;
@@ -241,7 +242,7 @@ namespace Foxoft.Ci {
         c = Read();
         if (IsLetter(c)) {
           StringBuilder sb = new StringBuilder();
-          for (;;) {
+          for (; ; ) {
             sb.Append((char)c);
             c = Peek();
             if (!IsLetter(c)) {
@@ -266,14 +267,14 @@ namespace Foxoft.Ci {
           case SPECIAL_TAB:
             c = SPECIAL_SPACE;
             break;
-          case SPECIAL_LF: 
+          case SPECIAL_LF:
             nxt = Peek();
             if (nxt == SPECIAL_CR) {
               Read();
             }
             c = SPECIAL_CR;
             break;
-          case SPECIAL_CR: 
+          case SPECIAL_CR:
             nxt = Peek();
             if (nxt == SPECIAL_LF) {
               Read();
@@ -297,7 +298,8 @@ namespace Foxoft.Ci {
             this.AtLineStart = false;
             break;
         }
-        while (Peek() < 0 && OnStreamEnd()) ;
+        while (Peek() < 0 && OnStreamEnd())
+          ;
       }
       return c;
     }
@@ -333,8 +335,10 @@ namespace Foxoft.Ci {
 
     char ReadCharLiteral() {
       int c = ReadChar();
-      if (c < 32) throw new ParseException(Here(), "Invalid character in literal");
-      if (c != '\\') return (char)c;
+      if (c < 32)
+        throw new ParseException(Here(), "Invalid character in literal");
+      if (c != '\\')
+        return (char)c;
       switch (ReadChar()) {
         case 't':
           return SPECIAL_TAB;
@@ -355,24 +359,108 @@ namespace Foxoft.Ci {
 
     string ReadId(int c) {
       StringBuilder sb = new StringBuilder();
-      for (;;) {
+      for (; ; ) {
         sb.Append((char)c);
-        if (!IsLetter(PeekChar())) break;
+        if (!IsLetter(PeekChar()))
+          break;
         c = ReadChar();
       }
       return sb.ToString();
     }
 
-    void ReadNumber(int firstDigit, int numBase) {
+    CiToken ReadNumber(char c) {
+      StringBuilder builder = new StringBuilder();
+      //add start character
+      builder.Append((char)c);
+      string strTypeIndicator = "";
+      bool blnSeperator = false;
+      bool blnFinished = false;
+      bool postExp = false;
+      while (!blnFinished) {
+        //read next char
+        char chr = (char)PeekChar();
+        if (char.IsNumber(chr)) {
+          //simple numeric
+          postExp = false;
+          builder.Append(chr);
+        }
+        else if (chr == '.') {
+          postExp = false;
+          //Decimal seperator
+          if (!blnSeperator) {
+            blnSeperator = true;
+            builder.Append(chr);
+            //handle it als float, if nothing else is found
+            strTypeIndicator = "f";
+          }
+          else {
+            throw new ParseException(Here(), "Second decimal seperator in constant");
+          }
+        }
+        else if (chr == 'e' || chr == 'E') {
+          //exponential numbers
+          postExp = true;
+          // force float
+          strTypeIndicator = "f";
+          // no more '.'
+          blnSeperator = true;
+          builder.Append('E');
+        }
+        else if (postExp && (chr == '+' || chr == '-')) {
+          //exponential numbers
+          builder.Append(chr);
+        }
+        else if (chr == 'f') {
+          //Type indicator:  0.5f
+          strTypeIndicator = chr.ToString();
+          ReadChar();//we finished the constant, but still need to consume the indicator
+          blnFinished = true;
+        }
+        else {
+          //constant ended
+          blnFinished = true;
+        }
+        if (!blnFinished) {
+          ReadChar();
+        }
+      }
+      //parse the numeric
+      switch (strTypeIndicator) {
+        case "": {
+            //integer
+            int nValue = 0;
+            if (int.TryParse(builder.ToString(), out nValue)) {
+              this.CurrentNumeric = nValue;
+            }
+            else {
+              throw new ParseException(Here(), "unable to convert " + builder.ToString() + " to integer");
+            }
+            break;
+          }
+        case "f": {
+            float fResult = 0f;
+            if (float.TryParse(builder.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out fResult)) {
+              this.CurrentNumeric = fResult;
+            }
+            else {
+              throw new ParseException(Here(), "unable to convert " + builder.ToString() + " to float");
+            }
+            break;
+          }
+      }
+      return CiToken.NumericConstant;
+    }
+
+    CiToken ReadNumber(int firstDigit, int numBase) {
       int i = (firstDigit == -1) ? ReadDigit(numBase) : firstDigit;
       if (i < 0) {
         throw new ParseException(Here(), "Invalid number");
       }
-      for (;;) {
+      for (; ; ) {
         int d = ReadDigit(numBase);
         if (d < 0) {
-          this.CurrentInt = i;
-          return;
+          this.CurrentNumeric = (int)i;
+          return CiToken.NumericConstant;
         }
         if (i > 0x7ffffff) {
           throw new ParseException(Here(), "Number too big");
@@ -382,10 +470,11 @@ namespace Foxoft.Ci {
           throw new ParseException(Here(), "Number too big");
         }
       }
+      return CiToken.NumericConstant;
     }
 
     CiToken ReadPreToken() {
-      for (;;) {
+      for (; ; ) {
         bool atLineStart = this.AtLineStart;
         int c = ReadChar();
         switch (c) {
@@ -400,7 +489,8 @@ namespace Foxoft.Ci {
             continue;
           case '#':
             c = ReadChar();
-            if (c == '#') return CiToken.PasteTokens;
+            if (c == '#')
+              return CiToken.PasteTokens;
             if (atLineStart && IsLetter(c)) {
               string s = ReadId(c);
               switch (s) {
@@ -436,15 +526,20 @@ namespace Foxoft.Ci {
           case '}':
             return CiToken.RightBrace;
           case '+':
-            if (EatChar('+')) return CiToken.Increment;
-            if (EatChar('=')) return CiToken.AddAssign;
+            if (EatChar('+'))
+              return CiToken.Increment;
+            if (EatChar('='))
+              return CiToken.AddAssign;
             return CiToken.Plus;
           case '-':
-            if (EatChar('-')) return CiToken.Decrement;
-            if (EatChar('=')) return CiToken.SubAssign;
+            if (EatChar('-'))
+              return CiToken.Decrement;
+            if (EatChar('='))
+              return CiToken.SubAssign;
             return CiToken.Minus;
           case '*':
-            if (EatChar('=')) return CiToken.MulAssign;
+            if (EatChar('='))
+              return CiToken.MulAssign;
             return CiToken.Asterisk;
           case '/':
             if (EatChar('/')) {
@@ -464,41 +559,54 @@ namespace Foxoft.Ci {
               this.CurrentString = sb.ToString();
               return CiToken.Comment;
             }
-            if (EatChar('=')) return CiToken.DivAssign;
+            if (EatChar('='))
+              return CiToken.DivAssign;
             return CiToken.Slash;
           case '%':
-            if (EatChar('=')) return CiToken.ModAssign;
+            if (EatChar('='))
+              return CiToken.ModAssign;
             return CiToken.Mod;
           case '&':
-            if (EatChar('&')) return CiToken.CondAnd;
-            if (EatChar('=')) return CiToken.AndAssign;
+            if (EatChar('&'))
+              return CiToken.CondAnd;
+            if (EatChar('='))
+              return CiToken.AndAssign;
             return CiToken.And;
           case '|':
-            if (EatChar('|')) return CiToken.CondOr;
-            if (EatChar('=')) return CiToken.OrAssign;
+            if (EatChar('|'))
+              return CiToken.CondOr;
+            if (EatChar('='))
+              return CiToken.OrAssign;
             return CiToken.Or;
           case '^':
-            if (EatChar('=')) return CiToken.XorAssign;
+            if (EatChar('='))
+              return CiToken.XorAssign;
             return CiToken.Xor;
           case '=':
-            if (EatChar('=')) return CiToken.Equal;
+            if (EatChar('='))
+              return CiToken.Equal;
             return CiToken.Assign;
           case '!':
-            if (EatChar('=')) return CiToken.NotEqual;
+            if (EatChar('='))
+              return CiToken.NotEqual;
             return CiToken.CondNot;
           case '<':
             if (EatChar('<')) {
-              if (EatChar('=')) return CiToken.ShiftLeftAssign;
+              if (EatChar('='))
+                return CiToken.ShiftLeftAssign;
               return CiToken.ShiftLeft;
             }
-            if (EatChar('=')) return CiToken.LessOrEqual;
+            if (EatChar('='))
+              return CiToken.LessOrEqual;
             return CiToken.Less;
           case '>':
             if (EatChar('>')) {
-              if (EatChar('=')) return CiToken.ShiftRightAssign;
+              if (EatChar('='))
+                return CiToken.ShiftRightAssign;
               return CiToken.ShiftRight;
             }
-            if (EatChar('=')) return CiToken.GreaterOrEqual;
+            if (EatChar('='))
+              return CiToken.GreaterOrEqual;
             return CiToken.Greater;
           case '~':
             return CiToken.Not;
@@ -507,37 +615,37 @@ namespace Foxoft.Ci {
           case ':':
             return CiToken.Colon;
           case '\'':
-            this.CurrentInt = ReadCharLiteral();
+            this.CurrentNumeric = (int)ReadCharLiteral();
             if (ReadChar() != '\'') {
               throw new ParseException(Here(), "Unterminated character literal");
             }
-            return CiToken.IntConstant;
-          case '"':
-            {
+            return CiToken.NumericConstant;
+          case '"': {
               StringBuilder sb = new StringBuilder();
-              while (PeekChar() != '"') sb.Append(ReadCharLiteral());
+              while (PeekChar() != '"')
+                sb.Append(ReadCharLiteral());
               ReadChar();
               this.CurrentString = sb.ToString();
               return CiToken.StringConstant;
             }
           case '$':
-            ReadNumber(-1, 16);
-            return CiToken.IntConstant;
+            return ReadNumber(-1, 16);
           case '0':
             if (EatChar('x')) {
-              ReadNumber(-1, 16);
-              return CiToken.IntConstant;
+              return ReadNumber(-1, 16);
             }
             if (EatChar('b')) {
-              ReadNumber(-1, 2);
-              return CiToken.IntConstant;
+              return ReadNumber(-1, 2);
             }
             if (EatChar('o')) {
-              ReadNumber(-1, 8);
-              return CiToken.IntConstant;
+              return ReadNumber(-1, 8);
             }
-            ReadNumber(0, 8);
-            return CiToken.IntConstant;
+            if (PeekChar() == '.') {
+              return ReadNumber((char)c);
+            }
+            else {
+              return ReadNumber(0, 8);
+            }
           case '1':
           case '2':
           case '3':
@@ -547,8 +655,7 @@ namespace Foxoft.Ci {
           case '7':
           case '8':
           case '9':
-            ReadNumber(c - '0', 10);
-            return CiToken.IntConstant;
+            return ReadNumber((char)c);
           case 'A':
           case 'B':
           case 'C':
@@ -601,8 +708,7 @@ namespace Foxoft.Ci {
           case 'w':
           case 'x':
           case 'y':
-          case 'z':
-            {
+          case 'z': {
               string s = ReadId(c);
               switch (s) {
                 case "abstract":
@@ -686,7 +792,8 @@ namespace Foxoft.Ci {
     }
 
     bool ParsePrePrimary() {
-      if (EatPre(CiToken.CondNot)) return !ParsePrePrimary();
+      if (EatPre(CiToken.CondNot))
+        return !ParsePrePrimary();
       if (EatPre(CiToken.LeftParenthesis)) {
         bool result = ParsePreOr();
         Check(CiToken.RightParenthesis);
@@ -703,13 +810,15 @@ namespace Foxoft.Ci {
 
     bool ParsePreAnd() {
       bool result = ParsePrePrimary();
-      while (EatPre(CiToken.CondAnd)) result &= ParsePrePrimary();
+      while (EatPre(CiToken.CondAnd))
+        result &= ParsePrePrimary();
       return result;
     }
 
     bool ParsePreOr() {
       bool result = ParsePreAnd();
-      while (EatPre(CiToken.CondOr)) result |= ParsePreAnd();
+      while (EatPre(CiToken.CondOr))
+        result |= ParsePreAnd();
       return result;
     }
 
@@ -725,7 +834,8 @@ namespace Foxoft.Ci {
     void ExpectEndOfLine(string directive) {
       this.LineMode = true;
       CiToken token = ReadPreToken();
-      if (token != CiToken.EndOfLine && token != CiToken.EndOfFile) throw new ParseException(Here(), "Unexpected characters after " + directive);
+      if (token != CiToken.EndOfLine && token != CiToken.EndOfFile)
+        throw new ParseException(Here(), "Unexpected characters after " + directive);
       this.LineMode = false;
     }
 
@@ -739,7 +849,8 @@ namespace Foxoft.Ci {
     void PopPreStack(string directive) {
       try {
         PreDirectiveClass pdc = this.PreStack.Pop();
-        if (directive != "#endif" && pdc == PreDirectiveClass.Else) throw new ParseException(Here(), directive + " after #else");
+        if (directive != "#endif" && pdc == PreDirectiveClass.Else)
+          throw new ParseException(Here(), directive + " after #else");
       }
       catch (InvalidOperationException) {
         throw new ParseException(Here(), directive + " with no matching #if");
@@ -747,7 +858,7 @@ namespace Foxoft.Ci {
     }
 
     void SkipUntilPreMet() {
-      for (;;) {
+      for (; ; ) {
         // we are in a conditional that wasn't met yet
         switch (ReadPreToken()) {
           case CiToken.EndOfFile:
@@ -774,7 +885,7 @@ namespace Foxoft.Ci {
     }
 
     void SkipUntilPreEndIf(bool wasElse) {
-      for (;;) {
+      for (; ; ) {
         // we are in a conditional that was met before
         switch (ReadPreToken()) {
           case CiToken.EndOfFile:
@@ -784,11 +895,13 @@ namespace Foxoft.Ci {
             SkipUntilPreEndIf(false);
             break;
           case CiToken.PreElIf:
-            if (wasElse) throw new ParseException(Here(), "#elif after #else");
+            if (wasElse)
+              throw new ParseException(Here(), "#elif after #else");
             ParsePreExpr();
             break;
           case CiToken.PreElse:
-            if (wasElse) throw new ParseException(Here(), "#else after #else");
+            if (wasElse)
+              throw new ParseException(Here(), "#else after #else");
             ExpectEndOfLine("#else");
             wasElse = true;
             break;
@@ -800,19 +913,21 @@ namespace Foxoft.Ci {
     }
 
     protected CiToken ReadToken() {
-      for (;;) {
+      for (; ; ) {
         // we are in no conditionals or in all met
         CiToken token = ReadPreToken();
         switch (token) {
           case CiToken.EndOfFile:
-            if (this.PreStack.Count != 0) throw new ParseException(Here(), "Expected #endif, got end of file");
+            if (this.PreStack.Count != 0)
+              throw new ParseException(Here(), "Expected #endif, got end of file");
             return CiToken.EndOfFile;
           case CiToken.PreIf:
             if (ParsePreExpr()) {
               this.PreStack.Push(PreDirectiveClass.IfOrElIf);
               break;
             }
-            else SkipUntilPreMet();
+            else
+              SkipUntilPreMet();
             break;
           case CiToken.PreElIf:
             PopPreStack("#elif");

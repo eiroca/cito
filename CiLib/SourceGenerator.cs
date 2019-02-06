@@ -118,6 +118,10 @@ namespace Foxoft.Ci {
       return new TypeInfo(type, "int", "0");
     }
 
+    public virtual TypeInfo Type_CiFloatType(CiType type) {
+      return new TypeInfo(type, "flaot", "0.0");
+    }
+
     public virtual TypeInfo Type_CiStringPtrType(CiType type) {
       TypeInfo result = new TypeInfo(type, "string", "null");
       result.ItemDefault = "\"\"";

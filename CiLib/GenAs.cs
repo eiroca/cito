@@ -99,6 +99,10 @@ namespace Foxoft.Ci {
       }
     }
 
+    public override String FormatFloat(float f) {
+      return f.ToString();
+    }
+
     public override bool WriteInit(CiType type) {
       if (type is CiClassStorageType || type is CiArrayStorageType) {
         Write(" = ");
@@ -245,11 +249,16 @@ namespace Foxoft.Ci {
     }
 
     public void ConvertOperatorSlash(CiBinaryExpr expr, BinaryOperatorInfo token) {
-      Write("int(");
-      WriteChild(CiPriority.Multiplicative, expr.Left);
-      Write(token.Symbol);
-      WriteChild(CiPriority.Multiplicative, expr.Right, true);
-      Write(')');
+      if (expr.Type != CiFloatType.Value) {
+        Write("int(");
+        WriteChild(CiPriority.Multiplicative, expr.Left);
+        Write(token.Symbol);
+        WriteChild(CiPriority.Multiplicative, expr.Right, true);
+        Write(')');
+      }
+      else {
+        ConvertOperator(expr, token);
+      }
     }
     #endregion
 
@@ -264,6 +273,10 @@ namespace Foxoft.Ci {
 
     public override TypeInfo Type_CiIntType(CiType type) {
       return new TypeInfo(type, "int", "0");
+    }
+
+    public override TypeInfo Type_CiFloatType(CiType type) {
+      return new TypeInfo(type, "Number", "0.0");
     }
 
     public override TypeInfo Type_CiStringPtrType(CiType type) {
@@ -355,7 +368,8 @@ namespace Foxoft.Ci {
           qual = "static";
           break;
         case CiCallType.Normal:
-          if (method.Visibility != CiVisibility.Private) qual = "final";
+          if (method.Visibility != CiVisibility.Private)
+            qual = "final";
           break;
         case CiCallType.Override:
           qual = "override";

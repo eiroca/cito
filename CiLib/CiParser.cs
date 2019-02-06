@@ -37,6 +37,7 @@ namespace Foxoft.Ci {
       globals.Add(CiBoolType.Value);
       globals.Add(CiByteType.Value);
       globals.Add(CiIntType.Value);
+      globals.Add(CiFloatType.Value);
       globals.Add(CiStringPtrType.Value);
       globals.Add(new CiConst(null, "true", CiBoolType.Value, true));
       globals.Add(new CiConst(null, "false", CiBoolType.Value, false));
@@ -168,8 +169,8 @@ namespace Foxoft.Ci {
         return new CiCondNotExpr { Inner = inner };
       }
       CiExpr result;
-      if (See(CiToken.IntConstant)) {
-        result = new CiConstExpr(this.CurrentInt);
+      if (See(CiToken.NumericConstant)) {
+        result = new CiConstExpr(this.CurrentNumeric);
         NextToken();
       }
       else if (See(CiToken.StringConstant)) {
