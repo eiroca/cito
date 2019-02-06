@@ -708,6 +708,12 @@ namespace Foxoft.Ci {
       this.Type = type;
     }
 
+    public CiField(CodePosition p, string name, CiClass klass, CiType type, CiVisibility visibility) : base(p, name) {
+      this.Class = klass;
+      this.Type = type;
+      this.Visibility = visibility;
+    }
+
     public override void Accept(ICiSymbolVisitor v) {
       v.Visit(this);
     }
