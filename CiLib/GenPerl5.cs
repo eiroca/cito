@@ -1,7 +1,7 @@
 // GenPerl5.cs - Perl 5 code generator
 //
 // Copyright (C) 2013-2014  Piotr Fusik
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -204,9 +204,11 @@ namespace Foxoft.Ci {
         WriteLine();
       }
       WriteConstructor(klass);
-      foreach (CiSymbol member in klass.Members) if (member is CiMethod) {
+      foreach (CiSymbol member in klass.Members) {
+        if (member is CiMethod) {
           Translate(member);
         }
+      }
     }
     #endregion
 
@@ -599,7 +601,9 @@ namespace Foxoft.Ci {
       if (classType != null) {
         WriteFormat("{0}{1}->new()", this.Package, DecodeSymbol(classType.Class));
       }
-      else Write("[]"); // new array reference
+      else {
+        Write("[]"); // new array reference
+      }
     }
 
     protected override void WriteChild(ICiStatement stmt) {
@@ -773,7 +777,9 @@ namespace Foxoft.Ci {
 
     public override void Library_Clear(CiMethodCall expr) {
       Write('@');
-      if (expr.Obj is CiVarAccess) Write(((CiVarAccess)expr.Obj).Var.Name);
+      if (expr.Obj is CiVarAccess) {
+        Write(((CiVarAccess)expr.Obj).Var.Name);
+      }
       else {
         Write('{');
         Translate(expr.Obj);

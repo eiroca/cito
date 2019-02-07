@@ -1,6 +1,6 @@
 // Generator.cs - base class for code generators
 //
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -17,11 +17,9 @@
 // You should have received a copy of the GNU General Public License
 // along with CiTo.  If not, see http://www.gnu.org/licenses/
 
-using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Collections;
-using System.Collections.Generic;
 
 namespace Foxoft.Ci {
 
@@ -204,10 +202,10 @@ namespace Foxoft.Ci {
       if (newTxt.Length > 0) {
         int oldLength = fullCode.Length;
         AppendIndentStr(fullCode);
-        Position += (fullCode.Length - oldLength);  
+        Position += (fullCode.Length - oldLength);
         oldLength = fullCode.Length;
         fullCode.Insert(Position, newTxt);
-        Position += (fullCode.Length - oldLength);  
+        Position += (fullCode.Length - oldLength);
       }
       curLine = new StringBuilder();
     }
@@ -297,7 +295,7 @@ namespace Foxoft.Ci {
     protected bool BlockOpenCR = true;
     protected bool BlockCloseCR = true;
 
-    protected  bool IsIndented() {
+    protected bool IsIndented() {
       return (Indent != 0);
     }
 

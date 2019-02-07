@@ -1,7 +1,7 @@
 // CiMacroProcessor.cs - Ci macro processor
 //
 // Copyright (C) 2011  Piotr Fusik
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -45,7 +45,10 @@ namespace Foxoft.Ci {
 
     public string LookupArg(string name) {
       string value;
-      if (this.Args != null && this.Args.TryGetValue(name, out value)) return value;
+      if (this.Args != null && this.Args.TryGetValue(name, out value)) {
+        return value;
+      }
+
       return null;
     }
   }
@@ -53,11 +56,20 @@ namespace Foxoft.Ci {
   public partial class CiParser : CiLexer {
     void ParseBody(CiToken left, CiToken right) {
       int level = 1;
-      for (;;) {
+      for (; ; ) {
         NextToken();
-        if (See(CiToken.EndOfFile)) throw new ParseException(Here(), "Macro definition not terminated");
-        if (See(left)) level++;
-        else if (See(right)) if (--level == 0) break;
+        if (See(CiToken.EndOfFile)) {
+          throw new ParseException(Here(), "Macro definition not terminated");
+        }
+
+        if (See(left)) {
+          level++;
+        }
+        else if (See(right)) {
+          if (--level == 0) {
+            break;
+          }
+        }
       }
     }
 
@@ -91,7 +103,9 @@ namespace Foxoft.Ci {
           sb.Length--;
           macro.IsStatement = true;
         }
-        else throw new ParseException(Here(), "Macro definition must be wrapped in parentheses or braces");
+        else {
+          throw new ParseException(Here(), "Macro definition must be wrapped in parentheses or braces");
+        }
       }
       finally {
         this.CopyTo = null;
@@ -103,13 +117,23 @@ namespace Foxoft.Ci {
 
     void ParseArg() {
       int level = 0;
-      for (;;) {
-        if (See(CiToken.EndOfFile)) throw new ParseException(Here(), "Macro argument not terminated");
-        if (See(CiToken.LeftParenthesis)) level++;
-        else if (See(CiToken.RightParenthesis)) {
-          if (--level < 0) break;
+      for (; ; ) {
+        if (See(CiToken.EndOfFile)) {
+          throw new ParseException(Here(), "Macro argument not terminated");
         }
-        else if (level == 0 && See(CiToken.Comma)) break;
+
+        if (See(CiToken.LeftParenthesis)) {
+          level++;
+        }
+        else if (See(CiToken.RightParenthesis)) {
+          if (--level < 0) {
+            break;
+          }
+        }
+        else if (level == 0 && See(CiToken.Comma)) {
+          break;
+        }
+
         NextToken();
       }
     }
@@ -117,7 +141,9 @@ namespace Foxoft.Ci {
     readonly Stack<MacroExpansion> MacroStack = new Stack<MacroExpansion>();
 
     public void PrintMacroStack() {
-      foreach (MacroExpansion me in this.MacroStack) Console.Error.WriteLine("   in {0}", me.FriendlyName);
+      foreach (MacroExpansion me in this.MacroStack) {
+        Console.Error.WriteLine("   in {0}", me.FriendlyName);
+      }
     }
 
     void BeginExpand(string friendlyName, string content, Dictionary<string, string> args) {
@@ -132,8 +158,13 @@ namespace Foxoft.Ci {
         Expect(CiToken.LeftParenthesis);
         bool first = true;
         foreach (string name in macro.Params) {
-          if (first) first = false;
-          else Expect(CiToken.Comma);
+          if (first) {
+            first = false;
+          }
+          else {
+            Expect(CiToken.Comma);
+          }
+
           ParseArg();
           char c = sb[sb.Length - 1];
           Trace.Assert(c == ',' || c == ')');

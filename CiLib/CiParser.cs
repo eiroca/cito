@@ -1,7 +1,7 @@
 // CiParser.cs - Ci parser
 //
 // Copyright (C) 2011-2014  Piotr Fusik
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -95,8 +95,10 @@ namespace Foxoft.Ci {
 
     CiType ParseArrayType(CiType baseType) {
       if (Eat(CiToken.LeftBracket)) {
-        if (Eat(CiToken.RightBracket))
+        if (Eat(CiToken.RightBracket)) {
           return new CiArrayPtrType(null, null, ParseArrayType(baseType));
+        }
+
         CiExpr len = ParseExpr();
         Expect(CiToken.RightBracket);
         return new CiArrayStorageType(null, null, ParseArrayType(baseType), len);
@@ -117,8 +119,10 @@ namespace Foxoft.Ci {
           baseType = new CiClassStorageType(Here(), baseName, new CiUnknownClass(Here(), baseName));
         }
       }
-      else
+      else {
         baseType = LookupType(baseName);
+      }
+
       return ParseArrayType(baseType);
     }
 
@@ -128,8 +132,9 @@ namespace Foxoft.Ci {
         CiType elementType = ((CiArrayType)type).ElementType;
         List<object> list = new List<object>();
         if (!See(CiToken.RightBrace)) {
-          do
+          do {
             list.Add(ParseConstInitializer(elementType));
+          }
           while (Eat(CiToken.Comma));
         }
         Expect(CiToken.RightBrace);
@@ -186,8 +191,9 @@ namespace Foxoft.Ci {
       }
       else if (See(CiToken.Id)) {
         string name = ParseId();
-        if (name == "BinaryResource")
+        if (name == "BinaryResource") {
           result = ParseBinaryResource();
+        }
         else {
           CiSymbol symbol = this.Symbols.TryLookup(name);
           if (symbol is CiMacro) {
@@ -206,22 +212,28 @@ namespace Foxoft.Ci {
       }
       else if (Eat(CiToken.New)) {
         CiType newType = ParseType();
-        if (!(newType is CiClassStorageType || newType is CiArrayStorageType))
+        if (!(newType is CiClassStorageType || newType is CiArrayStorageType)) {
           throw new ParseException(Here(), "'new' syntax error");
+        }
+
         result = new CiNewExpr { NewType = newType };
       }
-      else
+      else {
         throw new ParseException(Here(), "Invalid expression");
+      }
+
       for (; ; ) {
-        if (Eat(CiToken.Dot))
+        if (Eat(CiToken.Dot)) {
           result = new CiUnknownMemberAccess { Parent = result, Name = ParseId() };
+        }
         else if (Eat(CiToken.LeftParenthesis)) {
           CiMethodCall call = new CiMethodCall();
           call.Obj = result;
           List<CiExpr> args = new List<CiExpr>();
           if (!See(CiToken.RightParenthesis)) {
-            do
+            do {
               args.Add(ParseExpr());
+            }
             while (Eat(CiToken.Comma));
           }
           Expect(CiToken.RightParenthesis);
@@ -238,8 +250,9 @@ namespace Foxoft.Ci {
           NextToken();
           return new CiPostfixExpr { Inner = result, Op = op };
         }
-        else
+        else {
           return result;
+        }
       }
     }
 
@@ -295,36 +308,46 @@ namespace Foxoft.Ci {
 
     CiExpr ParseAndExpr() {
       CiExpr left = ParseEqualityExpr();
-      while (Eat(CiToken.And))
+      while (Eat(CiToken.And)) {
         left = new CiBinaryExpr(left, CiToken.And, ParseEqualityExpr());
+      }
+
       return left;
     }
 
     CiExpr ParseXorExpr() {
       CiExpr left = ParseAndExpr();
-      while (Eat(CiToken.Xor))
+      while (Eat(CiToken.Xor)) {
         left = new CiBinaryExpr(left, CiToken.Xor, ParseAndExpr());
+      }
+
       return left;
     }
 
     CiExpr ParseOrExpr() {
       CiExpr left = ParseXorExpr();
-      while (Eat(CiToken.Or))
+      while (Eat(CiToken.Or)) {
         left = new CiBinaryExpr(left, CiToken.Or, ParseXorExpr());
+      }
+
       return left;
     }
 
     CiExpr ParseCondAndExpr() {
       CiExpr left = ParseOrExpr();
-      while (Eat(CiToken.CondAnd))
+      while (Eat(CiToken.CondAnd)) {
         left = new CiBoolBinaryExpr(left, CiToken.CondAnd, ParseOrExpr());
+      }
+
       return left;
     }
 
     CiExpr ParseCondOrExpr() {
       CiExpr left = ParseCondAndExpr();
-      while (Eat(CiToken.CondOr))
+      while (Eat(CiToken.CondOr)) {
         left = new CiBoolBinaryExpr(left, CiToken.CondOr, ParseCondAndExpr());
+      }
+
       return left;
     }
 
@@ -358,8 +381,10 @@ namespace Foxoft.Ci {
 
     ICiStatement ParseExprWithSideEffect() {
       ICiStatement result = ParseMaybeAssign() as ICiStatement;
-      if (result == null)
+      if (result == null) {
         throw new ParseException(Here(), "Useless expression");
+      }
+
       return result;
     }
 
@@ -382,8 +407,10 @@ namespace Foxoft.Ci {
       CiVar def = new CiVar(Here(), null);
       def.Type = ParseType();
       def.Name = ParseId();
-      if (Eat(CiToken.Assign))
+      if (Eat(CiToken.Assign)) {
         def.InitialValue = ParseExpr();
+      }
+
       Expect(CiToken.Semicolon);
       this.Symbols.Add(def);
       return def;
@@ -426,13 +453,19 @@ namespace Foxoft.Ci {
         Expect(CiToken.LeftBrace);
         int level = 1;
         for (; ; ) {
-          if (See(CiToken.EndOfFile))
+          if (See(CiToken.EndOfFile)) {
             throw new ParseException(Here(), "Native block not terminated");
-          if (See(CiToken.LeftBrace))
+          }
+
+          if (See(CiToken.LeftBrace)) {
             level++;
-          else if (See(CiToken.RightBrace))
-            if (--level == 0)
+          }
+          else if (See(CiToken.RightBrace)) {
+            if (--level == 0) {
               break;
+            }
+          }
+
           NextToken();
         }
       }
@@ -469,37 +502,47 @@ namespace Foxoft.Ci {
           Expect(CiToken.Colon);
         }
         while (Eat(CiToken.Case));
-        if (See(CiToken.Default))
+        if (See(CiToken.Default)) {
           throw new ParseException(Here(), "Please remove case before default");
+        }
+
         CiCase kase = new CiCase { Values = values.ToArray() };
 
         List<ICiStatement> statements = new List<ICiStatement>();
-        do
+        do {
           statements.Add(ParseStatement());
+        }
         while (!See(CiToken.Case) && !See(CiToken.Default) && !See(CiToken.Goto) && !See(CiToken.RightBrace));
         kase.Body = statements.ToArray();
 
         if (Eat(CiToken.Goto)) {
-          if (Eat(CiToken.Case))
+          if (Eat(CiToken.Case)) {
             kase.FallthroughTo = ParseExpr();
-          else if (Eat(CiToken.Default))
+          }
+          else if (Eat(CiToken.Default)) {
             kase.FallthroughTo = null;
-          else
+          }
+          else {
             throw new ParseException(Here(), "Expected goto case or goto default");
+          }
+
           Expect(CiToken.Semicolon);
           kase.Fallthrough = true;
         }
         cases.Add(kase);
       }
-      if (cases.Count == 0)
+      if (cases.Count == 0) {
         throw new ParseException(Here(), "Switch with no cases");
+      }
+
       result.Cases = cases.ToArray();
 
       if (Eat(CiToken.Default)) {
         Expect(CiToken.Colon);
         List<ICiStatement> statements = new List<ICiStatement>();
-        do
+        do {
           statements.Add(ParseStatement());
+        }
         while (!See(CiToken.RightBrace));
         result.DefaultBody = statements.ToArray();
       }
@@ -554,8 +597,10 @@ namespace Foxoft.Ci {
         if (See(CiToken.Id)) {
           result.Init = ParseVarOrExpr();
         }
-        else
+        else {
           Expect(CiToken.Semicolon);
+        }
+
         if (!See(CiToken.Semicolon)) {
           result.Cond = ParseExpr();
         }
@@ -618,8 +663,10 @@ namespace Foxoft.Ci {
     }
 
     CiType ParseReturnType() {
-      if (Eat(CiToken.Void))
+      if (Eat(CiToken.Void)) {
         return CiType.Void;
+      }
+
       return ParseType();
     }
 
@@ -689,43 +736,56 @@ namespace Foxoft.Ci {
       while (!Eat(CiToken.RightBrace)) {
         CiCodeDoc doc = ParseDoc();
         CiVisibility visibility = CiVisibility.Private;
-        if (Eat(CiToken.Public))
+        if (Eat(CiToken.Public)) {
           visibility = CiVisibility.Public;
-        else if (Eat(CiToken.Internal))
+        }
+        else if (Eat(CiToken.Internal)) {
           visibility = CiVisibility.Internal;
+        }
+
         CiSymbol symbol;
         if (See(CiToken.Const)) {
           symbol = ParseConst();
           ((CiConst)symbol).Class = klass;
         }
         else if (Eat(CiToken.Macro)) {
-          if (visibility != CiVisibility.Private)
+          if (visibility != CiVisibility.Private) {
             throw new ParseException(Here(), "Macros must be private");
+          }
+
           symbol = ParseMacro();
         }
         else {
           CiCallType callType;
-          if (Eat(CiToken.Static))
+          if (Eat(CiToken.Static)) {
             callType = CiCallType.Static;
+          }
           else if (Eat(CiToken.Abstract)) {
-            if (!klass.IsAbstract)
+            if (!klass.IsAbstract) {
               throw new ParseException(Here(), "Abstract methods only allowed in abstract classes");
+            }
+
             callType = CiCallType.Abstract;
-            if (visibility == CiVisibility.Private)
+            if (visibility == CiVisibility.Private) {
               visibility = CiVisibility.Internal;
+            }
           }
           else if (Eat(CiToken.Virtual)) {
             callType = CiCallType.Virtual;
-            if (visibility == CiVisibility.Private)
+            if (visibility == CiVisibility.Private) {
               visibility = CiVisibility.Internal;
+            }
           }
           else if (Eat(CiToken.Override)) {
             callType = CiCallType.Override;
-            if (visibility == CiVisibility.Private)
+            if (visibility == CiVisibility.Private) {
               visibility = CiVisibility.Internal;
+            }
           }
-          else
+          else {
             callType = CiCallType.Normal;
+          }
+
           CiType type = ParseReturnType();
           if (type is CiClassStorageType && See(CiToken.LeftBrace)) {
             if (type.Name != klass.Name) {
@@ -750,10 +810,14 @@ namespace Foxoft.Ci {
             /*
               if (visibility != CiVisibility.Private) throw new ParseException(Here(), "Fields must be private");
               */
-            if (callType != CiCallType.Normal)
+            if (callType != CiCallType.Normal) {
               throw new ParseException(Here(), "Fields cannot be static, abstract, virtual or override");
-            if (type == CiType.Void)
+            }
+
+            if (type == CiType.Void) {
               throw new ParseException(Here(), "Field is void");
+            }
+
             Expect(CiToken.Semicolon);
             symbol = new CiField(Here(), name, klass, type, visibility);
           }

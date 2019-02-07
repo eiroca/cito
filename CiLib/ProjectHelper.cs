@@ -1,6 +1,6 @@
 // ProjectHelper.cs - Helper classes for project translation
 //
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -18,16 +18,14 @@
 // along with CiTo.  If not, see http://www.gnu.org/licenses/
 
 using System;
-using System.Linq;
-using System.Text;
-using System.IO;
-using System.Collections;
 using System.Collections.Generic;
-using Foxoft.Ci;
+using System.IO;
+using System.Linq;
 
 namespace Foxoft.Ci {
 
   public class GeneratorInfo {
+
     public string ID;
     public string Language;
     public string Extension;
@@ -44,6 +42,7 @@ namespace Foxoft.Ci {
   }
 
   public class GeneratorHelper {
+
     private static Dictionary<string, GeneratorInfo> Generators = new Dictionary<string, GeneratorInfo>();
 
     static GeneratorHelper() {
@@ -81,9 +80,11 @@ namespace Foxoft.Ci {
     public static GeneratorInfo[] GetGenerators() {
       return Generators.Select(x => x.Value).OrderBy(x => x.Extension).ToArray();
     }
+
   }
 
   public class ProjectFile {
+
     public string Path;
     public string Name;
     public string Code;
@@ -92,6 +93,7 @@ namespace Foxoft.Ci {
     public string GetDir() {
       return System.IO.Path.GetDirectoryName(Path);
     }
+
   }
 
   public class ProjectFiles {
@@ -150,7 +152,7 @@ namespace Foxoft.Ci {
             }
             ProjectFile file = new ProjectFile();
             file.Changed = false;
-            file.Path = path; 
+            file.Path = path;
             file.Name = System.IO.Path.GetFileName(file.Path);
             try {
               file.Code = System.IO.File.ReadAllText(file.Path);

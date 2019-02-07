@@ -1,7 +1,7 @@
 // CiResolver.cs - Ci symbol resolver
 //
 // Copyright (C) 2011-2014  Piotr Fusik
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -70,11 +70,14 @@ namespace Foxoft.Ci {
     string FindFile(string name) {
       foreach (string dir in this.SearchDirs) {
         string full = Path.Combine(dir, name);
-        if (File.Exists(full))
+        if (File.Exists(full)) {
           return full;
+        }
       }
-      if (File.Exists(name))
+      if (File.Exists(name)) {
         return name;
+      }
+
       throw new ResolveException(null, "File {0} not found", name);
     }
 
@@ -133,26 +136,33 @@ namespace Foxoft.Ci {
     }
 
     static bool Extends(CiType type, CiClass baseClass) {
-      if (!(type is CiClassType))
+      if (!(type is CiClassType)) {
         return false;
+      }
+
       CiClass klass = ((CiClassType)type).Class;
       while (klass != baseClass) {
         // TODO: resolve, make sure no loops
         klass = klass.BaseClass;
-        if (klass == null)
+        if (klass == null) {
           return false;
+        }
       }
       return true;
     }
 
     CiMaybeAssign Coerce(CiMaybeAssign expr, CiType expected) {
       CiType got = expr.Type;
-      if (expected.Equals(got))
+      if (expected.Equals(got)) {
         return expr;
+      }
+
       if (expected == CiIntType.Value && got == CiByteType.Value) {
         CiConstExpr konst = expr as CiConstExpr;
-        if (konst != null)
+        if (konst != null) {
           return new CiConstExpr((object)(int)(byte)konst.Value);
+        }
+
         CiCondExpr cond = expr as CiCondExpr;
         if (cond != null && (cond.OnTrue is CiConstExpr || cond.OnFalse is CiConstExpr)) {
           // avoid ((foo ? 1 : 0) & 0xff) in Java
@@ -160,15 +170,18 @@ namespace Foxoft.Ci {
         }
         if (expr is CiArrayAccess) {
           CiConstAccess ca = ((CiArrayAccess)expr).Array as CiConstAccess;
-          if (ca != null && ca.Const.Is7Bit)
+          if (ca != null && ca.Const.Is7Bit) {
             return expr;
+          }
         }
         return new CiCoercion { ResultType = expected, Inner = expr };
       }
       if (expected == CiByteType.Value && got == CiIntType.Value) {
         CiConstExpr konst = expr as CiConstExpr;
-        if (konst != null)
+        if (konst != null) {
           return new CiConstExpr((object)(byte)(int)konst.Value);
+        }
+
         return new CiCoercion { ResultType = expected, Inner = expr };
       }
       if (expected == CiFloatType.Value && got == CiIntType.Value) {
@@ -177,13 +190,19 @@ namespace Foxoft.Ci {
       if (expected == CiFloatType.Value && got == CiByteType.Value) {
         return new CiCoercion { ResultType = expected, Inner = expr };
       }
-      if (expected == CiStringPtrType.Value && (got == CiType.Null || got is CiStringType))
+      if (expected == CiStringPtrType.Value && (got == CiType.Null || got is CiStringType)) {
         return expr;
-      if (expected is CiStringStorageType && got is CiStringType)
+      }
+
+      if (expected is CiStringStorageType && got is CiStringType) {
         return expr;
+      }
+
       if (expected is CiClassType) {
-        if (got == CiType.Null)
+        if (got == CiType.Null) {
           return expr;
+        }
+
         if (Extends(got, ((CiClassType)expected).Class)) {
           if (expr is CiCondExpr) {
             // C doesn't like &(cond ? foo : bar)
@@ -193,11 +212,14 @@ namespace Foxoft.Ci {
         }
       }
       if (expected is CiArrayPtrType) {
-        if (got == CiType.Null)
+        if (got == CiType.Null) {
           return expr;
+        }
+
         CiArrayType gotArray = got as CiArrayType;
-        if (got != null && ((CiArrayPtrType)expected).ElementType.Equals(gotArray.ElementType))
+        if (got != null && ((CiArrayPtrType)expected).ElementType.Equals(gotArray.ElementType)) {
           return new CiCoercion { ResultType = expected, Inner = expr };
+        }
       }
       throw new ResolveException(null, "Expected {0}, got {1}", expected, got);
     }
@@ -209,32 +231,41 @@ namespace Foxoft.Ci {
     object ResolveConstExpr(CiExpr expr, CiType type) {
       expr = Coerce(Resolve(expr), type);
       CiConstExpr ce = expr as CiConstExpr;
-      if (ce == null)
+      if (ce == null) {
         throw new ResolveException(null, "{0} is not constant", expr);
+      }
+
       return ce.Value;
     }
 
     object ResolveConstInitializer(ref CiType type, object value) {
       if (type is CiArrayType) {
         object[] array = value as object[];
-        if (array == null)
+        if (array == null) {
           return value;
+        }
+
         CiType elementType = ((CiArrayType)type).ElementType;
         if (type is CiArrayStorageType) {
           int expected = ((CiArrayStorageType)type).Length;
-          if (array.Length != expected)
+          if (array.Length != expected) {
             throw new ResolveException(null, "Expected {0} array elements, got {1}", expected, array.Length);
+          }
         }
         else {
           type = new CiArrayStorageType(null, null, elementType, array.Length);
         }
         Array dest = Array.CreateInstance(elementType.DotNetType, array.Length);
-        for (int i = 0; i < array.Length; i++)
+        for (int i = 0; i < array.Length; i++) {
           dest.SetValue(ResolveConstInitializer(ref elementType, array[i]), i);
+        }
+
         return dest;
       }
-      if (value is CiExpr)
+      if (value is CiExpr) {
         return ResolveConstExpr((CiExpr)value, type);
+      }
+
       return value;
     }
 
@@ -242,28 +273,37 @@ namespace Foxoft.Ci {
     }
 
     static bool Is7Bit(byte[] bytes) {
-      foreach (byte b in bytes)
-        if ((b & ~0x7f) != 0)
+      foreach (byte b in bytes) {
+        if ((b & ~0x7f) != 0) {
           return false;
+        }
+      }
+
       return true;
     }
 
     void ICiSymbolVisitor.Visit(CiConst konst) {
-      if (konst.CurrentlyResolving)
+      if (konst.CurrentlyResolving) {
         throw new ResolveException(konst.Position, "Circular dependency for {0}", konst.Name);
+      }
+
       konst.CurrentlyResolving = true;
       konst.Type = Resolve(konst.Type);
       konst.Value = ResolveConstInitializer(ref konst.Type, konst.Value);
       byte[] bytes = konst.Value as byte[];
-      if (bytes != null)
+      if (bytes != null) {
         konst.Is7Bit = Is7Bit(bytes);
+      }
+
       konst.CurrentlyResolving = false;
     }
 
     static string GetConstString(CiExpr expr) {
       object o = ((CiConstExpr)expr).Value;
-      if (o is string || o is int || o is byte)
+      if (o is string || o is int || o is byte) {
         return Convert.ToString(o, CultureInfo.InvariantCulture);
+      }
+
       throw new ResolveException(null, "Cannot convert {0} to string", expr.Type);
     }
 
@@ -273,14 +313,20 @@ namespace Foxoft.Ci {
 
     void MarkWritable(CiExpr target) {
       for (; ; ) {
-        if (target is CiFieldAccess)
+        if (target is CiFieldAccess) {
           target = ((CiFieldAccess)target).Obj;
-        else if (target is CiArrayAccess)
+        }
+        else if (target is CiArrayAccess) {
           target = ((CiArrayAccess)target).Array;
-        else
+        }
+        else {
           break;
-        while (target is CiCoercion)
+        }
+
+        while (target is CiCoercion) {
           target = (CiExpr)((CiCoercion)target).Inner;
+        }
+
         ICiPtrType pt = target.Type as ICiPtrType;
         if (pt != null) {
           this.WritablePtrTypes.Add(pt);
@@ -291,8 +337,10 @@ namespace Foxoft.Ci {
 
     static void CheckCopyPtr(CiType target, CiMaybeAssign source) {
       ICiPtrType tp = target as ICiPtrType;
-      if (tp == null)
+      if (tp == null) {
         return;
+      }
+
       CiCondExpr cond = source as CiCondExpr;
       if (cond != null) {
         CheckCopyPtr(target, cond.OnTrue);
@@ -300,19 +348,24 @@ namespace Foxoft.Ci {
         return;
       }
       for (; ; ) {
-        while (source is CiCoercion)
+        while (source is CiCoercion) {
           source = ((CiCoercion)source).Inner;
+        }
+
         ICiPtrType sp = source.Type as ICiPtrType;
         if (sp != null) {
           tp.Sources.Add(sp);
           break;
         }
-        if (source is CiFieldAccess)
+        if (source is CiFieldAccess) {
           source = ((CiFieldAccess)source).Obj;
-        else if (source is CiArrayAccess)
+        }
+        else if (source is CiArrayAccess) {
           source = ((CiArrayAccess)source).Array;
-        else
+        }
+        else {
           break;
+        }
       }
     }
 
@@ -327,22 +380,28 @@ namespace Foxoft.Ci {
 
     CiSymbol Lookup(CiSymbolAccess expr) {
       CiSymbol symbol = expr.Symbol;
-      if (symbol is CiUnknownSymbol)
+      if (symbol is CiUnknownSymbol) {
         symbol = this.Symbols.Lookup((CiUnknownSymbol)symbol);
+      }
+
       return symbol;
     }
 
     CiExpr GetValue(CiConst konst) {
       ((ICiSymbolVisitor)this).Visit(konst);
-      if (konst.Type is CiArrayType)
+      if (konst.Type is CiArrayType) {
         return new CiConstAccess { Const = konst };
-      else
+      }
+      else {
         return new CiConstExpr(konst.Value);
+      }
     }
 
     CiFieldAccess CreateFieldAccess(CiExpr obj, CiField field) {
-      if (field.Class != this.CurrentClass && field.Visibility == CiVisibility.Private)
+      if (field.Class != this.CurrentClass && field.Visibility == CiVisibility.Private) {
         field.Visibility = CiVisibility.Internal;
+      }
+
       if (!(obj.Type is CiClassPtrType) || ((CiClassPtrType)obj.Type).Class != field.Class) {
         obj = Coerce(obj, new CiClassStorageType(null, null, field.Class));
       }
@@ -429,14 +488,17 @@ namespace Foxoft.Ci {
     CiExpr ICiExprVisitor.Visit(CiIndexAccess expr) {
       CiExpr parent = Resolve(expr.Parent);
       CiExpr index = Coerce(Resolve(expr.Index), CiIntType.Value);
-      if (parent.Type is CiArrayType)
+      if (parent.Type is CiArrayType) {
         return new CiArrayAccess { Array = parent, Index = index };
+      }
+
       if (parent.Type is CiStringType) {
         if (parent is CiConstExpr && index is CiConstExpr) {
           string s = (string)((CiConstExpr)parent).Value;
           int i = GetConstInt(index);
-          if (i < s.Length)
+          if (i < s.Length) {
             return new CiConstExpr((int)s[i]);
+          }
         }
         return new CiMethodCall { Method = CiLibrary.CharAtMethod, Obj = parent, Arguments = new CiExpr[1] { index } };
       }
@@ -445,8 +507,9 @@ namespace Foxoft.Ci {
 
     void ICiSymbolVisitor.Visit(CiDelegate del) {
       del.ReturnType = Resolve(del.ReturnType);
-      foreach (CiParam param in del.Params)
+      foreach (CiParam param in del.Params) {
         param.Type = Resolve(param.Type);
+      }
     }
 
     CiType ICiTypeVisitor.Visit(CiDelegate del) {
@@ -463,8 +526,9 @@ namespace Foxoft.Ci {
         CiMethod method = Lookup((CiSymbolAccess)expr.Obj) as CiMethod;
         if (method != null) {
           expr.Method = method;
-          if (method.CallType == CiCallType.Static)
+          if (method.CallType == CiCallType.Static) {
             expr.Obj = null;
+          }
           else {
             if (this.CurrentMethod.CallType == CiCallType.Static) {
               throw new ResolveException(this.CurrentMethod.Position, "Cannot call instance method from a static method");
@@ -484,8 +548,10 @@ namespace Foxoft.Ci {
             // Class.Foo(...)
             CiMethod method = klass.Members.Lookup(uma.Position, uma.Name) as CiMethod;
             if (method != null) {
-              if (method.CallType != CiCallType.Static)
+              if (method.CallType != CiCallType.Static) {
                 throw new ResolveException(method.Position, "{0} is a non-static method", method.Name);
+              }
+
               expr.Method = method;
               expr.Obj = null;
               return;
@@ -497,8 +563,10 @@ namespace Foxoft.Ci {
           CiMethod method = obj.Type.LookupMember(uma.Name) as CiMethod;
           if (method != null) {
             // obj.Foo(...)
-            if (method.CallType == CiCallType.Static)
+            if (method.CallType == CiCallType.Static) {
               throw new ResolveException(method.Position, "{0} is a static method", method.Name);
+            }
+
             if (method.This != null) {
               // user-defined method
               CheckCopyPtr(method.This.Type, obj);
@@ -522,8 +590,10 @@ namespace Foxoft.Ci {
     void CoerceArguments(CiMethodCall expr) {
       expr.Signature.Accept(this);
       CiParam[] paramz = expr.Signature.Params;
-      if (expr.Arguments.Length != paramz.Length)
+      if (expr.Arguments.Length != paramz.Length) {
         throw new ResolveException(null, "Invalid number of arguments for {0}, expected {1}, got {2}", expr.Signature.Name, paramz.Length, expr.Arguments.Length);
+      }
+
       for (int i = 0; i < paramz.Length; i++) {
         CiExpr arg = Resolve(expr.Arguments[i]);
         CheckCopyPtr(paramz[i].Type, arg);
@@ -679,21 +749,33 @@ namespace Foxoft.Ci {
     static CiType FindCommonType(CiExpr expr1, CiExpr expr2) {
       CiType type1 = expr1.Type;
       CiType type2 = expr2.Type;
-      if (type1.Equals(type2))
+      if (type1.Equals(type2)) {
         return type1;
+      }
+
       if ((type1 == CiIntType.Value && type2 == CiByteType.Value)
-          || (type1 == CiByteType.Value && type2 == CiIntType.Value))
+          || (type1 == CiByteType.Value && type2 == CiIntType.Value)) {
         return CiIntType.Value;
+      }
+
       CiType type = type1.Ptr;
-      if (type != null)
+      if (type != null) {
         return type; // stg, ptr || stg, null
+      }
+
       type = type2.Ptr;
-      if (type != null)
+      if (type != null) {
         return type; // ptr, stg || null, stg
-      if (type1 != CiType.Null)
+      }
+
+      if (type1 != CiType.Null) {
         return type1; // ptr, null
-      if (type2 != CiType.Null)
+      }
+
+      if (type2 != CiType.Null) {
         return type2; // null, ptr
+      }
+
       throw new ResolveException(expr1, "Incompatible types");
     }
 
@@ -796,8 +878,9 @@ namespace Foxoft.Ci {
 
     void CheckCreatable(CiType type) {
       CiClass storageClass = type.StorageClass;
-      if (storageClass != null && storageClass.IsAbstract)
+      if (storageClass != null && storageClass.IsAbstract) {
         throw new ResolveException(null, "Cannot create instances of an abstract class {0}", storageClass.Name);
+      }
     }
 
     CiExpr ICiExprVisitor.Visit(CiNewExpr expr) {
@@ -873,6 +956,11 @@ namespace Foxoft.Ci {
               throw new ResolveException(statement, "Int arrays can only be initialized with zero");
             }
           }
+          else if (type == CiFloatType.Value) {
+            if ((float)0 != (float)(ce.Value)) {
+              throw new ResolveException(statement, "Float arrays can only be initialized with zero");
+            }
+          }
           else {
             throw new ResolveException(statement, "Invalid array initializer");
           }
@@ -889,43 +977,56 @@ namespace Foxoft.Ci {
 
     void ICiStatementVisitor.Visit(CiAssign statement) {
       statement.Target = ResolveLValue(statement.Target);
-      if (statement.Target is CiVarAccess && ((CiVarAccess)statement.Target).Var == this.CurrentMethod.This)
+      if (statement.Target is CiVarAccess && ((CiVarAccess)statement.Target).Var == this.CurrentMethod.This) {
         throw new ResolveException(statement, "Cannot assign to this");
+      }
+
       CiMaybeAssign source = statement.Source;
-      if (source is CiAssign)
+      if (source is CiAssign) {
         Resolve((ICiStatement)source);
-      else
+      }
+      else {
         source = Resolve((CiExpr)source);
+      }
+
       CiType type = statement.Target.Type;
       CheckCopyPtr(type, source);
       statement.Source = Coerce(source, type);
       if (statement.Op != CiToken.Assign && type != CiIntType.Value && type != CiByteType.Value && type != CiFloatType.Value) {
         if (statement.Op == CiToken.AddAssign && type is CiStringStorageType && statement.Source.Type is CiStringType) {
         } // OK
-        else
+        else {
           throw new ResolveException(statement, "Invalid compound assignment");
+        }
       }
     }
 
     void ICiStatementVisitor.Visit(CiDelete statement) {
       statement.Expr = Resolve(statement.Expr);
       ICiPtrType type = statement.Expr.Type as ICiPtrType;
-      if (type == null)
+      if (type == null) {
         throw new ResolveException(statement, "'delete' takes a class or array pointer");
-      if (statement.Expr.HasSideEffect)
+      }
+
+      if (statement.Expr.HasSideEffect) {
         throw new ResolveException(statement, "Side effects not allowed in 'delete'");
+      }
+
       this.WritablePtrTypes.Add(type);
     }
 
     void ICiStatementVisitor.Visit(CiBreak statement) {
-      if (this.CurrentLoopOrSwitch == null)
+      if (this.CurrentLoopOrSwitch == null) {
         throw new ResolveException(statement, "break outside loop and switch");
+      }
+
       this.CurrentLoopOrSwitch.CompletesNormally = true;
     }
 
     void ICiStatementVisitor.Visit(CiContinue statement) {
-      if (this.CurrentLoop == null)
+      if (this.CurrentLoop == null) {
         throw new ResolveException(statement, "continue outside loop");
+      }
     }
 
     void ResolveLoop(CiLoop statement) {
@@ -947,10 +1048,14 @@ namespace Foxoft.Ci {
     }
 
     void ICiStatementVisitor.Visit(CiFor statement) {
-      if (statement.Init != null)
+      if (statement.Init != null) {
         Resolve(statement.Init);
-      if (statement.Advance != null)
+      }
+
+      if (statement.Advance != null) {
         Resolve(statement.Advance);
+      }
+
       ResolveLoop(statement);
     }
 
@@ -961,8 +1066,9 @@ namespace Foxoft.Ci {
         Resolve(statement.OnFalse);
         statement.CompletesNormally = statement.OnTrue.CompletesNormally || statement.OnFalse.CompletesNormally;
       }
-      else
+      else {
         statement.CompletesNormally = true;
+      }
     }
 
     void ICiStatementVisitor.Visit(CiNativeBlock statement) {
@@ -970,8 +1076,9 @@ namespace Foxoft.Ci {
 
     void ICiStatementVisitor.Visit(CiReturn statement) {
       CiType type = this.CurrentMethod.Signature.ReturnType;
-      if (type != CiType.Void)
+      if (type != CiType.Void) {
         statement.Value = Coerce(Resolve(statement.Value), type);
+      }
     }
 
     void ICiStatementVisitor.Visit(CiSwitch statement) {
@@ -985,38 +1092,50 @@ namespace Foxoft.Ci {
       foreach (CiCase kase in statement.Cases) {
         for (int i = 0; i < kase.Values.Length; i++) {
           kase.Values[i] = ResolveConstExpr((CiExpr)kase.Values[i], type);
-          if (!values.Add(kase.Values[i]))
+          if (!values.Add(kase.Values[i])) {
             throw new ResolveException(statement, "Duplicate case value");
+          }
         }
         if (fallthroughFrom != null) {
-          if (fallthroughFrom.FallthroughTo == null)
+          if (fallthroughFrom.FallthroughTo == null) {
             throw new ResolveException(statement, "goto default followed by case");
-          if (!ResolveConstExpr(fallthroughFrom.FallthroughTo, type).Equals(kase.Values[0]))
+          }
+
+          if (!ResolveConstExpr(fallthroughFrom.FallthroughTo, type).Equals(kase.Values[0])) {
             throw new ResolveException(statement, "goto case doesn't match the next case");
+          }
         }
         bool reachable = Resolve(kase.Body);
         if (kase.Fallthrough) {
-          if (!reachable)
+          if (!reachable) {
             throw new ResolveException(statement, "goto is not reachable");
+          }
+
           fallthroughFrom = kase;
         }
         else {
-          if (reachable)
+          if (reachable) {
             throw new ResolveException(statement, "case must end with break, return, throw or goto");
+          }
+
           fallthroughFrom = null;
         }
       }
 
       if (statement.DefaultBody != null) {
-        if (fallthroughFrom != null && fallthroughFrom.FallthroughTo != null)
+        if (fallthroughFrom != null && fallthroughFrom.FallthroughTo != null) {
           throw new ResolveException(statement, "goto case followed by default");
+        }
+
         bool reachable = Resolve(statement.DefaultBody);
-        if (reachable)
+        if (reachable) {
           throw new ResolveException(statement, "default must end with break, return, throw or goto");
+        }
       }
       else {
-        if (fallthroughFrom != null)
+        if (fallthroughFrom != null) {
           throw new ResolveException(statement, "goto cannot be the last statement in switch");
+        }
       }
 
       this.CurrentLoopOrSwitch = oldLoopOrSwitch;
@@ -1040,8 +1159,9 @@ namespace Foxoft.Ci {
       Resolve(method.Signature);
       if (method.CallType != CiCallType.Abstract) {
         Resolve(method.Body);
-        if (method.Signature.ReturnType != CiType.Void && method.Body.CompletesNormally)
+        if (method.Signature.ReturnType != CiType.Void && method.Body.CompletesNormally) {
           throw new ResolveException(method, "Method can complete without a return value");
+        }
       }
       this.CurrentMethod = null;
     }
@@ -1056,10 +1176,14 @@ namespace Foxoft.Ci {
     void ICiSymbolVisitor.Visit(CiClass klass) {
       this.CurrentClass = klass;
       this.Symbols = klass.Members;
-      if (klass.Constructor != null)
+      if (klass.Constructor != null) {
         klass.Constructor.Accept(this);
-      foreach (CiSymbol member in klass.Members)
+      }
+
+      foreach (CiSymbol member in klass.Members) {
         member.Accept(this);
+      }
+
       klass.BinaryResources = this.BinaryResources.Values.ToArray();
       this.BinaryResources.Clear();
       this.Symbols = this.Symbols.Parent;
@@ -1115,43 +1239,53 @@ namespace Foxoft.Ci {
 
     static void MarkDead(CiClass klass) {
       foreach (CiSymbol member in klass.Members) {
-        if (member is CiMethod)
+        if (member is CiMethod) {
           MarkDead((CiMethod)member);
+        }
       }
     }
 
     static void MarkInternal(CiMethod method) {
-      if (method.Visibility == CiVisibility.Private && method.CalledBy.Any(caller => caller.Class != method.Class))
+      if (method.Visibility == CiVisibility.Private && method.CalledBy.Any(caller => caller.Class != method.Class)) {
         method.Visibility = CiVisibility.Internal;
+      }
     }
 
     static void MarkInternal(CiClass klass) {
       foreach (CiSymbol member in klass.Members) {
-        if (member is CiMethod)
+        if (member is CiMethod) {
           MarkInternal((CiMethod)member);
+        }
       }
     }
 
     public void Resolve(CiProgram program) {
       this.Symbols = program.Globals;
       foreach (CiSymbol symbol in program.Globals) {
-        if (symbol is CiClass)
+        if (symbol is CiClass) {
           ResolveBase((CiClass)symbol);
+        }
       }
-      foreach (CiSymbol symbol in program.Globals)
+      foreach (CiSymbol symbol in program.Globals) {
         symbol.Accept(this);
+      }
+
       foreach (ICiPtrType type in this.WritablePtrTypes) {
         MarkWritable(null, type);
       }
-      foreach (CiMethod method in this.ThrowingMethods)
+      foreach (CiMethod method in this.ThrowingMethods) {
         MarkThrows(method);
+      }
+
       foreach (CiSymbol symbol in program.Globals) {
-        if (symbol is CiClass)
+        if (symbol is CiClass) {
           MarkDead((CiClass)symbol);
+        }
       }
       foreach (CiSymbol symbol in program.Globals) {
-        if (symbol is CiClass)
+        if (symbol is CiClass) {
           MarkInternal((CiClass)symbol);
+        }
       }
     }
   }

@@ -1,7 +1,7 @@
 // GenJs.cs - JavaScript code generator
 //
 // Copyright (C) 2011-2014  Piotr Fusik
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -25,6 +25,7 @@ using System.Text;
 namespace Foxoft.Ci {
 
   public class GenJs : CiGenerator {
+
     CiClass CurrentClass;
 
     public GenJs(string aNamespace) : this() {
@@ -72,13 +73,10 @@ namespace Foxoft.Ci {
     }
 
     protected override void WriteDocCode(CiCodeDoc doc) {
-      if (doc == null)
+      if (doc == null) {
         return;
+      }
       // TODO
-    }
-
-    public override String FormatFloat(float f) {
-      return f.ToString();
     }
 
     public override void WriteNew(CiType type) {
@@ -280,8 +278,9 @@ namespace Foxoft.Ci {
         Write(DecodeSymbol(param));
       }
       Write(") ");
-      if (method.Body is CiBlock)
+      if (method.Body is CiBlock) {
         Translate(method.Body);
+      }
       else {
         OpenBlock();
         Translate(method.Body);
@@ -363,8 +362,9 @@ namespace Foxoft.Ci {
       Write(stmt.Name);
       WriteInit(stmt.Type);
       if (stmt.InitialValue != null) {
-        if (stmt.Type is CiArrayStorageType)
+        if (stmt.Type is CiArrayStorageType) {
           WriteInitArrayStorageVar(stmt);
+        }
         else {
           Write(" = ");
           Translate(stmt.InitialValue);

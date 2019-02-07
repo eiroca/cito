@@ -1,7 +1,7 @@
 // GenAs.cs - ActionScript code generator
 //
 // Copyright (C) 2011-2014  Piotr Fusik
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -100,7 +100,16 @@ namespace Foxoft.Ci {
     }
 
     public override String FormatFloat(float f) {
-      return f.ToString();
+      String sf = f.ToString();
+      if (sf.Contains("E")) {
+        return sf;
+      }
+
+      if (sf.Contains(".")) {
+        return sf;
+      }
+
+      return sf + ".";
     }
 
     public override bool WriteInit(CiType type) {
@@ -164,6 +173,12 @@ namespace Foxoft.Ci {
         UseFunction("ClearBytes");
       }
       else if (array.ElementType == CiIntType.Value) {
+        Write("clearArray(");
+        Translate(expr);
+        Write(", 0)");
+        UseFunction("Clear");
+      }
+      else if (array.ElementType == CiFloatType.Value) {
         Write("clearArray(");
         Translate(expr);
         Write(", 0)");
@@ -368,8 +383,10 @@ namespace Foxoft.Ci {
           qual = "static";
           break;
         case CiCallType.Normal:
-          if (method.Visibility != CiVisibility.Private)
+          if (method.Visibility != CiVisibility.Private) {
             qual = "final";
+          }
+
           break;
         case CiCallType.Override:
           qual = "override";

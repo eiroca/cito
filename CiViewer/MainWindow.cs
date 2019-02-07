@@ -1,6 +1,6 @@
 // MainWindow.cs - CiViewer main window
 //
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -21,17 +21,17 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
+using Foxoft.Ci;
 using Gtk;
 using Pango;
-using Foxoft.Ci;
 
-public partial class MainWindow: Gtk.Window {
+public partial class MainWindow : Gtk.Window {
   protected ProjectFiles Project = new ProjectFiles();
   //
   private static Gdk.Atom _atom = Gdk.Atom.Intern("CLIPBOARD", false);
   private Gtk.Clipboard _clipBoard = Gtk.Clipboard.Get(_atom);
   private bool InUpdate = false;
-  private static Gtk.TargetEntry[] target_table = new TargetEntry [] { new TargetEntry("text/uri-list", 0, 0) };
+  private static Gtk.TargetEntry[] target_table = new TargetEntry[] { new TargetEntry("text/uri-list", 0, 0) };
 
   public MainWindow() : base(Gtk.WindowType.Toplevel) {
     Build();

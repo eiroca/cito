@@ -1,7 +1,7 @@
 // GenPerl58.cs - Perl 5.8- code generator
 //
 // Copyright (C) 2013  Piotr Fusik
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -18,7 +18,6 @@
 // You should have received a copy of the GNU General Public License
 // along with CiTo.  If not, see http://www.gnu.org/licenses/
 
-using System;
 using System.Diagnostics;
 using System.Linq;
 

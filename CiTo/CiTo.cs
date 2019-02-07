@@ -1,7 +1,7 @@
 // CiTo.cs - Ci translator
 //
 // Copyright (C) 2011-2013  Piotr Fusik
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -22,13 +22,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("CiTo")]
 [assembly: AssemblyDescription("Ci Translator")]
 namespace Foxoft.Ci {
 
   public sealed class CiTo {
+
+    static GeneratorInfo[] gens = GeneratorHelper.GetGenerators();
+
     CiTo() {
     }
 
@@ -47,8 +49,6 @@ namespace Foxoft.Ci {
       }
     }
 
-    static GeneratorInfo[] gens = GeneratorHelper.GetGenerators();
-
     public static int Main(string[] args) {
       HashSet<string> preSymbols = new HashSet<string>();
       preSymbols.Add("true");
@@ -66,7 +66,7 @@ namespace Foxoft.Ci {
               return 0;
             case "--version":
               string me = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
-              string ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(); 
+              string ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
               Console.WriteLine(me + " " + ver);
               return 0;
             case "-l":
@@ -154,5 +154,7 @@ namespace Foxoft.Ci {
       gen.WriteProgram(program);
       return 0;
     }
+
   }
+
 }

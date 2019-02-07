@@ -1,6 +1,6 @@
 // GenPas.cs - ObjectPascal code generator
 //
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -18,11 +18,10 @@
 // along with CiTo.  If not, see http://www.gnu.org/licenses/
 
 using System;
-using System.Linq;
-using System.Text;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text;
 
 namespace Foxoft.Ci {
 
@@ -243,6 +242,13 @@ namespace Foxoft.Ci {
       return new TypeInfo(type, "integer", "0");
     }
 
+    public TypeInfo Type_CiFloatType(CiType type) {
+      if (type.ArrayLevel > 0) {
+        throw new ArgumentException("Invalid level in type :" + type);
+      }
+      return new TypeInfo(type, "single", "0.0");
+    }
+
     public TypeInfo Type_CiStringPtrType(CiType type) {
       UseFunction("Unit_StrUtils");
       if (type.ArrayLevel > 0) {
@@ -338,10 +344,6 @@ namespace Foxoft.Ci {
       return info;
     }
     #endregion
-
-    public override String FormatFloat(float f) {
-      return f.ToString();
-    }
 
     public override void InitOperators() {
       BinaryOperators.Declare(CiToken.Plus, CiPriority.Additive, true, ConvertOperator, " + ");
@@ -1206,21 +1208,25 @@ namespace Foxoft.Ci {
     public void EmitHelperFunctions() {
       SetMark(HelperMark);
       if (IsUsedFunction("__CDEC_Pre")) {
+        WriteLine("function  __CDEC_Pre (var x: single): integer; overload; inline; begin x:= x-1; Result:= x; end;");
         WriteLine("function  __CDEC_Pre (var x: integer): integer; overload; inline; begin dec(x); Result:= x; end;");
         WriteLine("function  __CDEC_Pre (var x: byte): byte; overload; inline; begin dec(x); Result:= x; end;");
         hasHelper = true;
       }
       if (IsUsedFunction("__CDEC_Post")) {
+        WriteLine("function  __CDEC_Post(var x: single): integer; overload; inline; begin Result:= x; x:= x-1; end;");
         WriteLine("function  __CDEC_Post(var x: integer): integer; overload; inline; begin Result:= x; dec(x); end;");
         WriteLine("function  __CDEC_Post(var x: byte): byte; overload; inline; begin Result:= x; dec(x); end;");
         hasHelper = true;
       }
       if (IsUsedFunction("__CINC_Pre")) {
+        WriteLine("function  __CINC_Pre (var x: single): integer; overload; inline; begin x:= x+1; Result:= x; end;");
         WriteLine("function  __CINC_Pre (var x: integer): integer; overload; inline; begin inc(x); Result:= x; end;");
         WriteLine("function  __CINC_Pre (var x: byte): byte; overload; inline; begin inc(x); Result:= x; end;");
         hasHelper = true;
       }
       if (IsUsedFunction("__CINC_Post")) {
+        WriteLine("function  __CINC_Post(var x: single): integer; overload; inline; begin Result:= x; x:= x+1; end;");
         WriteLine("function  __CINC_Post(var x: integer): integer; overload; inline; begin Result:= x; inc(x); end;");
         WriteLine("function  __CINC_Post(var x: byte): byte; overload; inline; begin Result:= x; inc(x); end;");
         hasHelper = true;
@@ -2088,10 +2094,12 @@ namespace Foxoft.Ci {
     }
 
     void WriteInline(CiMaybeAssign expr) {
-      if (expr is CiExpr)
+      if (expr is CiExpr) {
         Translate((CiExpr)expr);
-      else
+      }
+      else {
         Statement_CiAssign((CiAssign)expr);
+      }
     }
 
     #region BreakTracker

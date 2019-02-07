@@ -1,7 +1,7 @@
 // CiDocParser.cs - Ci documentation parser
 //
 // Copyright (C) 2011  Piotr Fusik
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -40,7 +40,10 @@ namespace Foxoft.Ci {
     }
 
     void Expect(CiDocToken expected) {
-      if (!See(expected)) throw new ParseException(this.ciLexer.Here(), "Expected {0}, got {1}", expected, this.CurrentToken);
+      if (!See(expected)) {
+        throw new ParseException(this.ciLexer.Here(), "Expected {0}, got {1}", expected, this.CurrentToken);
+      }
+
       NextToken();
     }
 
@@ -50,13 +53,16 @@ namespace Foxoft.Ci {
         sb.Append((char)this.CurrentChar);
         NextToken();
       }
-      if (sb.Length > 0 && sb[sb.Length - 1] == CiLexer.SPECIAL_CR) sb.Length--;
+      if (sb.Length > 0 && sb[sb.Length - 1] == CiLexer.SPECIAL_CR) {
+        sb.Length--;
+      }
+
       return sb.ToString();
     }
 
     CiDocPara ParsePara() {
       List<CiDocInline> children = new List<CiDocInline>();
-      for (;;) {
+      for (; ; ) {
         if (See(CiDocToken.Char)) {
           children.Add(new CiDocText(ParseText()));
         }
@@ -64,7 +70,9 @@ namespace Foxoft.Ci {
           children.Add(new CiDocCode(ParseText()));
           Expect(CiDocToken.CodeDelimiter);
         }
-        else break;
+        else {
+          break;
+        }
       }
       return new CiDocPara(children.ToArray());
     }
@@ -72,7 +80,9 @@ namespace Foxoft.Ci {
     CiDocBlock ParseBlock() {
       if (Eat(CiDocToken.Bullet)) {
         List<CiDocPara> items = new List<CiDocPara>();
-        do items.Add(ParsePara());
+        do {
+          items.Add(ParsePara());
+        }
         while (Eat(CiDocToken.Bullet));
         Eat(CiDocToken.Para);
         return new CiDocList(items.ToArray());
@@ -84,7 +94,9 @@ namespace Foxoft.Ci {
       CiDocPara summary = ParsePara();
       List<CiDocBlock> details = new List<CiDocBlock>();
       if (Eat(CiDocToken.Period)) {
-        while (!See(CiDocToken.EndOfFile)) details.Add(ParseBlock());
+        while (!See(CiDocToken.EndOfFile)) {
+          details.Add(ParseBlock());
+        }
       }
       return new CiCodeDoc(summary, details.ToArray());
     }

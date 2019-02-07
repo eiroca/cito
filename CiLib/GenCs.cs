@@ -1,7 +1,7 @@
 // GenCs.cs - C# code generator
 //
 // Copyright (C) 2011-2013  Piotr Fusik
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -300,10 +300,11 @@ namespace Foxoft.Ci {
     }
 
     public override void Library_Clear(CiMethodCall expr) {
+      CiArrayStorageType arr = (CiArrayStorageType)expr.Obj.Type;
       Write("System.Array.Clear(");
       Translate(expr.Obj);
       Write(", 0, ");
-      Write(((CiArrayStorageType)expr.Obj.Type).Length);
+      Write(arr.Length);
       Write(')');
     }
     #endregion

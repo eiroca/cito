@@ -1,7 +1,7 @@
 // GenD.cs - D code generator
 //
 // Copyright (C) 2011-2014  Adrian Matoga
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -24,6 +24,7 @@ using System.Text;
 namespace Foxoft.Ci {
 
   public class GenD : CiGenerator {
+
     protected CiClass CurrentClass;
 
     public GenD(string aNamespace) : this() {
@@ -78,8 +79,8 @@ namespace Foxoft.Ci {
       string res = "";
       switch (visibility) {
         case CiVisibility.Dead:
-          // TODO: if it isn't called anywhere in known sources, maybe
-          // it should be marked as "export"?
+        // TODO: if it isn't called anywhere in known sources, maybe
+        // it should be marked as "export"?
         case CiVisibility.Private:
           res = "private";
           break;
@@ -148,7 +149,10 @@ namespace Foxoft.Ci {
                   break;
               }
             }
-            else Write(c);
+            else {
+              Write(c);
+            }
+
             break;
         }
       }
@@ -377,7 +381,10 @@ namespace Foxoft.Ci {
           Write("static ");
           break;
         case CiCallType.Normal:
-          if (method.Visibility != CiVisibility.Private) Write("final ");
+          if (method.Visibility != CiVisibility.Private) {
+            Write("final ");
+          }
+
           break;
         case CiCallType.Abstract:
           Write("abstract ");
@@ -430,7 +437,7 @@ namespace Foxoft.Ci {
             WriteInit(field.Type);
             WriteLine(";");
           }
-        } 
+        }
         if (klass.Constructor != null) {
           WriteCode(((CiBlock)klass.Constructor.Body).Statements);
         }

@@ -1,6 +1,6 @@
 // GenPHP.cs - PHP code generator
 //
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -19,8 +19,6 @@
 
 using System;
 using System.Text;
-using System.Collections;
-using System.Collections.Generic;
 
 namespace Foxoft.Ci {
 
@@ -84,7 +82,7 @@ namespace Foxoft.Ci {
       CiCoercion expr = (CiCoercion)expression;
       if (expr.ResultType == CiByteType.Value && expr.Inner.Type == CiIntType.Value) {
         Write("");
-        WriteChild(expr, (CiExpr)expr.Inner); 
+        WriteChild(expr, (CiExpr)expr.Inner);
       }
       else {
         WriteInline(expr.Inner);
@@ -417,7 +415,7 @@ namespace Foxoft.Ci {
       base.WriteBanner();
     }
 
-    protected override void  WriteFooter() {
+    protected override void WriteFooter() {
       WriteLine("?>");
     }
 

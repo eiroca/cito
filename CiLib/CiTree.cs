@@ -579,12 +579,16 @@ namespace Foxoft.Ci {
     public override CiSymbol LookupMember(string name) {
       switch (name) {
         case "CopyTo":
-          if (this.ElementType == CiByteType.Value)
+          if (this.ElementType == CiByteType.Value) {
             return CiLibrary.ArrayCopyToMethod;
+          }
+
           throw new ParseException(Position, "CopyTo available only for byte arrays");
         case "ToString":
-          if (this.ElementType == CiByteType.Value)
+          if (this.ElementType == CiByteType.Value) {
             return CiLibrary.ArrayToStringMethod;
+          }
+
           throw new ParseException(Position, "ToString available only for byte arrays");
         default:
           throw new ParseException(Position, "No member {0} in array", name);
@@ -652,9 +656,11 @@ namespace Foxoft.Ci {
     public override CiSymbol LookupMember(string name) {
       switch (name) {
         case "Clear":
-          if (this.ElementType == CiByteType.Value || this.ElementType == CiIntType.Value)
+          if (this.ElementType == CiByteType.Value || this.ElementType == CiIntType.Value || this.ElementType == CiFloatType.Value) {
             return CiLibrary.ArrayStorageClearMethod;
-          throw new ParseException(Position, "Clear available only for byte and int arrays");
+          }
+
+          throw new ParseException(Position, "Clear available only for byte, int and float arrays");
         case "Length":
           return new CiConst(null, null, CiIntType.Value, this.Length);
         default:
@@ -836,20 +842,34 @@ namespace Foxoft.Ci {
 
     public override CiType Type {
       get {
-        if (this.Value is bool)
+        if (this.Value is bool) {
           return CiBoolType.Value;
-        if (this.Value is byte)
+        }
+
+        if (this.Value is byte) {
           return CiByteType.Value;
-        if (this.Value is int)
+        }
+
+        if (this.Value is int) {
           return CiIntType.Value;
-        if (this.Value is float)
+        }
+
+        if (this.Value is float) {
           return CiFloatType.Value;
-        if (this.Value is string)
+        }
+
+        if (this.Value is string) {
           return CiStringPtrType.Value;
-        if (this.Value is CiEnumValue)
+        }
+
+        if (this.Value is CiEnumValue) {
           return ((CiEnumValue)this.Value).Type;
-        if (this.Value == null)
+        }
+
+        if (this.Value == null) {
           return CiType.Null;
+        }
+
         throw new NotImplementedException();
       }
     }

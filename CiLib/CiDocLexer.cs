@@ -1,7 +1,7 @@
 // CiDocLexer.cs - Ci documentation lexer
 //
 // Copyright (C) 2011  Piotr Fusik
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -47,13 +47,16 @@ namespace Foxoft.Ci {
 
     int ReadChar() {
       int c = this.ciLexer.ReadChar();
-      if (c == CiLexer.SPECIAL_CR && this.ciLexer.NextToken() != CiToken.DocComment) return -1;
+      if (c == CiLexer.SPECIAL_CR && this.ciLexer.NextToken() != CiToken.DocComment) {
+        return -1;
+      }
+
       return c;
     }
 
     CiDocToken ReadToken() {
       int lastChar = this.CurrentChar;
-      for (;;) {
+      for (; ; ) {
         int c = ReadChar();
         this.CurrentChar = c;
         switch (c) {
@@ -72,7 +75,10 @@ namespace Foxoft.Ci {
               this.CheckPeriod = false;
               return CiDocToken.Period;
             }
-            if (lastChar == CiLexer.SPECIAL_CR) return CiDocToken.Para;
+            if (lastChar == CiLexer.SPECIAL_CR) {
+              return CiDocToken.Para;
+            }
+
             return CiDocToken.Char;
           default:
             return CiDocToken.Char;

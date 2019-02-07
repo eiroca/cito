@@ -203,7 +203,7 @@ namespace Foxoft.Ci {
       }
       catch (Exception ex) {
         this.Messages.BackColor = Color.LightCoral;
-        this.Messages.Text = ex.Message;
+        this.Messages.Text = ex.ToString();
       }
     }
 

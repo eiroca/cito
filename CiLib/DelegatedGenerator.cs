@@ -1,6 +1,5 @@
 // DelegatedGenerator.cs - Base class for delegate-approach generators
 //
-// Copyright (C) 2013  Enrico Croce
 // Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
@@ -19,12 +18,9 @@
 // along with CiTo.  If not, see http://www.gnu.org/licenses/
 
 using System;
-using System.IO;
-using System.Text;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Globalization;
+using System.Text;
 
 namespace Foxoft.Ci {
 
@@ -414,6 +410,7 @@ namespace Foxoft.Ci {
       SetTypeTranslator(typeof(CiBoolType));
       SetTypeTranslator(typeof(CiByteType));
       SetTypeTranslator(typeof(CiIntType));
+      SetTypeTranslator(typeof(CiFloatType));
       SetTypeTranslator(typeof(CiStringPtrType));
       SetTypeTranslator(typeof(CiStringStorageType));
       SetTypeTranslator(typeof(CiClassPtrType));
@@ -1025,7 +1022,16 @@ namespace Foxoft.Ci {
     protected Dictionary<char, string> Decode_SPECIALCHAR = new Dictionary<char, string>();
 
     public virtual String FormatFloat(float f) {
-      return f.ToString(CultureInfo.InvariantCulture);
+      String sf = f.ToString();
+      if (sf.Contains("E")) {
+        return sf;
+      }
+
+      if (sf.Contains(".")) {
+        return sf;
+      }
+
+      return sf + ".0";
     }
 
     public virtual string DecodeValue(CiType type, object value) {
@@ -1039,7 +1045,7 @@ namespace Foxoft.Ci {
       else if (value is int) {
         res.Append((int)value);
       }
-      else if (value is int) {
+      else if (value is float) {
         res.Append(FormatFloat((float)value));
       }
       else if (value is string) {

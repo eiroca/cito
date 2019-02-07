@@ -1,7 +1,7 @@
 // SourceGenerator.cs - base class for code generators
 //
 // Copyright (C) 2011-2013  Piotr Fusik
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -19,14 +19,10 @@
 // along with CiTo.  If not, see http://www.gnu.org/licenses/
 
 using System;
-using System.IO;
-using System.Text;
-using System.Collections;
-using System.Collections.Generic;
 
 namespace Foxoft.Ci {
 
-  public  class CiGenerator : DelegateGenerator {
+  public class CiGenerator : DelegateGenerator {
     protected bool OrderClass = false;
     protected bool ForceBraceForSingleStatement = false;
 
@@ -119,7 +115,7 @@ namespace Foxoft.Ci {
     }
 
     public virtual TypeInfo Type_CiFloatType(CiType type) {
-      return new TypeInfo(type, "flaot", "0.0");
+      return new TypeInfo(type, "float", "0.0");
     }
 
     public virtual TypeInfo Type_CiStringPtrType(CiType type) {
@@ -622,7 +618,7 @@ namespace Foxoft.Ci {
       Write(".MulDiv(");
       WriteChild(CiPriority.Multiplicative, expr.Arguments[0]);
       Write(", ");
-      WriteChild(CiPriority.Multiplicative, expr.Arguments[1], true);  
+      WriteChild(CiPriority.Multiplicative, expr.Arguments[1], true);
       Write(")");
     }
 

@@ -1,7 +1,7 @@
 // GenJava.cs - Java code generator
 //
 // Copyright (C) 2011-2014  Piotr Fusik
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -24,6 +24,7 @@ using System.IO;
 namespace Foxoft.Ci {
 
   public class GenJava : CiGenerator {
+
     public GenJava(string aNamespace) : this() {
       SetNamespace(aNamespace);
     }
@@ -188,7 +189,10 @@ namespace Foxoft.Ci {
           qual = "static ";
           break;
         case CiCallType.Normal:
-          if (method.Visibility != CiVisibility.Private) qual = "final ";
+          if (method.Visibility != CiVisibility.Private) {
+            qual = "final ";
+          }
+
           break;
         case CiCallType.Abstract:
           qual = "abstract ";
@@ -225,6 +229,9 @@ namespace Foxoft.Ci {
       }
       if (IsUsedFunction("ClearIntsMethod")) {
         EmitClearMethod("int");
+      }
+      if (IsUsedFunction("ClearFloatsMethod")) {
+        EmitClearMethod("float");
       }
       if (klass.BinaryResources.Length > 0) {
         EmitGetBinaryResource(klass);
@@ -432,7 +439,12 @@ namespace Foxoft.Ci {
       if (type == CiByteType.Value) {
         UseFunction("ClearBytesMethod");
       }
-      else if (type == CiIntType.Value) UseFunction("ClearIntsMethod");
+      else if (type == CiIntType.Value) {
+        UseFunction("ClearIntsMethod");
+      }
+      else if (type == CiFloatType.Value) {
+        UseFunction("ClearFloatsMethod");
+      }
       else {
         throw new ArgumentException(type.Name);
       }

@@ -1,7 +1,7 @@
 // GenJsWithTypedArrays.cs - JavaScript with Typed Arrays code generator
 //
 // Copyright (C) 2011-2013  Piotr Fusik
-// Copyright (C) 2013-2014  Enrico Croce
+// Copyright (C) 2013-2019  Enrico Croce
 //
 // This file is part of CiTo, see http://cito.sourceforge.net
 //
@@ -21,6 +21,7 @@
 namespace Foxoft.Ci {
 
   public class GenJsWithTypedArrays : GenJs {
+
     public override void WriteNew(CiType type) {
       CiArrayStorageType arrayType = type as CiArrayStorageType;
       if (arrayType != null) {
